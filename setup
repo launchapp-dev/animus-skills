@@ -68,32 +68,66 @@ if [[ "${HOSTS[0]}" == "all" ]]; then
 fi
 
 # ---------- 3. Install skills into each host ----------
-host_dest() {
+# Hosts discover skills FLAT at <host-skills-dir>/<skill-name>/SKILL.md.
+# This repo nests them at skills/<skill-name>/SKILL.md, so we symlink each
+# skill individually rather than the repo root.
+host_skills_dir() {
   case "$1" in
-    claude|claude-code) echo "$HOME/.claude/skills/animus-skills" ;;
-    codex)              echo "$HOME/.codex/skills/animus-skills" ;;
-    opencode)           echo "$HOME/.config/opencode/skills/animus-skills" ;;
-    cursor)             echo "$HOME/.cursor/skills/animus-skills" ;;
-    slate)              echo "$HOME/.slate/skills/animus-skills" ;;
-    kiro)               echo "$HOME/.kiro/skills/animus-skills" ;;
+    claude|claude-code) echo "$HOME/.claude/skills" ;;
+    codex)              echo "$HOME/.codex/skills" ;;
+    opencode)           echo "$HOME/.config/opencode/skills" ;;
+    cursor)             echo "$HOME/.cursor/skills" ;;
+    slate)              echo "$HOME/.slate/skills" ;;
+    kiro)               echo "$HOME/.kiro/skills" ;;
     *)                  echo ""; return 1 ;;
   esac
 }
 
 for host in "${HOSTS[@]}"; do
-  dest="$(host_dest "$host")" || { echo "✗ unknown host: $host" >&2; continue; }
-  mkdir -p "$(dirname "$dest")"
-  if [[ -L "$dest" || -e "$dest" ]]; then
-    target="$(readlink "$dest" 2>/dev/null || echo "")"
-    if [[ "$target" == "$SRC" ]]; then
-      echo "✓ $host: already linked → $dest"
+  host_dir="$(host_skills_dir "$host")" || { echo "✗ unknown host: $host" >&2; continue; }
+  mkdir -p "$host_dir"
+
+  # Clean up any stale whole-repo symlink at $host_dir/animus-skills (broken layout)
+  legacy="$host_dir/animus-skills"
+  if [[ -L "$legacy" ]]; then
+    legacy_target="$(readlink "$legacy")"
+    if [[ "$legacy_target" == "$SRC" ]]; then
+      rm "$legacy"
+      echo "→ $host: removed legacy whole-repo symlink at $legacy"
+    fi
+  fi
+
+  linked=0; skipped=0
+  for skill_path in "$SRC/skills"/*/; do
+    skill="$(basename "$skill_path")"
+    dest="$host_dir/$skill"
+    if [[ -L "$dest" ]]; then
+      cur="$(readlink "$dest")"
+      if [[ "$cur" == "${skill_path%/}" ]]; then
+        ((linked++)) || true
+        continue
+      fi
+      # Resolve both ends to absolute paths so different paths to the same
+      # SKILL.md (e.g. two clones) are treated as already-installed rather than
+      # a conflict.
+      if [[ -f "$cur/SKILL.md" ]] && [[ -f "${skill_path%/}/SKILL.md" ]]; then
+        echo "  ✓ $host/$skill: already linked (different source: $cur)"
+        ((linked++)) || true
+        continue
+      fi
+      echo "  ⚠ $host/$skill: symlink target invalid ($cur), leaving alone"
+      ((skipped++)) || true
       continue
     fi
-    echo "✗ $host: $dest already exists and points elsewhere; skipping"
-    continue
-  fi
-  ln -s "$SRC" "$dest"
-  echo "✓ $host: linked $SRC → $dest"
+    if [[ -e "$dest" ]]; then
+      echo "  ⚠ $host/$skill: already exists (not a symlink), leaving alone"
+      ((skipped++)) || true
+      continue
+    fi
+    ln -s "${skill_path%/}" "$dest"
+    ((linked++)) || true
+  done
+  echo "✓ $host: $linked skill(s) linked into $host_dir${skipped:+, $skipped skipped}"
 done
 
 # ---------- 4. Optional: write .mcp.json for the current project ----------

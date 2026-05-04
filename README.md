@@ -29,7 +29,7 @@ cd ~/animus-skills && ./setup            # auto-detects installed hosts
 
 The script:
 1. Installs the `animus` CLI to `~/.local/bin/animus` if it's not already on `PATH`.
-2. Symlinks this repo into the host's skill directory (e.g. `~/.claude/skills/animus-skills`, `~/.codex/skills/animus-skills`).
+2. Symlinks each skill into the host's skill directory (e.g. `~/.claude/skills/<skill-name>`, `~/.codex/skills/<skill-name>`). Hosts discover skills flat as `<host-skills-dir>/<name>/SKILL.md`, so the script links one level down rather than the whole repo.
 3. Writes a project-local `.mcp.json` exposing the `animus` MCP server (skipped if one already exists or you pass `--no-mcp`).
 
 ### Claude Code marketplace (alternative)
