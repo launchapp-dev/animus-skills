@@ -8,14 +8,14 @@ A skill bundle for using [Animus](https://github.com/launchapp-dev/animus-cli) �
 
 Paste this into a fresh Claude Code (or Codex / OpenCode / Cursor) session. The agent does the rest — clones the repo, installs the `animus` CLI, links the skills into the host's skill directory, and writes `.mcp.json` if you're inside a project:
 
-> Install Animus + Animus Skills: run **`git clone --single-branch --depth 1 https://github.com/samishukri/animus-skills.git ~/.claude/skills/animus-skills && cd ~/.claude/skills/animus-skills && ./setup`**, then add an "Animus" section to CLAUDE.md (or AGENTS.md for Codex) listing the available skills: `/setup-animus`, `/getting-started`, `/mcp-setup`, `/workflow-authoring`, `/pack-authoring`, `/skill-authoring`, `/troubleshooting`. Restart the agent so the new MCP server (`animus`) is picked up.
+> Install Animus + Animus Skills: run **`git clone --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git ~/.claude/skills/animus-skills && cd ~/.claude/skills/animus-skills && ./setup`**, then add an "Animus" section to CLAUDE.md (or AGENTS.md for Codex) listing the available skills: `/setup-animus`, `/getting-started`, `/mcp-setup`, `/workflow-authoring`, `/pack-authoring`, `/skill-authoring`, `/troubleshooting`. Restart the agent so the new MCP server (`animus`) is picked up.
 
 For Codex CLI, swap the clone path to `~/.codex/skills/animus-skills` and AGENTS.md instead of CLAUDE.md.
 
 ### Power user — explicit script
 
 ```bash
-git clone https://github.com/samishukri/animus-skills.git ~/animus-skills
+git clone https://github.com/launchapp-dev/animus-skills.git ~/animus-skills
 cd ~/animus-skills && ./setup            # auto-detects installed hosts
 ```
 
@@ -35,7 +35,7 @@ The script:
 ### Claude Code marketplace (alternative)
 
 ```bash
-/plugin marketplace add samishukri/animus-skills
+/plugin marketplace add launchapp-dev/animus-skills
 ```
 
 This skips the CLI install and MCP wiring — pair it with a manual `curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash` if you don't already have `animus`.
