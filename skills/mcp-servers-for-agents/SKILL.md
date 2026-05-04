@@ -5,9 +5,9 @@ user_invocable: false
 auto_invoke: true
 ---
 
-# MCP Servers for AO Agents
+# MCP Servers for Animus Agents
 
-AO agents can connect to external MCP servers beyond the built-in `ao` server. This gives agents access to documentation lookup, package version checking, structured reasoning, persistent memory, and GitHub operations.
+Animus agents can connect to external MCP servers beyond the built-in `animus` server. This gives agents access to documentation lookup, package version checking, structured reasoning, persistent memory, and GitHub operations.
 
 ## Configuring MCP Servers
 
@@ -37,11 +37,11 @@ mcp_servers:
 ```yaml
 agents:
   implementer:
-    mcp_servers: ["ao", "context7"]
+    mcp_servers: ["animus", "context7"]
   researcher:
-    mcp_servers: ["ao", "context7", "package-version", "memory"]
+    mcp_servers: ["animus", "context7", "package-version", "memory"]
   reviewer:
-    mcp_servers: ["ao", "github", "sequential-thinking"]
+    mcp_servers: ["animus", "github", "sequential-thinking"]
 ```
 
 Agents only get access to the servers listed in their `mcp_servers` array.
@@ -114,7 +114,7 @@ Structured GitHub operations as MCP tools.
 ## Agent ↔ Server Matrix
 
 ```
-                    ao  ctx7  pkg-ver  seq-think  memory  github
+                    animus  ctx7  pkg-ver  seq-think  memory  github
 planner             x                                x      x
 implementer         x    x
 reviewer            x                     x                x

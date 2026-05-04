@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# animus-skills setup — install Animus CLI + Animus Skills for one or more AI agent hosts.
+#
+# Usage:
+#   ./setup                        # auto-detect installed hosts (defaults to claude if none)
+#   ./setup --host claude          # Claude Code
+#   ./setup --host codex           # OpenAI Codex CLI
+#   ./setup --host opencode        # OpenCode
+#   ./setup --host cursor          # Cursor
+#   ./setup --host slate           # Slate
+#   ./setup --host kiro            # Kiro
+#   ./setup --host all             # install for every detected host
+#   ./setup --no-cli               # skip animus CLI install (use existing binary)
+#   ./setup --no-mcp               # skip writing .mcp.json into the current project
+
+set -euo pipefail
+
+SRC="$(cd "$(dirname "$0")" && pwd)"
+HOSTS=()
+INSTALL_CLI=1
+WRITE_MCP=1
+
+while (("$#")); do
+  case "$1" in
+    --host)
+      HOSTS+=("$2"); shift 2;;
+    --host=*)
+      HOSTS+=("${1#*=}"); shift;;
+    --no-cli)
+      INSTALL_CLI=0; shift;;
+    --no-mcp)
+      WRITE_MCP=0; shift;;
+    -h|--help)
+      sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    *)
+      echo "unknown arg: $1" >&2; exit 2;;
+  esac
+done
+
+# ---------- 1. Install Animus CLI ----------
+if [[ $INSTALL_CLI -eq 1 ]]; then
+  if command -v animus >/dev/null 2>&1; then
+    echo "✓ animus already installed: $(command -v animus) ($(animus --version 2>/dev/null | head -1))"
+  else
+    echo "→ installing animus CLI..."
+    curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+fi
+
+# ---------- 2. Resolve host list ----------
+if [[ ${#HOSTS[@]} -eq 0 ]] || [[ "${HOSTS[0]:-}" == "auto" ]]; then
+  HOSTS=()
+  command -v claude    >/dev/null 2>&1 && HOSTS+=("claude")
+  command -v codex     >/dev/null 2>&1 && HOSTS+=("codex")
+  command -v opencode  >/dev/null 2>&1 && HOSTS+=("opencode")
+  command -v cursor    >/dev/null 2>&1 && HOSTS+=("cursor")
+  command -v slate     >/dev/null 2>&1 && HOSTS+=("slate")
+  command -v kiro      >/dev/null 2>&1 && HOSTS+=("kiro")
+  if [[ ${#HOSTS[@]} -eq 0 ]]; then
+    echo "→ no agent CLI detected on PATH; defaulting to claude"
+    HOSTS=("claude")
+  fi
+fi
+
+if [[ "${HOSTS[0]}" == "all" ]]; then
+  HOSTS=(claude codex opencode cursor slate kiro)
+fi
+
+# ---------- 3. Install skills into each host ----------
+host_dest() {
+  case "$1" in
+    claude|claude-code) echo "$HOME/.claude/skills/animus-skills" ;;
+    codex)              echo "$HOME/.codex/skills/animus-skills" ;;
+    opencode)           echo "$HOME/.config/opencode/skills/animus-skills" ;;
+    cursor)             echo "$HOME/.cursor/skills/animus-skills" ;;
+    slate)              echo "$HOME/.slate/skills/animus-skills" ;;
+    kiro)               echo "$HOME/.kiro/skills/animus-skills" ;;
+    *)                  echo ""; return 1 ;;
+  esac
+}
+
+for host in "${HOSTS[@]}"; do
+  dest="$(host_dest "$host")" || { echo "✗ unknown host: $host" >&2; continue; }
+  mkdir -p "$(dirname "$dest")"
+  if [[ -L "$dest" || -e "$dest" ]]; then
+    target="$(readlink "$dest" 2>/dev/null || echo "")"
+    if [[ "$target" == "$SRC" ]]; then
+      echo "✓ $host: already linked → $dest"
+      continue
+    fi
+    echo "✗ $host: $dest already exists and points elsewhere; skipping"
+    continue
+  fi
+  ln -s "$SRC" "$dest"
+  echo "✓ $host: linked $SRC → $dest"
+done
+
+# ---------- 4. Optional: write .mcp.json for the current project ----------
+if [[ $WRITE_MCP -eq 1 ]] && [[ -d ".git" ]] && [[ "$(pwd)" != "$SRC" ]]; then
+  if [[ -e ".mcp.json" ]]; then
+    echo "→ .mcp.json already exists in $(pwd) — leaving it alone"
+  else
+    cat > .mcp.json <<'JSON'
+{
+  "mcpServers": {
+    "animus": {
+      "command": "animus",
+      "args": ["--project-root", ".", "mcp", "serve"]
+    }
+  }
+}
+JSON
+    echo "✓ wrote .mcp.json (animus MCP server) into $(pwd)"
+  fi
+fi
+
+# ---------- 5. Final report ----------
+echo ""
+echo "Animus + Animus Skills setup complete."
+echo "  Hosts:  ${HOSTS[*]}"
+echo "  CLI:    $(command -v animus 2>/dev/null || echo '[install pending]')"
+echo ""
+echo "Next:"
+echo "  1. Restart your agent (e.g. Claude Code, Codex)."
+echo "  2. From a project root, run /setup-animus to scaffold .ao/ and your first workflow."
+echo "  3. Verify MCP: ask the agent to call animus.daemon.status."

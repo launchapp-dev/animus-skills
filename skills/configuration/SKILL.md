@@ -1,17 +1,17 @@
 ---
 name: configuration
-description: AO project config, daemon config, agent runtime, environment variables, and state layout
+description: Animus project config, daemon config, agent runtime, environment variables, and state layout
 user_invocable: false
 auto_invoke: true
 ---
 
-# AO Configuration
+# Animus Configuration
 
-AO has three main configuration layers: project-local `.ao/`, repo-scoped runtime state under `~/.ao/<repo-scope>/`, and global machine config.
+Animus has three main configuration layers: project-local `.ao/`, repo-scoped runtime state under `~/.ao/<repo-scope>/`, and global machine config.
 
 ## Project-Local `.ao/`
 
-Created by `ao setup`. This is the project-authored configuration surface.
+Created by `animus setup`. This is the project-authored configuration surface.
 
 Common files:
 - `.ao/config.json`
@@ -25,18 +25,18 @@ Managed via CLI and MCP. Do not hand-edit generated JSON.
 
 ### Read Config
 ```bash
-ao daemon config
+animus daemon config
 ```
-MCP: `ao.daemon.config`
+MCP: `animus.daemon.config`
 
 ### Update Config
 ```bash
-ao daemon config --auto-merge true
-ao daemon config --auto-pr true
-ao daemon config --auto-commit-before-merge true
-ao daemon config --pool-size 3 --auto-run-ready true
+animus daemon config --auto-merge true
+animus daemon config --auto-pr true
+animus daemon config --auto-commit-before-merge true
+animus daemon config --pool-size 3 --auto-run-ready true
 ```
-MCP: `ao.daemon.config-set`
+MCP: `animus.daemon.config-set`
 
 ## Workflow Config
 
@@ -48,9 +48,9 @@ Source locations:
 
 Useful commands:
 ```bash
-ao workflow config get
-ao workflow config validate
-ao workflow config compile
+animus workflow config get
+animus workflow config validate
+animus workflow config compile
 ```
 
 ## Agent Runtime Config
@@ -111,7 +111,7 @@ This ensures multiple projects don't collide in runtime state.
 For model/tool selection:
 1. Phase-level `runtime.model` override (in workflow YAML)
 2. Agent profile `model`/`tool` (in agent-runtime-config)
-3. Compiled defaults in the AO binary
+3. Compiled defaults in the Animus binary
 
 For workflow resolution:
 1. `.ao/workflows.yaml`

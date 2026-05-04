@@ -1,13 +1,13 @@
 ---
 name: getting-started
-description: Install AO, create first task, run first workflow — core concepts and project structure
+description: Install Animus, create first task, run first workflow — core concepts and project structure
 user_invocable: true
 auto_invoke: true
 ---
 
-# Getting Started with AO
+# Getting Started with Animus
 
-AO is a Rust-based agent orchestrator that manages autonomous software development workflows. It coordinates AI agents (Claude, Codex, Gemini) to implement tasks, run tests, create PRs, and review code.
+Animus is a Rust-based agent orchestrator that manages autonomous software development workflows. It coordinates AI agents (Claude, Codex, Gemini) to implement tasks, run tests, create PRs, and review code.
 
 ## Prerequisites
 
@@ -18,22 +18,27 @@ AO is a Rust-based agent orchestrator that manages autonomous software developme
 ## Install
 
 ```bash
-# From a local source checkout
-cd /path/to/ao-cli
-cargo install --path crates/orchestrator-cli --bin ao
+# Recommended — upstream installer (puts `animus` on PATH at ~/.local/bin/animus)
+curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
 ```
 
-Verify: `ao --version`
+```bash
+# From a local source checkout
+cd /path/to/animus-cli
+cargo install --path crates/orchestrator-cli --bin animus
+```
+
+Verify: `which animus && animus --version`
 
 ## Initialize a Project
 
 ```bash
 cd /path/to/your/project
-ao setup
+animus setup
 ```
 
 This creates:
-- `.ao/config.json` — project-level AO config
+- `.ao/config.json` — project-level Animus config
 - `.ao/pm-config.json` — project daemon config
 - `.ao/workflows.yaml` and `.ao/workflows/` — workflow sources
 
@@ -43,9 +48,9 @@ This creates:
 Units of work. Each task has an ID (TASK-001), title, status, priority, and type.
 
 ```bash
-ao task create --title "Add user authentication" --priority high --task-type feature
-ao task list --status ready
-ao task status --id TASK-001 --status in-progress
+animus task create --title "Add user authentication" --priority high --task-type feature
+animus task list --status ready
+animus task status --id TASK-001 --status in-progress
 ```
 
 ### Workflows
@@ -59,57 +64,57 @@ Multi-phase pipelines that execute tasks. A typical workflow:
 Background process that continuously dispatches workflows from a queue.
 
 ```bash
-ao daemon start --autonomous --auto-run-ready true --pool-size 3
-ao daemon health
-ao daemon stream --pretty
-ao daemon stop
+animus daemon start --autonomous --auto-run-ready true --pool-size 3
+animus daemon health
+animus daemon stream --pretty
+animus daemon stop
 ```
 
 ### Queue
 Tasks are enqueued for the daemon to dispatch.
 
 ```bash
-ao queue enqueue --task-id TASK-001
-ao queue list
-ao queue stats
+animus queue enqueue --task-id TASK-001
+animus queue list
+animus queue stats
 ```
 
 ## First Workflow
 
 ```bash
 # Create a task
-ao task create --title "Add health check endpoint" --priority high --task-type feature
+animus task create --title "Add health check endpoint" --priority high --task-type feature
 
 # Enqueue it
-ao queue enqueue --task-id TASK-001
+animus queue enqueue --task-id TASK-001
 
 # Start the daemon
-ao daemon start --autonomous --auto-run-ready true --pool-size 2
+animus daemon start --autonomous --auto-run-ready true --pool-size 2
 
 # Watch it work
-ao daemon health
-ao queue list
-ao daemon stream --pretty
+animus daemon health
+animus queue list
+animus daemon stream --pretty
 ```
 
 ## MCP Integration
 
-AO exposes all operations as MCP tools. When running inside Claude Code or any MCP-aware AI:
+Animus exposes all operations as MCP tools. When running inside Claude Code or any MCP-aware AI:
 
 ```
-ao.task.create    — create tasks
-ao.task.list      — list tasks by status
-ao.queue.enqueue  — add work to the dispatch queue
-ao.daemon.health  — check daemon status
-ao.workflow.run   — trigger a workflow manually
-ao.output.tail    — read agent output
+animus.task.create    — create tasks
+animus.task.list      — list tasks by status
+animus.queue.enqueue  — add work to the dispatch queue
+animus.daemon.health  — check daemon status
+animus.workflow.run   — trigger a workflow manually
+animus.output.tail    — read agent output
 ```
 
 For live CLI-side observability outside MCP, use:
 
 ```bash
-ao daemon stream --pretty
-ao output monitor --run-id <run-id>
+animus daemon stream --pretty
+animus output monitor --run-id <run-id>
 ```
 
 ## Project Structure

@@ -8,8 +8,8 @@ Use `phase_mcp_bindings` when a phase should attach extra MCP servers even if th
 
 ```yaml
 mcp_servers:
-  ao:
-    command: ao
+  animus:
+    command: animus
     args: ["mcp", "serve"]
   memory:
     command: npx
@@ -18,7 +18,7 @@ mcp_servers:
 phase_mcp_bindings:
   research:
     servers:
-      - ao
+      - animus
       - memory
 ```
 
@@ -26,7 +26,7 @@ Every referenced server must exist under `mcp_servers:`.
 
 ## Tool registry
 
-Use `tools:` to register tool metadata AO can reason about.
+Use `tools:` to register tool metadata Animus can reason about.
 
 ```yaml
 tools:
@@ -85,7 +85,7 @@ Common patterns:
 
 ## Triggers
 
-AO also supports event-driven triggers.
+Animus also supports event-driven triggers.
 
 ```yaml
 triggers:

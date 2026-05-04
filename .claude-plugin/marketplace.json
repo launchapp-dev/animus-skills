@@ -1,12 +1,12 @@
 {
-  "name": "ao-skills",
+  "name": "animus-skills",
   "owner": {
     "name": "launchapp.dev"
   },
   "plugins": [
     {
-      "name": "ao-skills",
-      "description": "Skills for using AO — an autonomous agent orchestrator for software development workflows",
+      "name": "animus-skills",
+      "description": "Skills for using Animus — an autonomous agent orchestrator for software development workflows",
       "version": "1.0.0",
       "source": "./"
     }

@@ -1,8 +1,8 @@
 {
-  "name": "ao-skills",
+  "name": "animus-skills",
   "version": "1.0.0",
-  "description": "Skills for using AO — an autonomous agent orchestrator for software development workflows",
+  "description": "Skills for using Animus — an autonomous agent orchestrator for software development workflows",
   "author": { "name": "launchapp.dev" },
-  "homepage": "https://github.com/launchapp-dev/ao-skills",
+  "homepage": "https://github.com/samishukri/animus-skills",
   "skills_path": "skills"
 }

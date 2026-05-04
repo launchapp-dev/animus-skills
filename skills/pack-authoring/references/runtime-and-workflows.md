@@ -47,8 +47,7 @@ phases:
 
 ```yaml
 tools_allowlist:
-  - ao
-  - gh
+  - animus  - gh
   - pnpm
 
 agents:
@@ -57,7 +56,7 @@ agents:
     system_prompt: |
       You are a code analyzer. Inspect the codebase and report issues.
     role: reviewer
-    mcp_servers: ["ao"]
+    mcp_servers: ["animus"]
     tool_policy:
       allow:
         - task.*
@@ -77,7 +76,7 @@ phases:
   my-analysis:
     mode: agent
     agent_id: my-analyzer
-    directive: Analyze the codebase and report findings via AO MCP.
+    directive: Analyze the codebase and report findings via Animus MCP.
     capabilities:
       mutates_state: true
     runtime:

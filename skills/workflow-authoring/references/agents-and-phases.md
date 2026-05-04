@@ -27,7 +27,7 @@ agents:
     models:
       - primary
       - secondary
-    mcp_servers: ["ao", "context7"]
+    mcp_servers: ["animus", "context7"]
 ```
 
 The top-level `models:` registry lets agents reference named model entries instead of repeating full model/tool pairs. The first named model becomes the primary model and the rest become fallbacks.
@@ -61,9 +61,9 @@ The top-level `models:` registry lets agents reference named model entries inste
 
 ### Model routing notes
 
-- `tool_profile` is a Claude-only account routing hook resolved from global AO config.
+- `tool_profile` is a Claude-only account routing hook resolved from global Animus config.
 - `fallback_models` and `fallback_tools` can be set directly on the agent or in phase `runtime:`.
-- If an agent uses `models:`, AO compiles that list into a primary model plus fallbacks.
+- If an agent uses `models:`, Animus compiles that list into a primary model plus fallbacks.
 
 ### Tool options
 

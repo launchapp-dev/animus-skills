@@ -1,15 +1,15 @@
 ---
-name: setup-ao
-description: Set up AO in the current project - initialize config, connect MCP, create a first workflow, and start the daemon. Use when bootstrapping AO in a repo or fixing an incomplete AO setup.
+name: setup-animus
+description: Set up Animus in the current project - initialize config, connect MCP, create a first workflow, and start the daemon. Use when bootstrapping Animus in a repo or fixing an incomplete Animus setup.
 user_invocable: true
 auto_invoke: false
 ---
 
-You are setting up AO in the current project.
+You are setting up Animus in the current project.
 
-Do not preload the entire `~/ao-skills/skills/` directory. Start with targeted reads:
+Do not preload the entire `~/animus-skills/skills/` directory. Start with targeted reads:
 
-- Read [getting-started](../getting-started/SKILL.md) first for the core AO mental model.
+- Read [getting-started](../getting-started/SKILL.md) first for the core Animus mental model.
 - Read [mcp-setup](../mcp-setup/SKILL.md) only when creating or fixing `.mcp.json`.
 - Read [workflow-authoring](../workflow-authoring/SKILL.md) only when editing `.ao/workflows.yaml` or `.ao/workflows/*.yaml`.
 - Read [daemon-operations](../daemon-operations/SKILL.md) only when starting, checking, or debugging the daemon.
@@ -18,8 +18,8 @@ Do not preload the entire `~/ao-skills/skills/` directory. Start with targeted r
 
 ## Setup flow
 
-1. Run `ao setup` in the project root to initialize `.ao/`.
-2. Create `.mcp.json` pointing to the `ao` binary.
+1. Run `animus setup` in the project root to initialize `.ao/`.
+2. Create `.mcp.json` pointing to the `animus` binary.
 3. Create a minimal workflow file.
 4. Start the daemon with conservative defaults.
 5. Create one small test task and verify end-to-end execution.
@@ -53,15 +53,15 @@ Expand it only after the daemon, MCP, and task loop work.
 Start with:
 
 ```bash
-ao daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
-ao daemon health
+animus daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
+animus daemon health
 ```
 
 ## Verification
 
-- Run `ao daemon status` or the MCP equivalent.
-- Create a small task with `ao task create`.
-- Enqueue it with `ao queue enqueue`.
+- Run `animus daemon status` or the MCP equivalent.
+- Create a small task with `animus task create`.
+- Enqueue it with `animus queue enqueue`.
 - Confirm the daemon picks it up before adding more workflows or schedules.
 
 If something fails, read only the skill that matches the blocker instead of sweeping the whole repo.

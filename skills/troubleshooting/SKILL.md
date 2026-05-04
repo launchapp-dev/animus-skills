@@ -1,40 +1,40 @@
 ---
 name: troubleshooting
-description: Common AO issues and fixes — daemon crashes, workflow failures, queue problems, merge conflicts
+description: Common Animus issues and fixes — daemon crashes, workflow failures, queue problems, merge conflicts
 user_invocable: true
 auto_invoke: true
 ---
 
-# Troubleshooting AO
+# Troubleshooting Animus
 
 Start with:
 
 ```bash
-ao doctor
+animus doctor
 ```
 
 ## Daemon Won't Start
 
 ### "daemon already running"
 ```bash
-ao daemon health    # check if actually alive
-ao daemon stop      # try graceful stop
+animus daemon health    # check if actually alive
+animus daemon stop      # try graceful stop
 # If it still exits unexpectedly, run in the foreground:
-ao daemon run
+animus daemon run
 ```
 
 ### Daemon Crashes Immediately
 Check the log:
 
 ```bash
-ao daemon logs --limit 50
-ao daemon stream --level error --pretty
+animus daemon logs --limit 50
+animus daemon stream --level error --pretty
 ```
 
 Common causes:
 - **Disk full**: worktrees and build artifacts accumulate. Run `cargo clean` or add a cleanup phase.
 - **Lock contention**: another process holds the daemon lock.
-- **Config error**: invalid workflow YAML. Run `ao workflow config validate`.
+- **Config error**: invalid workflow YAML. Run `animus workflow config validate`.
 
 ## Workflows Fail Immediately (Cancelled in <5 seconds)
 
@@ -43,7 +43,7 @@ When the daemon is started from inside Claude Code, it inherits session env vars
 
 **Fix**: Build from latest (commit 47d0d192+) which strips these at spawn points. Or:
 ```bash
-env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN ao daemon start --autonomous ...
+env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN animus daemon start --autonomous ...
 ```
 
 ### Pool Exhaustion
@@ -51,17 +51,17 @@ If `pool_size` is too small, cron workflows get cancelled when they can't get a 
 
 **Fix**: Increase pool_size. Rule of thumb: `pool_size >= concurrent_crons + 2`.
 ```bash
-ao daemon start --autonomous --pool-size 5 ...
+animus daemon start --autonomous --pool-size 5 ...
 ```
 
 ### "failed to connect runner"
 The agent-runner process isn't responding. Usually means it crashed.
 ```bash
-ao runner health
-ao runner orphans detect
-ao daemon stream --cat llm --level warn --pretty
-ao daemon stop
-ao daemon start --autonomous
+animus runner health
+animus runner orphans detect
+animus daemon stream --cat llm --level warn --pretty
+animus daemon stop
+animus daemon start --autonomous
 ```
 
 ## Workflows Fail at Implementation Phase
@@ -71,7 +71,7 @@ The agent didn't write any code. Check the task description — it might be too 
 
 **Fix**: Update the task with more specific requirements:
 ```bash
-ao task update --id TASK-XXX --description "Specific implementation details..."
+animus task update --id TASK-XXX --description "Specific implementation details..."
 ```
 
 ### "missing required field 'commit_message'"
@@ -85,32 +85,32 @@ The implementation phase contract requires a commit. The agent either didn't com
 Entries stuck as `assigned` with no running workflow. Happens when daemon restarts mid-workflow.
 
 ```bash
-ao queue list              # identify stale entries
-ao queue drop --subject-id TASK-XXX    # remove them
+animus queue list              # identify stale entries
+animus queue drop --subject-id TASK-XXX    # remove them
 ```
 
 ### Queue Not Filling
 If queue stays empty:
 
-1. Check if there are ready tasks: `ao task list --status ready`
-2. Enqueue a task manually: `ao queue enqueue --task-id TASK-XXX`
-3. Check daemon health: `ao daemon health`
-4. Inspect recent workflows: `ao workflow list --limit 5`
-5. Follow scheduler logs: `ao daemon stream --cat schedule --pretty`
+1. Check if there are ready tasks: `animus task list --status ready`
+2. Enqueue a task manually: `animus queue enqueue --task-id TASK-XXX`
+3. Check daemon health: `animus daemon health`
+4. Inspect recent workflows: `animus workflow list --limit 5`
+5. Follow scheduler logs: `animus daemon stream --cat schedule --pretty`
 
 ## Task State Issues
 
 ### Tasks Stuck as "blocked"
 ```bash
-ao task list --status blocked
-ao task get --id TASK-XXX
-ao task status --id TASK-XXX --status ready    # force unblock
+animus task list --status blocked
+animus task get --id TASK-XXX
+animus task status --id TASK-XXX --status ready    # force unblock
 ```
 
 ### Tasks Stuck as "in-progress"
 No active workflow but task is still in-progress:
 ```bash
-ao task status --id TASK-XXX --status ready    # reset to ready
+animus task status --id TASK-XXX --status ready    # reset to ready
 ```
 
 Then verify the queue and workflow state before re-enqueueing.
@@ -119,40 +119,40 @@ Then verify the queue and workflow state before re-enqueueing.
 
 ### Watch All New Structured Logs
 ```bash
-ao daemon stream --pretty
+animus daemon stream --pretty
 ```
 
 ### Focus On Scheduler Or Phase Problems
 ```bash
-ao daemon stream --cat schedule --level warn --pretty
-ao daemon stream --cat phase --level warn --pretty
+animus daemon stream --cat schedule --level warn --pretty
+animus daemon stream --cat phase --level warn --pretty
 ```
 
 ### Focus On One Workflow Or Run
 ```bash
-ao daemon stream --workflow wf-abc123 --tail 100 --pretty
-ao daemon stream --run run-xyz789 --tail 100 --pretty
+animus daemon stream --workflow wf-abc123 --tail 100 --pretty
+animus daemon stream --run run-xyz789 --tail 100 --pretty
 ```
 
 ### Compare Live Logs With Run Output
 Use:
-- `ao daemon stream` when you need cross-cutting operational logs
-- `ao output monitor --run-id <id>` when you need the live stdout/stderr stream for a single run
-- `ao output run --run-id <id>` when the run already finished
+- `animus daemon stream` when you need cross-cutting operational logs
+- `animus output monitor --run-id <id>` when you need the live stdout/stderr stream for a single run
+- `animus output run --run-id <id>` when the run already finished
 
 ## PR Issues
 
 ### PRs Not Getting Merged
 Check recent workflow state and daemon config:
 ```bash
-ao workflow list --limit 5
-ao daemon config
+animus workflow list --limit 5
+animus daemon config
 ```
 
 If merges depend on a review phase in your workflow, inspect that phase output with:
 
 ```bash
-ao output phase-outputs --workflow-id WF-XXX
+animus output phase-outputs --workflow-id WF-XXX
 ```
 
 ### Merge Conflicts
@@ -167,8 +167,8 @@ The pr-reviewer should skip conflicted PRs. Rebase manually or create a task to 
 
 ### Too Many agent-runner Processes
 ```bash
-ao runner orphans detect
-ao runner restart-stats
+animus runner orphans detect
+animus runner restart-stats
 ```
 
 ## State Location Reference
@@ -238,9 +238,9 @@ Changes to `.ao/workflows.yaml` or `.ao/workflows/*.yaml` are not picked up by a
 
 **Fix:** Validate, then restart:
 ```bash
-ao workflow config validate
-ao daemon stop
-ao daemon start --autonomous --auto-run-ready true --pool-size 3
+animus workflow config validate
+animus daemon stop
+animus daemon start --autonomous --auto-run-ready true --pool-size 3
 ```
 
 ## Tasks Stuck in Infinite Retry Loop
@@ -250,7 +250,7 @@ If a task keeps blocking and the planner/reconciler keeps re-enqueuing it, it ca
 **Detection:** Task version number is very high (>10) and status cycles between ready → blocked.
 
 **Fixes:**
-1. Check `ao.output.tail --task-id TASK-XXX` for the actual error
+1. Check `animus.output.tail --task-id TASK-XXX` for the actual error
 2. Check the worktree: `git -C <worktree_path> log --oneline -3`
 3. If the code is committed but push fails: manually push and create PR
 4. If the task is fundamentally stuck: cancel it and create a better-scoped replacement
@@ -270,5 +270,5 @@ Multiple agents running in parallel will conflict on shared files (especially `p
 If the daemon's `auto_merge` is `true`, it merges PRs without code review. Set both to `false` and let the pr-review phase handle merging:
 
 ```bash
-ao daemon config --auto-merge false --auto-pr false
+animus daemon config --auto-merge false --auto-pr false
 ```

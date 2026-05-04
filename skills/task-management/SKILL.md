@@ -20,8 +20,8 @@ backlog/todo/ready/in-progress → cancelled
 
 ### Create
 ```bash
-ao task create --title "Fix login bug" --priority critical --task-type bugfix
-ao task create --title "Add dark mode" --priority medium --task-type feature --description "Support system theme preference"
+animus task create --title "Fix login bug" --priority critical --task-type bugfix
+animus task create --title "Add dark mode" --priority medium --task-type feature --description "Support system theme preference"
 ```
 
 Options:
@@ -33,92 +33,92 @@ Options:
 
 ### List and Filter
 ```bash
-ao task list                          # all tasks
-ao task list --status ready           # ready tasks only
-ao task list --status blocked         # blocked tasks
-ao task list --task-type bugfix       # filter by task type
-ao task prioritized                   # sorted by priority
-ao task stats                         # aggregate counts by status/priority/type
+animus task list                          # all tasks
+animus task list --status ready           # ready tasks only
+animus task list --status blocked         # blocked tasks
+animus task list --task-type bugfix       # filter by task type
+animus task prioritized                   # sorted by priority
+animus task stats                         # aggregate counts by status/priority/type
 ```
 
 ### Get Details
 ```bash
-ao task get --id TASK-001
+animus task get --id TASK-001
 ```
 
 ### Update Status
 ```bash
-ao task status --id TASK-001 --status ready
-ao task status --id TASK-001 --status in-progress
-ao task status --id TASK-001 --status done
-ao task status --id TASK-001 --status blocked
-ao task status --id TASK-001 --status on-hold
-ao task status --id TASK-001 --status cancelled
+animus task status --id TASK-001 --status ready
+animus task status --id TASK-001 --status in-progress
+animus task status --id TASK-001 --status done
+animus task status --id TASK-001 --status blocked
+animus task status --id TASK-001 --status on-hold
+animus task status --id TASK-001 --status cancelled
 ```
 
 Setting `ready` clears `paused`, `blocked_at`, `blocked_reason`, and `blocked_by`.
 
 ### Pause / Resume
 ```bash
-ao task pause --id TASK-001
-ao task resume --id TASK-001
+animus task pause --id TASK-001
+animus task resume --id TASK-001
 ```
 
 ### Cancel / Reopen
 ```bash
-ao task cancel --id TASK-001 --confirm TASK-001
-ao task reopen --id TASK-001 --confirm TASK-001
+animus task cancel --id TASK-001 --confirm TASK-001
+animus task reopen --id TASK-001 --confirm TASK-001
 ```
 
 ### Set Priority / Deadline
 ```bash
-ao task set-priority --id TASK-001 --priority critical
-ao task set-deadline --id TASK-001 --deadline "2026-04-01T00:00:00Z"
+animus task set-priority --id TASK-001 --priority critical
+animus task set-deadline --id TASK-001 --deadline "2026-04-01T00:00:00Z"
 ```
 
 ### Update Content
 ```bash
-ao task update --id TASK-001 --title "Updated title" --description "New details"
+animus task update --id TASK-001 --title "Updated title" --description "New details"
 ```
 
 ### Checklists
 ```bash
-ao task checklist-add --id TASK-001 --description "Add unit tests"
-ao task checklist-update --id TASK-001 --item-id chk-1 --completed true
+animus task checklist-add --id TASK-001 --description "Add unit tests"
+animus task checklist-update --id TASK-001 --item-id chk-1 --completed true
 ```
 
-Use `ao task get --id TASK-001` first to find the checklist `item_id`.
+Use `animus task get --id TASK-001` first to find the checklist `item_id`.
 
 ### Dependencies
 ```bash
-ao task dependency-add --id TASK-002 --dependency-id TASK-001 --dependency-type blocked-by
-ao task dependency-remove --id TASK-002 --dependency-id TASK-001
+animus task dependency-add --id TASK-002 --dependency-id TASK-001 --dependency-type blocked-by
+animus task dependency-remove --id TASK-002 --dependency-id TASK-001
 ```
 
 ## MCP Tools
 
 | Tool | Purpose |
 |------|---------|
-| `ao.task.create` | Create a new task |
-| `ao.task.get` | Get task details by ID |
-| `ao.task.list` | List tasks, filter by status |
-| `ao.task.update` | Update task title/description |
-| `ao.task.delete` | Delete a task |
-| `ao.task.assign` | Assign a task to an agent or human |
-| `ao.task.status` | Change task status |
-| `ao.task.stats` | Aggregate task metrics |
-| `ao.task.prioritized` | Get tasks sorted by priority |
-| `ao.task.next` | Get the next recommended task to work on |
-| `ao.task.checklist-add` | Add a checklist item |
-| `ao.task.checklist-update` | Mark checklist item complete/incomplete |
-| `ao.task.bulk-status` | Update multiple task statuses at once |
-| `ao.task.bulk-update` | Bulk update multiple tasks |
-| `ao.task.pause` | Pause a task |
-| `ao.task.resume` | Resume a paused task |
-| `ao.task.cancel` | Cancel a task |
-| `ao.task.set-priority` | Set task priority |
-| `ao.task.set-deadline` | Set or clear task deadline |
-| `ao.task.history` | View task dispatch history |
+| `animus.task.create` | Create a new task |
+| `animus.task.get` | Get task details by ID |
+| `animus.task.list` | List tasks, filter by status |
+| `animus.task.update` | Update task title/description |
+| `animus.task.delete` | Delete a task |
+| `animus.task.assign` | Assign a task to an agent or human |
+| `animus.task.status` | Change task status |
+| `animus.task.stats` | Aggregate task metrics |
+| `animus.task.prioritized` | Get tasks sorted by priority |
+| `animus.task.next` | Get the next recommended task to work on |
+| `animus.task.checklist-add` | Add a checklist item |
+| `animus.task.checklist-update` | Mark checklist item complete/incomplete |
+| `animus.task.bulk-status` | Update multiple task statuses at once |
+| `animus.task.bulk-update` | Bulk update multiple tasks |
+| `animus.task.pause` | Pause a task |
+| `animus.task.resume` | Resume a paused task |
+| `animus.task.cancel` | Cancel a task |
+| `animus.task.set-priority` | Set task priority |
+| `animus.task.set-deadline` | Set or clear task deadline |
+| `animus.task.history` | View task dispatch history |
 
 ### MCP Examples
 
@@ -146,15 +146,15 @@ ao task dependency-remove --id TASK-002 --dependency-id TASK-001
 ### Promoting from Backlog
 Tasks start as `backlog`. Promote to `ready` when dependencies are met:
 ```bash
-ao task status --id TASK-005 --status ready
+animus task status --id TASK-005 --status ready
 ```
 
 ### Blocking and Unblocking
 When a task can't proceed:
 ```bash
-ao task status --id TASK-005 --status blocked
+animus task status --id TASK-005 --status blocked
 # Later, when the blocker is resolved:
-ao task status --id TASK-005 --status ready
+animus task status --id TASK-005 --status ready
 ```
 
 ### Task Dependencies
@@ -163,6 +163,6 @@ Use explicit dependency edges when task ordering matters. They show up in task d
 ### Workflow Integration
 Typical flow:
 1. Move the task to `ready`
-2. Enqueue it with `ao queue enqueue --task-id TASK-XXX`
+2. Enqueue it with `animus queue enqueue --task-id TASK-XXX`
 3. Run a workflow explicitly or let the daemon pick it up
-4. Inspect execution with `ao workflow list`, `ao output run`, and `ao output phase-outputs`
+4. Inspect execution with `animus workflow list`, `animus output run`, and `animus output phase-outputs`

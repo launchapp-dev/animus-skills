@@ -1,6 +1,6 @@
 ---
 name: workflow-authoring
-description: Write or update AO workflow YAML in `.ao/workflows.yaml` and `.ao/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
+description: Write or update Animus workflow YAML in `.ao/workflows.yaml` and `.ao/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
 user_invocable: true
 auto_invoke: true
 ---
@@ -16,7 +16,7 @@ Do not read every reference file up front. Start with the smallest change that s
 - Read [references/automation-and-integrations.md](references/automation-and-integrations.md) for `phase_mcp_bindings`, `tools`, `integrations`, `schedules`, `triggers`, and `daemon`.
 - Read [mcp-servers-for-agents](../mcp-servers-for-agents/SKILL.md) only when wiring external MCP servers.
 
-Prefer `workflows:` as the authored surface. Some AO docs still mention `pipelines:`, but `ao-cli`'s current workflow YAML parser, types, and tests are centered on `workflows:`.
+Prefer `workflows:` as the authored surface. Some Animus docs still mention `pipelines:`, but `animus-cli`'s current workflow YAML parser, types, and tests are centered on `workflows:`.
 
 ## Minimal skeleton
 
@@ -47,7 +47,7 @@ workflows:
 3. Keep deterministic operations in command phases and judgment calls in agent phases.
 4. Prefer `cwd_mode: task_root` for git, build, and test commands.
 5. Add schedules, triggers, and daemon tuning only after the base workflow works manually.
-6. Validate against current `ao-cli` behavior when docs and examples disagree.
+6. Validate against current `animus-cli` behavior when docs and examples disagree.
 
 ## Rules
 
@@ -64,10 +64,10 @@ workflows:
 Validate and inspect the effective config before restarting the daemon:
 
 ```bash
-ao workflow config validate
-ao workflow config compile
-ao workflow definitions list
-ao workflow phases list
+animus workflow config validate
+animus workflow config compile
+animus workflow definitions list
+animus workflow phases list
 ```
 
 If the workflow is still unclear after that, open the specific reference file that covers the missing section instead of broad-reading the whole skill set.

@@ -69,8 +69,7 @@ skills:
         - claude-opus-4-6
 
     mcp_servers:
-      - ao
-      - context7
+      - animus      - context7
 
     capabilities:
       writes_files: true

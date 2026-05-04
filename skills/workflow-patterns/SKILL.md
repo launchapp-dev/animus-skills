@@ -7,7 +7,7 @@ auto_invoke: true
 
 # Workflow Patterns — Production-Ready Pipelines
 
-Battle-tested patterns from building a full SaaS monorepo with AO. These patterns address real issues discovered over 150+ autonomous PRs.
+Battle-tested patterns from building a full SaaS monorepo with Animus. These patterns address real issues discovered over 150+ autonomous PRs.
 
 ## The Scaffold Pipeline (recommended for all new projects)
 
@@ -226,3 +226,138 @@ pr-review-sweep:
     3. If task is "done" AND a merged PR exists:
        Close with comment linking the merged PR.
 ```
+
+## Conductor / Sweep Pattern (Single-Daemon SDLC)
+
+For projects that own an ecosystem of repos — fleets, product owners, template managers — drive the whole thing from **one daemon, one conductor agent, periodic sweeps**. No per-repo sub-daemons.
+
+The conductor is an Opus-grade agent on a cron. Each sweep it: reads state, picks the highest-leverage closable gap, queues specialist tasks, and exits. Specialists handle worktrees, commits, PRs themselves.
+
+```yaml
+agents:
+  conductor:
+    model: claude-opus-4-7
+    tool: claude
+    mcp_servers: ["animus", "memory", "github", "sequential-thinking"]
+    system_prompt: |
+      You are the conductor. Read AGENT_PRINCIPLES.md first.
+      Each sweep:
+        1. Check kill criteria — clear before anything else
+        2. Find the biggest *closable* gap (not the lowest score, the most gettable)
+        3. Queue ONE focused dispatch
+        4. Self-check: did the last 3 sweeps move the score? If not, escalate
+      Never queue same repo+task title 3+ times in a week. If stuck, write a blocker report.
+
+  implementer: { model: claude-sonnet-4-6, tool: claude }
+  tester:      { model: claude-sonnet-4-6, tool: claude }
+  scanner:     { model: claude-haiku-4-5,  tool: claude }
+
+phases:
+  conductor-sweep:
+    mode: agent
+    agent: conductor
+    directive: "Run the sweep. Queue at most one dispatch."
+
+workflows:
+  - id: conductor-loop
+    phases: [conductor-sweep]
+
+schedules:
+  - id: conductor
+    cron: "0,30 * * * *"        # every 30 min
+    workflow_ref: conductor-loop
+```
+
+**Why one daemon, not many:** with one daemon, the conductor has full state visibility, agents create their own worktrees under `<project>/worktrees/<repo-id>--<branch>`, and tasks are titled `<repo-id>:<action>`. Per-repo sub-daemons fragment state and force the conductor to coordinate cross-daemon — almost always wrong.
+
+## Dual-Brain Conductor (Cross-Check)
+
+Run two product-owner brains on offset crons so they audit each other instead of compounding the same mistake:
+
+```yaml
+schedules:
+  - id: conductor              # Opus
+    cron: "0 * * * *"          # top of the hour
+    workflow_ref: conductor-loop
+  - id: product-owner-codex    # GPT-5.x via codex
+    cron: "30 * * * *"         # offset 30 min
+    workflow_ref: product-owner-codex-loop
+```
+
+Codex's reasoning footprint differs from Opus enough to catch confirmation bias. Use this when the conductor's decisions compound (roadmap, scope, "what to ship next") rather than for mechanical work.
+
+## qa-changes Rework Gate
+
+Wrap every implementation phase with a reusable QA gate that loops back on `rework` and `fail`:
+
+```yaml
+phases:
+  qa-changes:
+    mode: agent
+    agent: tester
+    directive: |
+      Verify the change. Verdicts:
+      - approve: build/lint/test pass, behavior matches the task
+      - rework:  fixable issues — list them; loop back to implementation
+      - fail:    structurally wrong — loop back, force a rethink
+
+workflows:
+  - id: implement
+    phases:
+      - implement-feature
+      - qa-changes:
+          on_verdict:
+            rework: { target: implement-feature }
+            fail:   { target: implement-feature }
+          max_rework_attempts: 3
+```
+
+Cap `max_rework_attempts` at 2–3. Beyond that, the QA gate is masking a real problem — let it fail and surface the task as blocked. Apply this gate to `update-deps`, `sync-feature`, `fix-build`, `fix-lint`, `create-template`, `design-improve`, etc.
+
+## Scheduled Specialists (Cross-Check & Memory)
+
+The conductor handles dispatch. Pair it with smaller, dedicated schedules that run independently:
+
+```yaml
+schedules:
+  - id: memory-curator         # extract knowledge from logs
+    cron: "30 */2 * * *"
+    workflow_ref: curate-memory
+  - id: competitive-scan       # market intel, daily
+    cron: "0 8 * * *"
+    workflow_ref: competitive-scan
+  - id: e2e-periodic           # baseline live behavior 4×/day
+    cron: "0 */6 * * *"
+    workflow_ref: e2e-test
+```
+
+These sit alongside the conductor — they don't dispatch work, they refresh context the conductor reads next sweep.
+
+## Sweep Scripts (DRY the Tool Calls)
+
+Every implementer/tester would otherwise make 3–5 separate Bash calls per repo (install, build, lint, test, audit). Bundle them into one script the agent invokes once:
+
+```bash
+# scripts/repo-health.sh
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ID="${1:?Usage: repo-health.sh <repo-id>}"
+cd "$HOME/brain/repos/$REPO_ID"
+echo "=== HEALTH: $REPO_ID @ $(git log --oneline -1) ==="
+pnpm install --frozen-lockfile 2>&1 | tail -3
+pnpm build 2>&1 | tail -10
+pnpm lint  2>&1 | tail -10
+pnpm test  2>&1 | tail -10
+```
+
+Pair with batch dispatch:
+
+```bash
+# scripts/sweep-dispatch.sh — usage: sweep-dispatch.sh "title 1" "title 2" ...
+for title in "$@"; do
+  animus queue enqueue --title "$title" --workflow-ref implement
+done
+animus queue list
+```
+
+Surface them via `tools_allowlist` so command phases can call them. Cuts agent token cost meaningfully on multi-repo sweeps.

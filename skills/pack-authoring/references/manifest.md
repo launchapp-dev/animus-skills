@@ -26,7 +26,7 @@ Only include the directories your manifest actually references.
 ## Manifest example
 
 ```toml
-schema = "ao.pack.v1"
+schema = "animus.pack.v1"
 id = "my-org.my-pack"
 version = "0.1.0"
 kind = "domain-pack"
@@ -42,8 +42,8 @@ workflow_schema = "v2"
 subject_schema = "v2"
 
 [subjects]
-kinds = ["ao.task"]
-default_kind = "ao.task"
+kinds = ["animus.task"]
+default_kind = "animus.task"
 
 [workflows]
 root = "workflows"
@@ -69,12 +69,12 @@ tools = "mcp/tools.toml"
 file = "schedules/schedules.yaml"
 
 [[dependencies]]
-id = "ao.review"
+id = "animus.review"
 version = ">=0.1.0"
 reason = "Uses the review cycle for PR review."
 
 [permissions]
-tools = ["ao", "gh", "pnpm"]
+tools = ["animus", "gh", "pnpm"]
 mcp_namespaces = ["jira"]
 
 [secrets]
@@ -86,7 +86,7 @@ optional = []
 
 | Section | Field | Required | Notes |
 |---------|-------|:--------:|-------|
-| top-level | `schema` | Yes | Must be `ao.pack.v1` |
+| top-level | `schema` | Yes | Must be `animus.pack.v1` |
 | top-level | `id` | Yes | Unique pack ID |
 | top-level | `version` | Yes | Semver version |
 | top-level | `kind` | Yes | `domain-pack`, `connector-pack`, or `capability-pack` |

@@ -1,13 +1,13 @@
 ---
 name: skill-authoring
-description: Build AO skills - YAML skill definitions, prompts, tool policies, capabilities, adapters, and registries. Use when creating or updating AO skill files under user or project skill definitions.
+description: Build Animus skills - YAML skill definitions, prompts, tool policies, capabilities, adapters, and registries. Use when creating or updating Animus skill files under user or project skill definitions.
 user_invocable: true
 auto_invoke: true
 ---
 
 # Skill Authoring
 
-Skills control how AO agents behave: prompts, tool policies, model preferences, MCP access, and capability flags.
+Skills control how Animus agents behave: prompts, tool policies, model preferences, MCP access, and capability flags.
 
 Do not memorize the full schema before making progress. Start with a narrow edit, then open only the reference that matches the gap:
 

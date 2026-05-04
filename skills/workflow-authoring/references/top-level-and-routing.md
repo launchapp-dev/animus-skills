@@ -4,7 +4,7 @@ Use this reference when deciding which top-level sections belong in a workflow Y
 
 ## Current top-level authored surface
 
-`ao-cli` currently supports these top-level sections in workflow YAML:
+`animus-cli` currently supports these top-level sections in workflow YAML:
 
 ```yaml
 default_workflow_ref:

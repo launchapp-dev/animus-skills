@@ -58,7 +58,7 @@ mcp_servers:
 
 ## Wrap bundled pack refs
 
-Prefer pack refs when you want standard AO behavior with light repo-local customization.
+Prefer pack refs when you want standard Animus behavior with light repo-local customization.
 
 ```yaml
 default_workflow_ref: standard-workflow

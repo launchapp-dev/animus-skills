@@ -1,10 +1,10 @@
 # Skill Schema
 
-Use this reference when you need field-level details for an AO skill definition.
+Use this reference when you need field-level details for an Animus skill definition.
 
 ## Skill definition format
 
-Skills are defined in YAML files with schema `ao.skills.v1`.
+Skills are defined in YAML files with schema `animus.skills.v1`.
 
 ```yaml
 skills:
@@ -43,8 +43,7 @@ skills:
         - claude-opus-4-6
 
     mcp_servers:
-      - ao
-      - sequential-thinking
+      - animus      - sequential-thinking
 
     timeout_secs: 300
 
@@ -135,7 +134,7 @@ adapters:
   claude:
     model: claude-opus-4-6
     extra_args: ["--no-stream"]
-    mcp_servers: ["ao", "sequential-thinking"]
+    mcp_servers: ["animus", "sequential-thinking"]
     prompt_override:
       suffix: "Use extended thinking for complex reviews."
 
@@ -160,7 +159,7 @@ Leave both empty for universal activation.
 
 | Priority | Source | Location |
 |:--------:|--------|----------|
-| 1 | Builtin | Embedded in AO binary |
+| 1 | Builtin | Embedded in Animus binary |
 | 2 | Installed | `~/.ao/state/skills-registry.v1.json` |
 | 3 | User | `~/.ao/config/skill_definitions/*.yaml` |
 | 4 | Project | `.ao/skill_definitions/*.yaml` |

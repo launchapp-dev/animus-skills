@@ -1,24 +1,24 @@
 ---
 name: daemon-operations
-description: Start, stop, monitor the AO daemon — health checks, events, logs, pool sizing, common issues
+description: Start, stop, monitor the Animus daemon — health checks, events, logs, pool sizing, common issues
 user_invocable: false
 auto_invoke: true
 ---
 
 # Daemon Operations
 
-The AO daemon is a background process that dispatches workflows from the queue, manages agent processes, and runs cron schedules.
+The Animus daemon is a background process that dispatches workflows from the queue, manages agent processes, and runs cron schedules.
 
 ## Starting the Daemon
 
 ### Basic Start
 ```bash
-ao daemon start
+animus daemon start
 ```
 
 ### Autonomous Mode (recommended)
 ```bash
-ao daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
+animus daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
 ```
 
 Options:
@@ -39,7 +39,7 @@ Options:
 
 ### Foreground Mode
 ```bash
-ao daemon run --pool-size 2 --interval-secs 5
+animus daemon run --pool-size 2 --interval-secs 5
 ```
 
 Use foreground mode when debugging startup failures or runner issues.
@@ -55,34 +55,34 @@ Cron workflows (work-planner, reconciler, pr-reviewer) each take one pool slot w
 
 ### Health Check
 ```bash
-ao daemon health
+animus daemon health
 ```
 
 Returns: status, active_agents, pool_size, pool_utilization, runner status, queued_tasks.
 
 ### Events
 ```bash
-ao daemon events --limit 50
+animus daemon events --limit 50
 ```
 
 Event types: `health`, `queue`, `workflow`, `task-state-change`.
 
 ### Logs
 ```bash
-ao daemon logs --limit 100
+animus daemon logs --limit 100
 ```
 
 Log file location: `~/.ao/<repo-scope>/daemon/daemon.log`
 
 ### Live Structured Log Streaming
 ```bash
-ao daemon stream --pretty
-ao daemon stream --cat phase --level warn
-ao daemon stream --workflow wf-abc123 --tail 50
-ao daemon stream --run run-xyz789 --no-follow
+animus daemon stream --pretty
+animus daemon stream --cat phase --level warn
+animus daemon stream --workflow wf-abc123 --tail 50
+animus daemon stream --run run-xyz789 --no-follow
 ```
 
-Use `ao daemon stream` for the new structured log stream across daemon, workflows, and runs.
+Use `animus daemon stream` for the new structured log stream across daemon, workflows, and runs.
 
 Key filters:
 - `--cat <prefix>` — category prefix such as `llm`, `schedule`, or `phase`
@@ -95,52 +95,52 @@ Key filters:
 
 ### Status
 ```bash
-ao daemon status
+animus daemon status
 ```
 
 ### Which Stream To Use
-- `ao daemon stream` — real-time structured logs from daemon, workflows, and runs
-- `ao daemon events` — daemon event history and follow-mode event stream
-- `ao output monitor --run-id <id>` — live output for one specific run
-- `ao daemon logs` — read recent daemon log lines without following
+- `animus daemon stream` — real-time structured logs from daemon, workflows, and runs
+- `animus daemon events` — daemon event history and follow-mode event stream
+- `animus output monitor --run-id <id>` — live output for one specific run
+- `animus daemon logs` — read recent daemon log lines without following
 
 ## Stopping
 
 ```bash
-ao daemon stop
+animus daemon stop
 ```
 
 Graceful shutdown waits for in-flight work up to the configured timeout.
 
 ### Persistent Config
 ```bash
-ao daemon config
-ao daemon config --pool-size 3 --auto-run-ready true --auto-merge false --auto-pr false
+animus daemon config
+animus daemon config --pool-size 3 --auto-run-ready true --auto-merge false --auto-pr false
 ```
 
-`ao daemon config` is the current mutation command for daemon settings. The MCP name remains `ao.daemon.config-set`.
+`animus daemon config` is the current mutation command for daemon settings. The MCP name remains `animus.daemon.config-set`.
 
 ## MCP Tools
 
 | Tool | Purpose |
 |------|---------|
-| `ao.daemon.start` | Start the daemon |
-| `ao.daemon.stop` | Stop the daemon |
-| `ao.daemon.status` | Basic running/stopped check |
-| `ao.daemon.health` | Detailed health metrics |
-| `ao.daemon.events` | Recent daemon events |
-| `ao.daemon.logs` | Read daemon log |
-| `ao.daemon.stream` | Stream structured logs in real time (CLI only) |
-| `ao.daemon.agents` | List active agent processes |
-| `ao.daemon.config` | Read daemon config |
-| `ao.daemon.config-set` | Update daemon config over MCP |
-| `ao.daemon.clear-logs` | Clear log file |
-| `ao.daemon.pause` | Pause dispatch |
-| `ao.daemon.resume` | Resume dispatch |
+| `animus.daemon.start` | Start the daemon |
+| `animus.daemon.stop` | Stop the daemon |
+| `animus.daemon.status` | Basic running/stopped check |
+| `animus.daemon.health` | Detailed health metrics |
+| `animus.daemon.events` | Recent daemon events |
+| `animus.daemon.logs` | Read daemon log |
+| `animus.daemon.stream` | Stream structured logs in real time (CLI only) |
+| `animus.daemon.agents` | List active agent processes |
+| `animus.daemon.config` | Read daemon config |
+| `animus.daemon.config-set` | Update daemon config over MCP |
+| `animus.daemon.clear-logs` | Clear log file |
+| `animus.daemon.pause` | Pause dispatch |
+| `animus.daemon.resume` | Resume dispatch |
 
 ## Daemon Architecture
 
-AO resolves a project root, loads repo-scoped runtime state under `~/.ao/<repo-scope>/`, manages the queue, and uses `agent-runner` to launch `claude`, `codex`, or `gemini` for workflow phases.
+Animus resolves a project root, loads repo-scoped runtime state under `~/.ao/<repo-scope>/`, manages the queue, and uses `agent-runner` to launch `claude`, `codex`, or `gemini` for workflow phases.
 
 ## Common Issues
 
@@ -149,14 +149,14 @@ When starting the daemon from inside Claude Code, the `CLAUDECODE` and `CLAUDE_C
 
 **Fix**: The daemon strips these at spawn points automatically (as of commit 47d0d192). If running an older build, use:
 ```bash
-env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN ao daemon start --autonomous ...
+env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN animus daemon start --autonomous ...
 ```
 
 ### Daemon Crashes
 Check the log:
 ```bash
-ao daemon logs --limit 100
-ao daemon stream --level error --pretty
+animus daemon logs --limit 100
+animus daemon stream --level error --pretty
 ```
 
 Common causes:
@@ -176,5 +176,5 @@ ps -p $(cat ~/.ao/<repo-scope>/daemon/daemon.lock)
 Agent-runner processes can accumulate across daemon restarts:
 ```bash
 pgrep -f agent-runner | wc -l    # count
-ao runner orphans detect
+animus runner orphans detect
 ```

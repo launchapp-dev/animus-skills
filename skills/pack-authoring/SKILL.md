@@ -1,13 +1,13 @@
 ---
 name: pack-authoring
-description: Build AO workflow packs - `pack.toml`, workflow exports, runtime overlays, MCP server descriptors, schedules, and marketplace operations. Use when creating or updating installable AO packs.
+description: Build Animus workflow packs - `pack.toml`, workflow exports, runtime overlays, MCP server descriptors, schedules, and marketplace operations. Use when creating or updating installable Animus packs.
 user_invocable: true
 auto_invoke: true
 ---
 
 # Pack Authoring
 
-Workflow packs bundle reusable AO workflows, runtime overlays, and optional MCP integrations.
+Workflow packs bundle reusable Animus workflows, runtime overlays, and optional MCP integrations.
 
 Do not read the full pack manual before starting. Open only the reference that matches the file you are editing:
 
@@ -42,6 +42,6 @@ my-pack/
 2. Keep agents narrow and role-specific.
 3. Use workflow references to compose with bundled packs instead of duplicating logic.
 4. Use decision contracts on review-style phases that should gate progress.
-5. Test with `ao pack inspect` before installing or publishing.
+5. Test with `animus pack inspect` before installing or publishing.
 
 If the task shifts from manifest work to runtime overlays or registry operations, open the corresponding reference file instead of broad-reading every pack detail.
