@@ -361,3 +361,261 @@ animus queue list
 ```
 
 Surface them via `tools_allowlist` so command phases can call them. Cuts agent token cost meaningfully on multi-repo sweeps.
+
+## AGENT_PRINCIPLES.md — Stable Prompt Anchor
+
+Conductor system prompts grow — ship targets, gates, kill criteria, anti-patterns. Tuning those by editing the agent's `system_prompt:` triggers a daemon restart and is a high-friction loop for product-side changes. Extract the policy into a sibling file the conductor reads at sweep start:
+
+```
+.ao/workflows/
+├── agents.yaml             # conductor system_prompt: "READ FIRST: AGENT_PRINCIPLES.md"
+├── workflows.yaml
+├── schedules.yaml
+└── AGENT_PRINCIPLES.md     # ship targets, gates, kill criteria, anti-patterns
+```
+
+The conductor's prompt stays short and stable. AGENT_PRINCIPLES.md becomes the lever non-engineers can edit: tighten a gate, raise a ship target, add a new kill criterion. Restart-free policy iteration.
+
+Typical AGENT_PRINCIPLES.md sections:
+1. **Ship targets** — numeric thresholds per gate (e2e ≥ 70, lint = 0, build = pass).
+2. **Kill criteria** — conditions that halt all other work (build red, deploy failed, security CVE ≥ high, score < threshold).
+3. **Sweep priorities** — ordered list, conductor stops at first applicable.
+4. **Anti-patterns** — things explicitly NOT to do (no major version bumps in dep updates, no auto-merge of PRs touching auth, etc.).
+5. **Tools** — allowed/preferred tooling per task class.
+
+## Kill Criteria + Ship Score Discipline
+
+Two complementary policies that keep a conductor from drifting into reflex-triage:
+
+```yaml
+# AGENT_PRINCIPLES.md fragment
+ship_readiness_target: 70
+
+kill_criteria:
+  - id: build-red
+    description: pnpm build exits non-zero on flagship
+    severity: critical
+  - id: deploy-failed
+    description: latest production deploy returned non-200 healthcheck
+    severity: critical
+  - id: security-cve-high
+    description: pnpm audit reports a high/critical advisory
+    severity: critical
+  - id: e2e-floor
+    description: e2e score below 50 on any surface
+    severity: critical
+
+gates:
+  build:        { weight: 25, target: pass }
+  lint:         { weight: 10, target: 0_errors }
+  e2e:          { weight: 30, target: ">= 70" }
+  token_compliance: { weight: 15, target: ">= 80" }
+  design_audit: { weight: 20, target: ">= 70" }
+```
+
+The conductor reads this each sweep. It computes a per-surface ship score (weighted average of gate scores), checks kill criteria first, then dispatches the work that moves the lowest-scoring closable gap. If the **fleet average score** doesn't move across three consecutive sweeps, the conductor must escalate (write a blocker report, stop reflex-triage). This is what stops the daemon from spinning forever.
+
+## Reports Directory Convention
+
+Specialists write structured reports the conductor reads next sweep. This is how state survives across daemon restarts and how the conductor builds situational awareness without re-running scans every cycle.
+
+```
+reports/
+├── health/<repo-id>.json              # build/lint/test results, age-stamped
+├── security/<repo-id>.md              # pnpm audit + secret scan findings
+├── parity/<repo-id>.md                # feature gaps vs flagship
+├── openapi/<repo-id>.json             # endpoint diff vs flagship
+├── token-compliance/<repo-id>.json    # hardcoded color violations
+├── schema/<repo-id>.json              # Drizzle schema drift
+├── design/<repo-id>.md                # design audit findings
+├── fleet-ship-plan-<date>.md          # conductor escalation report
+└── blockers-<date>.md                 # stuck tasks the conductor noticed
+```
+
+Rules:
+- Reports are written by specialists, **read by the conductor**. One direction.
+- Every report has a timestamp at the top. Conductor ignores reports older than the workflow's recheck cadence.
+- Reports are committed to git so they survive daemon restarts and become auditable.
+- Conductor writes only escalation reports (`fleet-ship-plan`, `blockers`) — never the per-repo scan reports.
+
+## Worktree + Task Title Conventions
+
+In single-daemon SDLC, agents create their own worktrees. Standardize the path so multiple agents can be in flight without colliding:
+
+```
+<project-root>/worktrees/<repo-id>--<branch-or-action>/
+```
+
+Example: `~/animus-templates/worktrees/launchapp-nextjs--update-deps-2026-05-04/`
+
+Task title format mirrors this: `<repo-id>:<action>`. The implementer agent parses `<repo-id>` to pick the worktree target.
+
+```bash
+animus task create --title "launchapp-nextjs:update-deps" --workflow-ref update-deps
+animus task create --title "launchapp-nuxt:fix-build"     --workflow-ref fix-build
+animus task create --title "launchapp-react-router:design-improve" --workflow-ref design-improve
+```
+
+This convention lets you grep `animus queue list` for all in-flight work on a single repo, and lets the conductor write rules like "skip queueing the same `<repo-id>:<action>` 3+ times in a week — that loop is broken."
+
+## Per-Model Implementation Routing
+
+Don't have one `implement` workflow — have several, one per model. The conductor picks based on task character:
+
+```yaml
+workflows:
+  - id: implement              # default — Claude Sonnet 4.6
+    phases: [implement-feature, qa-changes]
+  - id: implement-codex        # GPT-5.x via codex — different reasoning footprint
+    phases: [implement-feature-codex, qa-changes]
+  - id: implement-opus         # Claude Opus — high-judgment / risky changes
+    phases: [implement-feature-opus, qa-changes]
+  - id: implement-haiku        # Claude Haiku — cheap mechanical fixes
+    phases: [implement-feature-haiku, qa-changes]
+```
+
+Each `implement-feature-*` phase routes to a different agent persona that uses a different model. The QA gate is shared. Decision rule:
+
+| Task character | Workflow |
+|---|---|
+| Mechanical fix (lint, simple bug, dep bump) | `implement-haiku` |
+| Standard feature work | `implement` (Sonnet) |
+| Architecture / API design / cross-package refactor | `implement-opus` |
+| Conductor flagged uncertainty / contentious change | `implement-codex` (different brain) |
+
+This is the implementation-side analog of the dual-brain conductor: model diversity catches blind spots that compound when one model owns every decision.
+
+## Scan-Type Workflows (Read-Only Producers)
+
+Scans don't dispatch work — they produce reports the conductor reads next cycle. Pattern:
+
+```yaml
+phases:
+  scan-token-compliance:
+    mode: command
+    directive: "Scan for hardcoded colors not coming from --la-* tokens"
+    command:
+      program: ./scripts/scan-token-compliance.sh
+      args: ["${REPO_ID}"]
+      cwd_mode: project_root
+      timeout_secs: 120
+
+  scan-token-compliance-all:
+    mode: agent
+    agent: scanner
+    directive: |
+      Run scripts/scan-token-compliance-all.sh.
+      For each repo result, write reports/token-compliance/<repo-id>.json.
+      Append a fleet summary to reports/token-compliance/_fleet.md.
+      Do NOT enqueue fix tasks — the conductor decides priority.
+
+workflows:
+  - id: scan-token-compliance       # single repo
+    phases: [scan-token-compliance]
+  - id: scan-token-compliance-all   # fleet
+    phases: [scan-token-compliance-all]
+```
+
+Other useful scans observed in production: `scan-openapi-parity` (live `/api/openapi.json` diff vs flagship), `scan-schema-parity` (Drizzle schema drift), `check-parity` (feature gap report). Scans run on their own schedule (not via conductor) so the conductor never blocks on a scan completing.
+
+## Review-then-Rework as Separate Phase
+
+For PR review with rework, two valid shapes — they fail differently:
+
+```yaml
+# Shape A: review with rework target
+- id: review-pr
+  phases:
+    - review-pr:
+        on_verdict:
+          rework: { target: implement-feature }
+          fail:   { target: implement-feature }
+        max_rework_attempts: 3
+
+# Shape B: review-then-rework as separate phase
+- id: review-pr
+  phases:
+    - review-pr
+    - rework-pr:
+        on_verdict:
+          rework: { target: rework-pr }      # iterate the rework
+          fail:   { target: review-pr }      # bounce to a fresh review
+        max_rework_attempts: 2
+```
+
+Shape A loops the IMPLEMENTATION agent; cheap if the original implementer is the right model for the rework. Shape B introduces a dedicated `rework-pr` phase — useful when the rework is "address the reviewer's specific comments" rather than "redo the implementation". `rework-pr` typically runs a smaller, faster model since the change set is small.
+
+ao-templates uses Shape B for `review-pr` and Shape A for everything else. The general rule: use Shape B only when the rework character genuinely differs from the original implementation.
+
+## Chained Creative Pipelines
+
+For artifact pipelines (blog posts, docs, marketing copy, design assets), chain phases linearly with no gates between — each phase is itself the gate:
+
+```yaml
+- id: blog-draft-daily
+  phases:
+    - blog-topic-research      # agent — picks topic from registry
+    - blog-content-writing     # agent — writes draft
+    - blog-seo-review          # agent — keyword density, title length, meta
+    - blog-asset-generation    # command — image gen pipeline
+    - blog-commit-pr           # command — git, gh pr create
+```
+
+No `qa-changes` gate, because each phase has structured output the next phase reads. If `blog-seo-review` rejects, the workflow fails cleanly — the human reviews the PR (or the conductor sees the failure next sweep and re-queues with a different topic).
+
+Apply the same pattern to:
+- Documentation generation (research → outline → draft → review → publish)
+- Release announcements (changelog scrape → tone-pass → asset gen → post)
+- Competitive intel briefs (research → cluster → summarize → distribute)
+
+## Multi-Surface Deploy Pipeline
+
+For a service with deploy + verify steps, chain command + agent phases. Use the agent only where judgment is needed:
+
+```yaml
+phases:
+  cloud-deploy:
+    mode: command
+    command: { program: fly, args: ["deploy"], cwd_mode: project_root, timeout_secs: 600 }
+  cloud-healthcheck:
+    mode: command
+    command: { program: ./scripts/healthcheck.sh, cwd_mode: project_root, timeout_secs: 60 }
+  cloud-e2e:
+    mode: agent
+    agent: cloud-tester
+    directive: "Run Playwright E2E against the live URL. Report pass/fail per flow."
+  cloud-design-audit:
+    mode: agent
+    agent: cloud-designer
+    directive: "Audit the deployed dashboard against design tokens."
+
+workflows:
+  - id: cloud-deploy-and-verify
+    phases:
+      - cloud-deploy
+      - cloud-healthcheck       # gate — fail here = deploy is broken
+      - cloud-e2e
+      - cloud-design-audit
+```
+
+Pattern: deploy + healthcheck are deterministic command phases (no LLM tokens for `fly deploy`). Verification (E2E, design audit) is agent because it needs interpretation. Putting healthcheck immediately after deploy means a broken deploy fails fast without burning agent tokens on an audit that can't possibly pass.
+
+## Anti-Patterns (Things That Look Right But Aren't)
+
+Production failures that taught these:
+
+1. **Cron storms** — every schedule starts on the minute (`0 * * * *`). At hour rollover, 8 schedules fire simultaneously; the daemon serializes and the actual sweep runs minutes late. Stagger: `0 * * * *`, `7 * * * *`, `14 * * * *`, etc.
+
+2. **Conductor that dispatches multiple tasks per sweep** — feels efficient but obscures which dispatch moved the score. Cap at one dispatch per sweep until you have telemetry to know which dispatches help.
+
+3. **Agent that creates AND enqueues** — the planner enqueues. Specialists CREATE tasks (status: ready) and let the planner pick them up. Agents that auto-enqueue race the planner and double-execute.
+
+4. **Reading every report every sweep** — the conductor loads `reports/**/*` and burns 50K tokens on stale data. Filter by mtime ≥ "since last sweep" and only read what changed.
+
+5. **`max_rework_attempts > 3`** — looks defensive, hides a real bug. After 3 reworks, the gate is masking a structural issue. Let it fail and surface the task as blocked so a human (or the conductor's escalation report) can intervene.
+
+6. **`implement` for everything** — using Sonnet for a 3-line lint fix burns money; using Sonnet for an architecture rewrite under-resources judgment. Route by task character (see Per-Model Implementation Routing).
+
+7. **No `AGENT_PRINCIPLES.md`** — the conductor's `system_prompt` becomes a 2000-line tuning surface that triggers a daemon restart on every edit. Extract policy into a sibling file the conductor reads at sweep start.
+
+8. **Per-repo sub-daemons** — feels like isolation; actually fragments state and forces the conductor to coordinate cross-daemon. One daemon, one conductor, agents create their own worktrees.
