@@ -74,35 +74,101 @@ animus daemon logs --limit 100
 
 Log file location: `~/.ao/<repo-scope>/daemon/daemon.log`
 
-### Live Structured Log Streaming
+### Live Structured Log Streaming — `animus daemon stream`
+
+The single most useful operational tool. One JSONL stream merges everything the daemon, every running workflow, and every spawned agent process emit — phase transitions, LLM calls, queue mutations, schedule fires, runner crashes — with consistent structure (`ts`, `level`, `cat`, `workflow_id`, `run_id`, `phase`, `msg`, `data`). It replaces tailing five log files at once.
+
 ```bash
-animus daemon stream --pretty
-animus daemon stream --cat phase --level warn
-animus daemon stream --workflow wf-abc123 --tail 50
-animus daemon stream --run run-xyz789 --no-follow
+animus daemon stream --pretty                          # firehose, colorized
+animus daemon stream --cat phase --level warn          # only phase warnings+
+animus daemon stream --workflow wf-abc123 --tail 50    # one workflow's last 50 then follow
+animus daemon stream --run run-xyz789 --no-follow      # snapshot for one run, exit
+animus daemon stream --cat llm | jq -r '.data.tokens'  # raw JSON → pipe to jq
 ```
 
-Use `animus daemon stream` for the new structured log stream across daemon, workflows, and runs.
+**Filters:**
+- `--cat <prefix>` — category. Common: `llm`, `phase`, `schedule`, `queue`, `runner`, `daemon`, `agent`, `task`.
+- `--level <debug|info|warn|error>` — minimum level. Default is `info`.
+- `--workflow <id>` — narrow to one workflow. Combine with `--run` for a single execution.
+- `--run <id>` — narrow to one run.
+- `--phase <name>` — filter to a specific phase (e.g. `implement-feature`, `qa-changes`).
+- `--tail <n>` — replay the most recent `n` entries before following.
+- `--no-follow` — print the tail and exit (good for snapshots and piping to a file).
+- `--pretty` — colorized human output. Omit for raw JSONL (pipe-friendly).
 
-Key filters:
-- `--cat <prefix>` — category prefix such as `llm`, `schedule`, or `phase`
-- `--level <debug|info|warn|error>` — minimum log level
-- `--workflow <id>` — narrow to one workflow
-- `--run <id>` — narrow to one run
-- `--tail <n>` — print the most recent `n` entries before following
-- `--no-follow` — print the tail and exit
-- `--pretty` — colorized human-readable output instead of raw JSON
+**Categories worth knowing:**
+
+| `--cat` | What you see |
+|---------|--------------|
+| `llm` | Model calls — provider, tokens in/out, latency, cost per call |
+| `phase` | Phase start, transition, verdict, rework loops, exit code |
+| `schedule` | Cron fires, schedule-skipped-because-busy, next-fire timestamps |
+| `queue` | Enqueue, dispatch, hold, drop, reorder, dependency resolution |
+| `runner` | Agent process spawn/exit, crash recovery, orphan detection |
+| `daemon` | Pool sizing, autonomous mode toggles, config reloads |
+| `task` | State changes (ready → in-progress → done) and checklist updates |
+
+### Production stream patterns
+
+These are the layouts that pay back the keystrokes — keep one or two running while you work.
+
+**Conductor watch (one terminal, follows the brain):**
+```bash
+animus daemon stream --cat schedule --pretty &
+animus daemon stream --cat phase --level info --pretty
+```
+Top half shows when the conductor fires; bottom half shows what dispatches it produced. If you see a schedule fire and no phase activity within a minute, the conductor is stuck.
+
+**LLM cost / latency watch:**
+```bash
+animus daemon stream --cat llm --pretty
+```
+Each call prints `provider model tokens_in/tokens_out latency cost`. Spot model-routing bugs (Sonnet running on what should be Haiku work) and runaway prompts (token counts climbing each iteration of a rework loop).
+
+**Single workflow run, end to end:**
+```bash
+animus daemon stream --workflow wf-abc123 --pretty
+```
+One stream, every phase of one workflow, nothing else. Pair with `animus output monitor --run-id <id>` in another terminal for the actual stdout/stderr from the spawned agent.
+
+**Error firehose (always-on tab):**
+```bash
+animus daemon stream --level error --pretty
+```
+Quiet by design — anything that prints here is real.
+
+**Pipe to jq for structured queries:**
+```bash
+# All phase verdicts in the last hour
+animus daemon stream --cat phase --tail 1000 --no-follow \
+  | jq -r 'select(.data.verdict) | "\(.ts) \(.workflow_id) \(.phase) → \(.data.verdict)"'
+
+# Token cost per workflow today
+animus daemon stream --cat llm --tail 5000 --no-follow \
+  | jq -r 'select(.data.cost_usd) | "\(.workflow_id) \(.data.cost_usd)"' \
+  | awk '{ total[$1] += $2 } END { for (w in total) print w, total[w] }'
+
+# Catch the moment a phase entered rework
+animus daemon stream --cat phase | jq 'select(.msg == "rework_dispatched")'
+```
+
+### Stream vs other observability surfaces
+
+| Tool | What it streams | When to use |
+|------|----------------|-------------|
+| `animus daemon stream` | Structured JSONL — daemon + every workflow + every run, one merged stream | Default. Almost always what you want. |
+| `animus daemon events` | Coarse event history (`health`, `queue`, `workflow`, `task-state-change`) | Audit trail, MCP-friendly, smaller volume than stream |
+| `animus daemon logs` | Raw daemon log file lines | Snapshot a window, no follow |
+| `animus output monitor --run-id <id>` | Raw stdout/stderr from one agent process | When the agent itself is misbehaving (timeouts, weird tool errors). Stream tells you *what* phase failed; `output monitor` tells you *why*. |
+| `animus output run --id <id>` | One-shot dump of a finished run's output | Post-mortem, not live |
+
+**Rule of thumb:** start with `animus daemon stream`. If a phase failed and the JSON `data` doesn't tell you why, drop down to `animus output monitor` for that specific run.
 
 ### Status
 ```bash
 animus daemon status
 ```
 
-### Which Stream To Use
-- `animus daemon stream` — real-time structured logs from daemon, workflows, and runs
-- `animus daemon events` — daemon event history and follow-mode event stream
-- `animus output monitor --run-id <id>` — live output for one specific run
-- `animus daemon logs` — read recent daemon log lines without following
 
 ## Stopping
 

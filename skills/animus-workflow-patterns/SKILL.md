@@ -600,6 +600,39 @@ workflows:
 
 Pattern: deploy + healthcheck are deterministic command phases (no LLM tokens for `fly deploy`). Verification (E2E, design audit) is agent because it needs interpretation. Putting healthcheck immediately after deploy means a broken deploy fails fast without burning agent tokens on an audit that can't possibly pass.
 
+## Watching the Conductor Work — `animus daemon stream`
+
+Autonomous loops are unobservable until they break. `animus daemon stream` is the live JSONL feed that merges every phase transition, model call, queue mutation, and schedule fire into one structured stream. Keep one terminal running it whenever you're tuning a conductor.
+
+**Sweep diagnostics:**
+```bash
+# Did my conductor fire? Did it produce a dispatch?
+animus daemon stream --cat schedule --pretty &
+animus daemon stream --cat phase --level info --pretty
+```
+
+If a schedule fires and no `phase` activity follows within ~60 seconds, the conductor is stuck — usually waiting on an MCP call, mis-reading state, or hitting a cap. Drop down to:
+
+```bash
+animus daemon stream --cat phase --workflow <conductor-loop-id> --pretty
+```
+
+…and look at the conductor agent's actual output. If it loaded principles + reports and produced no dispatch, the sweep priorities aren't matching reality (kill criteria too narrow, ship score not moving — see *Kill Criteria + Ship Score Discipline*).
+
+**Cost watch on dual-brain conductors:**
+```bash
+animus daemon stream --cat llm --pretty | grep -E "opus|gpt-5"
+```
+Dual-brain (Opus + Codex) is the pattern most likely to surprise you on cost. Watch the merged stream until you've seen one full cycle and confirmed the offset crons aren't double-firing.
+
+**Rework loop detection in real time:**
+```bash
+animus daemon stream --cat phase | jq 'select(.msg == "rework_dispatched")'
+```
+If you see the same `<repo-id>:<action>` task rework three times within a sweep window, your `qa-changes` gate is hiding a structural problem — let it fail (anti-pattern #5).
+
+See `animus-daemon-operations` for the full filter matrix and the stream-vs-events-vs-logs decision table.
+
 ## Anti-Patterns (Things That Look Right But Aren't)
 
 Production failures that taught these:
