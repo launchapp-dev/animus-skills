@@ -1,5 +1,5 @@
 ---
-name: getting-started
+name: animus-getting-started
 description: Install Animus, create first task, run first workflow — core concepts and project structure
 user_invocable: true
 auto_invoke: true

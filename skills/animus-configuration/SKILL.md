@@ -1,5 +1,5 @@
 ---
-name: configuration
+name: animus-configuration
 description: Animus project config, daemon config, agent runtime, environment variables, and state layout
 user_invocable: false
 auto_invoke: true
@@ -40,7 +40,7 @@ MCP: `animus.daemon.config-set`
 
 ## Workflow Config
 
-Hand-edited YAML. Defines agents, phases, workflows, and cron schedules. See the [workflow-authoring](../workflow-authoring/SKILL.md) skill for full details.
+Hand-edited YAML. Defines agents, phases, workflows, and cron schedules. See the [workflow-authoring](../animus-workflow-authoring/SKILL.md) skill for full details.
 
 Source locations:
 - `.ao/workflows.yaml`

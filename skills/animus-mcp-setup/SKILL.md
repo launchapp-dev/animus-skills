@@ -1,5 +1,5 @@
 ---
-name: mcp-setup
+name: animus-mcp-setup
 description: Set up .mcp.json, Claude Code permissions, and connect AI tools to Animus's MCP server
 user_invocable: true
 auto_invoke: true

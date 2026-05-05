@@ -1,5 +1,5 @@
 ---
-name: queue-management
+name: animus-queue-management
 description: Dispatch queue operations — enqueue, hold, release, drop, reorder, and queue patterns
 user_invocable: false
 auto_invoke: true

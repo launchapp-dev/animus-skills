@@ -1,5 +1,5 @@
 ---
-name: daemon-operations
+name: animus-daemon-operations
 description: Start, stop, monitor the Animus daemon — health checks, events, logs, pool sizing, common issues
 user_invocable: false
 auto_invoke: true

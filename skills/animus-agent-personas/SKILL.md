@@ -1,5 +1,5 @@
 ---
-name: agent-personas
+name: animus-agent-personas
 description: Product lifecycle agents — product owner, architect, auditor, docs-writer, devops, researcher personas
 user_invocable: false
 auto_invoke: true

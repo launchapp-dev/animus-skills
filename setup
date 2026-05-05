@@ -99,6 +99,19 @@ for host in "${HOSTS[@]}"; do
     fi
   fi
 
+  # Clean up dangling symlinks pointing into a (renamed) animus-skills clone.
+  # Pre-2.1.0 created un-prefixed names like <host>/skills/getting-started; the
+  # rename to animus-getting-started broke the target. Remove only dangling
+  # links whose path mentions animus-skills/skills/, never live ones.
+  for entry in "$host_dir"/*; do
+    [[ -L "$entry" ]] || continue
+    target="$(readlink "$entry")"
+    [[ "$target" == *"animus-skills/skills/"* ]] || continue
+    [[ -e "$entry" ]] && continue   # link still resolves; skip
+    rm "$entry"
+    echo "→ $host: removed dangling symlink $entry (was → $target)"
+  done
+
   linked=0; skipped=0
   for skill_path in "$SRC/skills"/*/; do
     skill="$(basename "$skill_path")"
@@ -159,5 +172,5 @@ echo "  CLI:    $(command -v animus 2>/dev/null || echo '[install pending]')"
 echo ""
 echo "Next:"
 echo "  1. Restart your agent (e.g. Claude Code, Codex)."
-echo "  2. From a project root, run /setup-animus to scaffold .ao/ and your first workflow."
+echo "  2. From a project root, run /animus-setup to scaffold .ao/ and your first workflow."
 echo "  3. Verify MCP: ask the agent to call animus.daemon.status."

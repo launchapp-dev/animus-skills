@@ -1,5 +1,5 @@
 ---
-name: skill-authoring
+name: animus-skill-authoring
 description: Build Animus skills - YAML skill definitions, prompts, tool policies, capabilities, adapters, and registries. Use when creating or updating Animus skill files under user or project skill definitions.
 user_invocable: true
 auto_invoke: true

@@ -1,5 +1,5 @@
 ---
-name: troubleshooting
+name: animus-troubleshooting
 description: Common Animus issues and fixes — daemon crashes, workflow failures, queue problems, merge conflicts
 user_invocable: true
 auto_invoke: true

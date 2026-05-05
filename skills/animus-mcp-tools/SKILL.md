@@ -1,5 +1,5 @@
 ---
-name: mcp-tools
+name: animus-mcp-tools
 description: Animus MCP tool surface - agent, daemon, task, workflow, queue, requirement, output, and runner tools, including pagination and batch behavior. Use when an Animus task needs exact MCP tool names, key parameters, or tool-selection guidance.
 user_invocable: false
 auto_invoke: true

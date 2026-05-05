@@ -1,5 +1,5 @@
 ---
-name: workflow-authoring
+name: animus-workflow-authoring
 description: Write or update Animus workflow YAML in `.ao/workflows.yaml` and `.ao/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
 user_invocable: true
 auto_invoke: true
@@ -14,7 +14,7 @@ Do not read every reference file up front. Start with the smallest change that s
 - Read [references/agents-and-phases.md](references/agents-and-phases.md) for agent or phase fields.
 - Read [references/top-level-and-routing.md](references/top-level-and-routing.md) for the real top-level authored surface, workflow composition, variables, and post-success hooks.
 - Read [references/automation-and-integrations.md](references/automation-and-integrations.md) for `phase_mcp_bindings`, `tools`, `integrations`, `schedules`, `triggers`, and `daemon`.
-- Read [mcp-servers-for-agents](../mcp-servers-for-agents/SKILL.md) only when wiring external MCP servers.
+- Read [mcp-servers-for-agents](../animus-mcp-servers-for-agents/SKILL.md) only when wiring external MCP servers.
 
 Prefer `workflows:` as the authored surface. Some Animus docs still mention `pipelines:`, but `animus-cli`'s current workflow YAML parser, types, and tests are centered on `workflows:`.
 

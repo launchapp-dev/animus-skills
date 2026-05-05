@@ -1,5 +1,5 @@
 ---
-name: task-management
+name: animus-task-management
 description: Full task lifecycle — create, list, update, block/unblock, checklists, bulk ops via CLI and MCP
 user_invocable: false
 auto_invoke: true

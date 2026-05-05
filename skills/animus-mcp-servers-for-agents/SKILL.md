@@ -1,5 +1,5 @@
 ---
-name: mcp-servers-for-agents
+name: animus-mcp-servers-for-agents
 description: Connect agents to Context7, package-version, sequential-thinking, memory, GitHub MCP servers
 user_invocable: false
 auto_invoke: true

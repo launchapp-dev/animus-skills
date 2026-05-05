@@ -1,5 +1,5 @@
 ---
-name: setup-animus
+name: animus-setup
 description: Set up Animus in the current project - initialize config, connect MCP, create a first workflow, and start the daemon. Use when bootstrapping Animus in a repo or fixing an incomplete Animus setup.
 user_invocable: true
 auto_invoke: false
@@ -9,12 +9,12 @@ You are setting up Animus in the current project.
 
 Do not preload the entire `~/animus-skills/skills/` directory. Start with targeted reads:
 
-- Read [getting-started](../getting-started/SKILL.md) first for the core Animus mental model.
-- Read [mcp-setup](../mcp-setup/SKILL.md) only when creating or fixing `.mcp.json`.
-- Read [workflow-authoring](../workflow-authoring/SKILL.md) only when editing `.ao/workflows.yaml` or `.ao/workflows/*.yaml`.
-- Read [daemon-operations](../daemon-operations/SKILL.md) only when starting, checking, or debugging the daemon.
-- Read [troubleshooting](../troubleshooting/SKILL.md) only if setup fails.
-- Use [configuration](../configuration/SKILL.md), [task-management](../task-management/SKILL.md), [queue-management](../queue-management/SKILL.md), and [mcp-tools](../mcp-tools/SKILL.md) as lookup references, not mandatory preload.
+- Read [getting-started](../animus-getting-started/SKILL.md) first for the core Animus mental model.
+- Read [mcp-setup](../animus-mcp-setup/SKILL.md) only when creating or fixing `.mcp.json`.
+- Read [workflow-authoring](../animus-workflow-authoring/SKILL.md) only when editing `.ao/workflows.yaml` or `.ao/workflows/*.yaml`.
+- Read [daemon-operations](../animus-daemon-operations/SKILL.md) only when starting, checking, or debugging the daemon.
+- Read [troubleshooting](../animus-troubleshooting/SKILL.md) only if setup fails.
+- Use [configuration](../animus-configuration/SKILL.md), [task-management](../animus-task-management/SKILL.md), [queue-management](../animus-queue-management/SKILL.md), and [mcp-tools](../animus-mcp-tools/SKILL.md) as lookup references, not mandatory preload.
 
 ## Setup flow
 
