@@ -87,13 +87,15 @@ for host in "${HOSTS[@]}"; do
   host_dir="$(host_skills_dir "$host")" || { echo "✗ unknown host: $host" >&2; continue; }
   mkdir -p "$host_dir"
 
-  # Clean up any stale whole-repo symlink at $host_dir/animus-skills (broken layout)
+  # Clean up any stale whole-repo symlink at $host_dir/animus-skills.
+  # Detection: it's a symlink whose target has skills/ but no SKILL.md at root.
+  # That shape is the previous broken install; harmless to remove either way.
   legacy="$host_dir/animus-skills"
   if [[ -L "$legacy" ]]; then
     legacy_target="$(readlink "$legacy")"
-    if [[ "$legacy_target" == "$SRC" ]]; then
+    if [[ -d "$legacy_target/skills" ]] && [[ ! -f "$legacy_target/SKILL.md" ]]; then
       rm "$legacy"
-      echo "→ $host: removed legacy whole-repo symlink at $legacy"
+      echo "→ $host: removed legacy whole-repo symlink at $legacy (was → $legacy_target)"
     fi
   fi
 
