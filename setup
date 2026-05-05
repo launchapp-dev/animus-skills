@@ -101,12 +101,16 @@ for host in "${HOSTS[@]}"; do
 
   # Clean up dangling symlinks pointing into a (renamed) animus-skills clone.
   # Pre-2.1.0 created un-prefixed names like <host>/skills/getting-started; the
-  # rename to animus-getting-started broke the target. Remove only dangling
-  # links whose path mentions animus-skills/skills/, never live ones.
+  # rename to animus-getting-started broke the target. Match either the current
+  # repo name (animus-skills) or its prior name (ao-skills), and only remove
+  # links that no longer resolve.
   for entry in "$host_dir"/*; do
     [[ -L "$entry" ]] || continue
     target="$(readlink "$entry")"
-    [[ "$target" == *"animus-skills/skills/"* ]] || continue
+    case "$target" in
+      *"animus-skills/skills/"*|*"ao-skills/skills/"*) ;;
+      *) continue ;;
+    esac
     [[ -e "$entry" ]] && continue   # link still resolves; skip
     rm "$entry"
     echo "→ $host: removed dangling symlink $entry (was → $target)"
