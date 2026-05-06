@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.0 — 2026-05-06
+
+### Added
+- `/animus-bootstrap` — new user-invocable skill that walks a project from idea to running autonomous engineering team. Interviews the user (project shape, work character, cadence, risk tolerance, mission, kill criterion, model routing), then writes VISION.md, registry.yaml, AGENT_PRINCIPLES.md, agents/phases/workflows/schedules/mcp-servers YAML, scripts (`repo-health.sh`, `sweep-dispatch.sh`), reports/ directory scaffolding, CLAUDE.md/AGENTS.md project section, and verifies end-to-end with a real smoke-test task watched live via `animus daemon stream`. 13-phase flow, atomic commits between phases. Distinct from `/animus-setup` (minimal) — use bootstrap when committing a project to autonomous operation.
+- Substantially expanded `animus daemon stream` coverage in `animus-daemon-operations`: full filter matrix, category cheat sheet (`llm`/`phase`/`schedule`/`queue`/`runner`/`daemon`/`agent`/`task`), five production stream patterns including jq pipelines, stream-vs-events-vs-logs decision table.
+- New "Watching the Conductor Work" section in `animus-workflow-patterns` connecting the stream to autonomous-loop debugging — sweep diagnostics, dual-brain cost watch, real-time rework detection.
+- 258 new lines of conductor patterns in `animus-workflow-patterns`: AGENT_PRINCIPLES.md as stable prompt anchor, kill criteria + ship score discipline (the three-sweep rule), reports directory convention, worktree + `<surface>:<action>` task title conventions, per-model implementation routing (implement/implement-codex/implement-opus/implement-haiku), scan-type read-only producers, Shape A vs Shape B review-then-rework, chained creative pipelines, multi-surface deploy with fail-fast healthcheck, and 8 production anti-patterns.
+
 ## 2.1.0 — 2026-05-04
 
 Defensive namespace pass: every skill now starts with `animus-`. Continuation of the v2.0.0 rebrand — separate version because the slash command surface changed again.
