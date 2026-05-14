@@ -37,7 +37,7 @@ description = "What this pack does."
 mode = "project"
 
 [compatibility]
-ao_core = ">=0.1.0"
+animus_core = ">=0.1.0"
 workflow_schema = "v2"
 subject_schema = "v2"
 
@@ -93,7 +93,7 @@ optional = []
 | top-level | `title` | Yes | Human-readable name |
 | top-level | `description` | No | Free text description |
 | `ownership` | `mode` | Yes | `bundled`, `installed`, or `project` |
-| `compatibility` | `ao_core` | No | Semver range |
+| `compatibility` | `animus_core` | No | Semver range |
 | `compatibility` | `workflow_schema` | No | Usually `v2` |
 | `compatibility` | `subject_schema` | No | Usually `v2` |
 | `subjects` | `kinds` | No | Required if `subjects` block exists |

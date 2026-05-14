@@ -19,7 +19,7 @@ This is heavier than `/animus-setup`. Use that one when the user just needs a da
 4. **Commit after each phase.** Atomic commits make the bootstrap auditable and revertable. Use messages like `bootstrap: vision`, `bootstrap: principles`, `bootstrap: agents.yaml`, etc.
 5. **Verify before declaring done.** Run the daemon, create one task, run it, watch it via `animus daemon stream`, confirm the conductor is producing dispatches.
 
-If the user has already completed `/animus-setup`, skip to Phase 3. If they haven't, run `/animus-setup` first (or do its work inline) — this skill assumes `.ao/` exists and the daemon can start.
+If the user has already completed `/animus-setup`, skip to Phase 3. If they haven't, run `/animus-setup` first (or do its work inline) — this skill assumes `.animus/` exists and the daemon can start.
 
 ## Reference reads
 
@@ -80,7 +80,7 @@ Non-goals are as important as goals — they keep the conductor from drifting in
 For fleets and multi-repo projects only. Skip for single-repo.
 
 ```yaml
-# .ao/registry.yaml — what surfaces this project owns
+# .animus/registry.yaml — what surfaces this project owns
 ship_mode: parallel        # parallel | sequential | flagship-first
 ship_readiness_target: 70
 
@@ -106,7 +106,7 @@ If the user doesn't have a clear flagship/variant relationship, omit `role` and 
 
 ## Phase 4 — AGENT_PRINCIPLES.md
 
-Write to `.ao/workflows/AGENT_PRINCIPLES.md`. This is the conductor's policy file — separated from `system_prompt:` so the user can tune ship targets without restarting the daemon.
+Write to `.animus/workflows/AGENT_PRINCIPLES.md`. This is the conductor's policy file — separated from `system_prompt:` so the user can tune ship targets without restarting the daemon.
 
 Sections:
 1. **Ship targets** — numeric thresholds per gate.
@@ -119,7 +119,7 @@ See `../animus-workflow-patterns/SKILL.md` "AGENT_PRINCIPLES.md — Stable Promp
 
 ## Phase 5 — agents.yaml
 
-Write to `.ao/workflows/agents.yaml`. Always include the conductor; include specialists based on Phase 1's work character.
+Write to `.animus/workflows/agents.yaml`. Always include the conductor; include specialists based on Phase 1's work character.
 
 ```yaml
 agents:
@@ -131,7 +131,7 @@ agents:
       You are the conductor for <project>.
 
       ## READ FIRST
-      Read `.ao/workflows/AGENT_PRINCIPLES.md` before anything else.
+      Read `.animus/workflows/AGENT_PRINCIPLES.md` before anything else.
       That file owns ship targets, gates, kill criteria, and anti-patterns.
 
       ## Mission
@@ -163,7 +163,7 @@ See `../animus-agent-personas/SKILL.md` for the full conductor prompt skeleton.
 
 ## Phase 6 — phases.yaml
 
-Write to `.ao/workflows/phases.yaml`. Define phases referenced by workflows. Always include `qa-changes` (the rework gate).
+Write to `.animus/workflows/phases.yaml`. Define phases referenced by workflows. Always include `qa-changes` (the rework gate).
 
 ```yaml
 phases:
@@ -210,7 +210,7 @@ phases:
 
 ## Phase 7 — workflows.yaml
 
-Write to `.ao/workflows/workflows.yaml`. Always include: `conductor-loop`, `implement` (with qa-changes gate), `review-pr`. Add others based on Phase 1.
+Write to `.animus/workflows/workflows.yaml`. Always include: `conductor-loop`, `implement` (with qa-changes gate), `review-pr`. Add others based on Phase 1.
 
 ```yaml
 default_workflow_ref: implement
@@ -257,7 +257,7 @@ For richer patterns (scan-type, chained creative pipelines, multi-surface deploy
 
 ## Phase 8 — schedules.yaml
 
-Write to `.ao/workflows/schedules.yaml`. Stagger cron offsets — never start everything on the minute.
+Write to `.animus/workflows/schedules.yaml`. Stagger cron offsets — never start everything on the minute.
 
 Match cadence to Phase 1's preference. Examples:
 
@@ -286,7 +286,7 @@ If Phase 1 said "fleet of repos" or "dual-brain", add:
 
 ## Phase 9 — mcp-servers.yaml
 
-Write to `.ao/workflows/mcp-servers.yaml`. Wire the MCP servers the agents in Phase 5 reference.
+Write to `.animus/workflows/mcp-servers.yaml`. Wire the MCP servers the agents in Phase 5 reference.
 
 ```yaml
 mcp_servers:
@@ -354,14 +354,14 @@ Write or extend project CLAUDE.md with an Animus section so any agent picking up
 This project runs an Animus daemon (single-daemon SDLC). Conductor sweeps every <cadence>.
 
 - **VISION.md** — product vision, north star metric
-- **.ao/workflows/AGENT_PRINCIPLES.md** — ship targets, gates, kill criteria
-- **.ao/workflows/{agents,phases,workflows,schedules,mcp-servers}.yaml** — daemon config
+- **.animus/workflows/AGENT_PRINCIPLES.md** — ship targets, gates, kill criteria
+- **.animus/workflows/{agents,phases,workflows,schedules,mcp-servers}.yaml** — daemon config
 - **scripts/** — repo-health.sh, sweep-dispatch.sh, ...
 - **reports/** — specialist outputs the conductor reads each sweep
 - **worktrees/** — agents create their own at `<project>/worktrees/<surface-id>--<branch>`
 
 Watch the daemon: `animus daemon stream --pretty`
-Sweep priorities: `.ao/workflows/AGENT_PRINCIPLES.md` §3
+Sweep priorities: `.animus/workflows/AGENT_PRINCIPLES.md` §3
 ```
 
 ## Phase 13 — verify end-to-end
@@ -403,8 +403,8 @@ animus daemon stream --workflow conductor-loop --pretty
 Tell the user, in this order:
 1. The artifacts that landed (file list, with one-line each).
 2. How to watch the daemon (`animus daemon stream --pretty`).
-3. How to tune principles without restarting (edit `.ao/workflows/AGENT_PRINCIPLES.md`).
-4. How to add a new specialist (edit `.ao/workflows/agents.yaml`, add a workflow that uses it, restart daemon).
+3. How to tune principles without restarting (edit `.animus/workflows/AGENT_PRINCIPLES.md`).
+4. How to add a new specialist (edit `.animus/workflows/agents.yaml`, add a workflow that uses it, restart daemon).
 5. The first real task they should queue (something concrete from VISION.md's 90-day success criteria).
 
 Do **not** offer to "tune the conductor" or "add more workflows" as a follow-up — let them run the smoke test, see autonomous work happen, and come back with their own asks.

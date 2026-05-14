@@ -105,7 +105,7 @@ triggers:
     workflow_ref: respond-to-webhook
     enabled: true
     config:
-      secret_env: AO_WEBHOOK_SECRET
+      secret_env: ANIMUS_WEBHOOK_SECRET
       max_triggers_per_minute: 10
     input:
       source: webhook

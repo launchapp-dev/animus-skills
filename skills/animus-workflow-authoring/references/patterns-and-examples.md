@@ -68,12 +68,12 @@ workflows:
     name: Standard Workflow
     description: Repository default delivery workflow.
     phases:
-      - workflow_ref: ao.task/standard
+      - workflow_ref: animus.task/standard
 
   - id: ui-ux-workflow
     name: UI UX Workflow
     phases:
-      - workflow_ref: ao.task/ui-ux
+      - workflow_ref: animus.task/ui-ux
 ```
 
 ## Workflows

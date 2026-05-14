@@ -1,13 +1,13 @@
 ---
 name: animus-workflow-authoring
-description: Write or update Animus workflow YAML in `.ao/workflows.yaml` and `.ao/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
+description: Write or update Animus workflow YAML in `.animus/workflows.yaml` and `.animus/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
 user_invocable: true
 auto_invoke: true
 ---
 
 # Workflow Authoring
 
-Project-authored workflow sources live in `.ao/workflows.yaml` and `.ao/workflows/*.yaml`.
+Project-authored workflow sources live in `.animus/workflows.yaml` and `.animus/workflows/*.yaml`.
 
 Do not read every reference file up front. Start with the smallest change that solves the task, then open only the reference that matches the section you are editing:
 
@@ -57,7 +57,7 @@ workflows:
 4. Restart the daemon after changing workflow YAML.
 5. Keep `auto_merge: false` and `auto_pr: false` in daemon config unless the project intentionally wants daemon-level automation.
 6. Use `default_workflow_ref` when the repo should have a stable implicit default.
-7. Prefer pack refs like `ao.task/standard` over copying bundled behavior into project YAML.
+7. Prefer pack refs like `animus.task/standard` over copying bundled behavior into project YAML.
 
 ## Validation
 

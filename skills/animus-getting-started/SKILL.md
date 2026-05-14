@@ -38,9 +38,9 @@ animus setup
 ```
 
 This creates:
-- `.ao/config.json` — project-level Animus config
-- `.ao/pm-config.json` — project daemon config
-- `.ao/workflows.yaml` and `.ao/workflows/` — workflow sources
+- `.animus/config.json` — project-level Animus config
+- `.animus/pm-config.json` — project daemon config
+- `.animus/workflows.yaml` and `.animus/workflows/` — workflow sources
 
 ## Core Concepts
 
@@ -121,13 +121,13 @@ animus output monitor --run-id <run-id>
 
 ```
 your-project/
-├── .ao/
+├── .animus/
 │   ├── config.json
 │   ├── pm-config.json
 │   ├── workflows.yaml
 │   └── workflows/
 │       └── custom.yaml
-└── ~/.ao/<repo-scope>/          # Repo-scoped runtime state
+└── ~/.animus/<repo-scope>/          # Repo-scoped runtime state
     ├── core-state.json
     ├── resume-config.json
     ├── tasks/

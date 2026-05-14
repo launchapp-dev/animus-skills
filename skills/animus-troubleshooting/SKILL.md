@@ -174,7 +174,7 @@ animus runner restart-stats
 ## State Location Reference
 
 ```
-.ao/
+.animus/
 ├── config.json
 ├── pm-config.json
 ├── workflows.yaml
@@ -182,7 +182,7 @@ animus runner restart-stats
 ```
 
 ```
-~/.ao/<repo-scope>/
+~/.animus/<repo-scope>/
 ├── core-state.json
 ├── resume-config.json
 ├── tasks/
@@ -234,7 +234,7 @@ If checks fail, evaluate: is the failure from THIS PR or pre-existing?
 
 ## Daemon Doesn't Reload YAML Changes
 
-Changes to `.ao/workflows.yaml` or `.ao/workflows/*.yaml` are not picked up by an already-running daemon.
+Changes to `.animus/workflows.yaml` or `.animus/workflows/*.yaml` are not picked up by an already-running daemon.
 
 **Fix:** Validate, then restart:
 ```bash

@@ -14,7 +14,7 @@ You point a fresh agent at this README. It installs the CLI, links the skills, w
 ## Quick start
 
 1. Install (30 seconds — see below)
-2. `cd` into any repo and run `/animus-setup` — scaffolds `.ao/`, writes a first workflow, starts the daemon
+2. `cd` into any repo and run `/animus-setup` — scaffolds `.animus/`, writes a first workflow, starts the daemon
 3. `/animus-getting-started` — creates your first task and runs it end-to-end
 4. `animus daemon stream` — watch the agent work in real time
 5. Stop here. If you can run a workflow on a real task, you'll know if Animus is for you.
@@ -63,7 +63,7 @@ This skips the CLI install and MCP wiring — pair it with a manual `curl -fsSL 
 
 ```
 You:    /animus-setup
-Claude: [scaffolds .ao/, writes config.json, generates a first workflow YAML,
+Claude: [scaffolds .animus/, writes config.json, generates a first workflow YAML,
          starts the daemon, verifies MCP is reachable]
 
 You:    Create a task to add rate limiting to the /api/upload endpoint.
@@ -78,16 +78,16 @@ You:    animus daemon stream
         [live JSONL — phase transitions, model calls, test runs, git ops]
 
 You:    Now schedule a nightly retro across all my repos.
-Claude: [edits .ao/workflows/retro.yaml, adds a cron schedule, restarts daemon]
+Claude: [edits .animus/workflows/retro.yaml, adds a cron schedule, restarts daemon]
 ```
 
-Every step is replayable from the queue — pause, resume, drop, reorder, hold. Failed phases are sticky (the daemon won't silently retry and burn API credits). Outputs land in `~/.ao/<repo-scope>/runs/` so you can audit exactly what each model did.
+Every step is replayable from the queue — pause, resume, drop, reorder, hold. Failed phases are sticky (the daemon won't silently retry and burn API credits). Outputs land in `~/.animus/<repo-scope>/runs/` so you can audit exactly what each model did.
 
 ## Slash commands
 
 | Command | What it does |
 |---------|--------------|
-| `/animus-setup` | Bootstraps Animus in the current project — `.ao/` config, MCP wiring, first workflow, daemon start |
+| `/animus-setup` | Bootstraps Animus in the current project — `.animus/` config, MCP wiring, first workflow, daemon start |
 | `/animus-bootstrap` | Full project bootstrap — interviews you, writes VISION.md + AGENT_PRINCIPLES.md + agents/phases/workflows/schedules YAML + scripts + a runnable first task |
 | `/animus-getting-started` | First task, first workflow run, core concepts |
 | `/animus-mcp-setup` | Write or repair `.mcp.json` so any MCP-aware agent can drive Animus |
@@ -102,7 +102,7 @@ These load automatically when the conversation needs them — you don't type a s
 
 | Skill | Loaded when... |
 |-------|----------------|
-| `animus-configuration` | …you ask about `.ao/`, daemon config, agent runtime, env vars, state layout |
+| `animus-configuration` | …you ask about `.animus/`, daemon config, agent runtime, env vars, state layout |
 | `animus-task-management` | …creating, listing, updating, blocking, or bulk-editing tasks |
 | `animus-daemon-operations` | …starting, stopping, monitoring, or debugging the daemon |
 | `animus-queue-management` | …enqueueing, holding, releasing, dropping, or reordering work |
@@ -132,11 +132,11 @@ After setup you have:
 - **`animus` CLI** at `~/.local/bin/animus` — ~30 subcommand groups (`task`, `workflow`, `queue`, `daemon`, `agent`, `runner`, `vision`, `requirements`, `architecture`, `mcp`, `web`, `tui`, `doctor`, …)
 - **A daemon** that runs in the background, dispatches workflows from a queue, and manages agent processes in isolated worktrees
 - **An MCP server** (`animus mcp serve`) that exposes ~80 typed tools — your agent calls them directly instead of shelling out
-- **Project-local config** in `.ao/` (workflow YAML, daemon settings) — checked in, sharable with teammates
-- **Scoped runtime state** in `~/.ao/<repo-scope>/` — runs, artifacts, compiled config — never pollutes your repo
+- **Project-local config** in `.animus/` (workflow YAML, daemon settings) — checked in, sharable with teammates
+- **Scoped runtime state** in `~/.animus/<repo-scope>/` — runs, artifacts, compiled config — never pollutes your repo
 - **A web UI** (`animus web`) for queue inspection, run replay, and live event streaming — React 18, embedded in the binary
 
-Workflows are battle-tested across 150+ autonomous PRs (see `animus-workflow-patterns`). Bundled examples in `.ao/workflows/`: `standard` (research → plan → impl → test → review → PR), `hotfix` (skip research, fast-path), `research` (no code changes), and a `custom` template.
+Workflows are battle-tested across 150+ autonomous PRs (see `animus-workflow-patterns`). Bundled examples in `.animus/workflows/`: `standard` (research → plan → impl → test → review → PR), `hotfix` (skip research, fast-path), `research` (no code changes), and a `custom` template.
 
 ## Troubleshooting
 
@@ -169,10 +169,10 @@ rm -rf ~/.claude/skills/animus-skills ~/animus-skills
 rm -f ~/.local/bin/animus
 
 # 4. (Optional) Remove scoped runtime state — runs, artifacts, compiled config
-rm -rf ~/.ao
+rm -rf ~/.animus
 ```
 
-Per-project: `rm -rf .ao .mcp.json` (only if `.mcp.json` was Animus-only — check before deleting if you have other MCP servers wired).
+Per-project: `rm -rf .animus .mcp.json` (only if `.mcp.json` was Animus-only — check before deleting if you have other MCP servers wired).
 
 ## License
 

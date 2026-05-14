@@ -48,8 +48,8 @@ skills:
 1. Keep one skill focused on one behavior.
 2. Prefer composable `directives` over large system prompts.
 3. Restrict destructive tools by default unless the skill is explicitly mutating.
-4. Put project-specific skills in `.ao/skill_definitions/`.
-5. Put personal preferences in `~/.ao/config/skill_definitions/`.
+4. Put project-specific skills in `.animus/skill_definitions/`.
+5. Put personal preferences in `~/.animus/config/skill_definitions/`.
 6. Tag skills for discoverability only when tags add real value.
 
 If the task expands into registry operations or a complex schema question, open the matching reference file instead of reading all references preemptively.

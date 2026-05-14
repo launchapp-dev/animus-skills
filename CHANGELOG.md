@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.0 — 2026-05-14
+
+Aligned with Animus v0.4.0 hard rename: every `ao.*` reference (MCP tool names, env vars, config paths, pack ids, JSON envelope) is renamed to `animus.*`. No deprecation aliases — Animus v0.4.0 dropped `ao.*` entirely. Major version bump because every skill, README, and the setup script changed; any project still pinned to upstream `ao.*` identifiers will break on upgrade.
+
+### Breaking
+- All MCP tool references in skill bodies updated from `ao.*` → `animus.*`.
+- All env var references updated from `AO_*` → `ANIMUS_*` (`AO_CONFIG_DIR`, `AO_ALLOW_NON_EDITING_PHASE_TOOL`, `AO_WEBHOOK_SECRET`).
+- All config dir references updated from `.ao/` → `.animus/` (project-local) and `~/.ao/` → `~/.animus/` (scoped runtime state).
+- Pack id references updated: `ao.task` → `animus.task`, `ao.review` → `animus.review`, `ao.requirement` → `animus.requirement`.
+- `pack.toml` compatibility key renamed: `ao_core` → `animus_core`.
+
+### Migration
+Re-run `./setup` from your animus-skills clone to refresh symlinks. Update any project YAML or scripts that hardcoded `.ao/` paths or `AO_*` env vars (see Animus core migration guide). The `.gitignore` now covers both `.animus/` and the legacy `.ao/` while you migrate existing checkouts.
+
 ## 2.2.0 — 2026-05-06
 
 ### Added

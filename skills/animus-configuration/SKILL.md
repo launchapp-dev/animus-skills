@@ -7,17 +7,17 @@ auto_invoke: true
 
 # Animus Configuration
 
-Animus has three main configuration layers: project-local `.ao/`, repo-scoped runtime state under `~/.ao/<repo-scope>/`, and global machine config.
+Animus has three main configuration layers: project-local `.animus/`, repo-scoped runtime state under `~/.animus/<repo-scope>/`, and global machine config.
 
-## Project-Local `.ao/`
+## Project-Local `.animus/`
 
 Created by `animus setup`. This is the project-authored configuration surface.
 
 Common files:
-- `.ao/config.json`
-- `.ao/pm-config.json`
-- `.ao/workflows.yaml`
-- `.ao/workflows/*.yaml`
+- `.animus/config.json`
+- `.animus/pm-config.json`
+- `.animus/workflows.yaml`
+- `.animus/workflows/*.yaml`
 
 ## Daemon Config
 
@@ -43,8 +43,8 @@ MCP: `animus.daemon.config-set`
 Hand-edited YAML. Defines agents, phases, workflows, and cron schedules. See the [workflow-authoring](../animus-workflow-authoring/SKILL.md) skill for full details.
 
 Source locations:
-- `.ao/workflows.yaml`
-- `.ao/workflows/*.yaml`
+- `.animus/workflows.yaml`
+- `.animus/workflows/*.yaml`
 
 Useful commands:
 ```bash
@@ -74,19 +74,19 @@ Inspect and update through workflow config commands rather than direct file edit
 
 | Variable | Purpose |
 |----------|---------|
-| `AO_CONFIG_DIR` | Override global config directory |
-| `AO_ALLOW_NON_EDITING_PHASE_TOOL` | Allow non-write-capable tools (e.g., gemini) for all phases |
+| `ANIMUS_CONFIG_DIR` | Override global config directory |
+| `ANIMUS_ALLOW_NON_EDITING_PHASE_TOOL` | Allow non-write-capable tools (e.g., gemini) for all phases |
 
 ## State Layout
 
 ```
-.ao/
+.animus/
 ├── config.json
 ├── pm-config.json
 ├── workflows.yaml
 └── workflows/
 
-~/.ao/<repo-scope>/
+~/.animus/<repo-scope>/
 ├── core-state.json
 ├── resume-config.json
 ├── docs/
@@ -114,6 +114,6 @@ For model/tool selection:
 3. Compiled defaults in the Animus binary
 
 For workflow resolution:
-1. `.ao/workflows.yaml`
-2. `.ao/workflows/*.yaml`
+1. `.animus/workflows.yaml`
+2. `.animus/workflows/*.yaml`
 3. Built-in and installed definitions

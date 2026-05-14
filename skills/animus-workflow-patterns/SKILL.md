@@ -367,7 +367,7 @@ Surface them via `tools_allowlist` so command phases can call them. Cuts agent t
 Conductor system prompts grow — ship targets, gates, kill criteria, anti-patterns. Tuning those by editing the agent's `system_prompt:` triggers a daemon restart and is a high-friction loop for product-side changes. Extract the policy into a sibling file the conductor reads at sweep start:
 
 ```
-.ao/workflows/
+.animus/workflows/
 ├── agents.yaml             # conductor system_prompt: "READ FIRST: AGENT_PRINCIPLES.md"
 ├── workflows.yaml
 ├── schedules.yaml

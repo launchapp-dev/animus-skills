@@ -160,6 +160,6 @@ Leave both empty for universal activation.
 | Priority | Source | Location |
 |:--------:|--------|----------|
 | 1 | Builtin | Embedded in Animus binary |
-| 2 | Installed | `~/.ao/state/skills-registry.v1.json` |
-| 3 | User | `~/.ao/config/skill_definitions/*.yaml` |
-| 4 | Project | `.ao/skill_definitions/*.yaml` |
+| 2 | Installed | `~/.animus/state/skills-registry.v1.json` |
+| 3 | User | `~/.animus/config/skill_definitions/*.yaml` |
+| 4 | Project | `.animus/skill_definitions/*.yaml` |

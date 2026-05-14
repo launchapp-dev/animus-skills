@@ -36,7 +36,7 @@ Returns: total, pending, assigned, held counts.
 ### Enqueue a Task
 ```bash
 animus queue enqueue --task-id TASK-001
-animus queue enqueue --task-id TASK-001 --workflow-ref ao.task/quick-fix
+animus queue enqueue --task-id TASK-001 --workflow-ref animus.task/quick-fix
 ```
 
 The daemon picks up pending entries and assigns them to agents.
@@ -92,7 +92,7 @@ Repeat `--subject-id` in the exact order you want the daemon to consider.
 { "task_id": "TASK-042" }
 
 // Enqueue with workflow override
-{ "task_id": "TASK-042", "workflow_ref": "ao.task/quick-fix" }
+{ "task_id": "TASK-042", "workflow_ref": "animus.task/quick-fix" }
 
 // Drop a stuck entry
 { "subject_id": "TASK-042" }

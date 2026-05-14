@@ -158,7 +158,7 @@ The server speaks the MCP protocol (JSON-RPC 2.0 over stdio).
 - Check `enableAllProjectMcpServers: true` in Claude settings
 
 ### "project_root" errors
-- Ensure `--project-root` points to a directory with `.ao/` or a git repo
+- Ensure `--project-root` points to a directory with `.animus/` or a git repo
 - Use absolute paths, not relative
 
 ### Tool mismatch or missing methods

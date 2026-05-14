@@ -169,7 +169,7 @@ conductor:
     You are the conductor for <project>.
 
     ## READ FIRST
-    Read `.ao/workflows/AGENT_PRINCIPLES.md` before anything else.
+    Read `.animus/workflows/AGENT_PRINCIPLES.md` before anything else.
     That file owns ship targets, gates, kill criteria, and anti-patterns.
 
     ## Mission

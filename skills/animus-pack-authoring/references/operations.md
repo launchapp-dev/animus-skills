@@ -14,8 +14,8 @@ schedules:
 
 ## Resolution order
 
-1. Project overrides in `.ao/plugins/<pack-id>/`
-2. Installed packs in `~/.ao/packs/<pack-id>/<version>/`
+1. Project overrides in `.animus/plugins/<pack-id>/`
+2. Installed packs in `~/.animus/packs/<pack-id>/<version>/`
 3. Bundled packs in the Animus binary
 
 ## CLI commands
@@ -46,7 +46,7 @@ animus pack pin --pack-id animus.task --source installed
 animus pack pin --pack-id my-org.my-pack --disable
 ```
 
-Pack selections are stored in `.ao/state/pack-selection.v1.json`.
+Pack selections are stored in `.animus/state/pack-selection.v1.json`.
 
 ### Marketplace
 
@@ -80,7 +80,7 @@ description = "Sync Animus tasks with Jira issues."
 mode = "project"
 
 [compatibility]
-ao_core = ">=0.1.0"
+animus_core = ">=0.1.0"
 workflow_schema = "v2"
 subject_schema = "v2"
 

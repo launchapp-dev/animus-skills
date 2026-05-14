@@ -19,7 +19,7 @@ workflows:
     phases:
       - my-analysis
       - implementation
-      - workflow_ref: ao.review/cycle
+      - workflow_ref: animus.review/cycle
 
   - id: my-org.my-pack/quick-fix
     name: Quick Fix

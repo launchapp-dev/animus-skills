@@ -72,7 +72,7 @@ Event types: `health`, `queue`, `workflow`, `task-state-change`.
 animus daemon logs --limit 100
 ```
 
-Log file location: `~/.ao/<repo-scope>/daemon/daemon.log`
+Log file location: `~/.animus/<repo-scope>/daemon/daemon.log`
 
 ### Live Structured Log Streaming — `animus daemon stream`
 
@@ -206,7 +206,7 @@ animus daemon config --pool-size 3 --auto-run-ready true --auto-merge false --au
 
 ## Daemon Architecture
 
-Animus resolves a project root, loads repo-scoped runtime state under `~/.ao/<repo-scope>/`, manages the queue, and uses `agent-runner` to launch `claude`, `codex`, or `gemini` for workflow phases.
+Animus resolves a project root, loads repo-scoped runtime state under `~/.animus/<repo-scope>/`, manages the queue, and uses `agent-runner` to launch `claude`, `codex`, or `gemini` for workflow phases.
 
 ## Common Issues
 
@@ -234,7 +234,7 @@ Common causes:
 If the daemon won't start ("daemon already running"):
 ```bash
 # Check if actually running
-ps -p $(cat ~/.ao/<repo-scope>/daemon/daemon.lock)
+ps -p $(cat ~/.animus/<repo-scope>/daemon/daemon.lock)
 # If not running, the lock is stale — daemon start will clean it up
 ```
 
