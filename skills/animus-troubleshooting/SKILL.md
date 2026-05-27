@@ -1,6 +1,6 @@
 ---
 name: animus-troubleshooting
-description: Common Animus issues and fixes — daemon crashes, workflow failures, queue problems, merge conflicts
+description: Common Animus issues and fixes — daemon crashes, plugin preflight, workflow failures, queue problems, merge conflicts
 user_invocable: true
 auto_invoke: true
 ---
@@ -11,205 +11,260 @@ Start with:
 
 ```bash
 animus doctor
+animus daemon preflight
+animus workflow config validate
 ```
 
 ## Daemon Won't Start
 
-### "daemon already running"
+### Missing providers or subject backends
+
+Current Animus requires installed plugins. The daemon refuses to start when
+required provider or subject roles are missing.
+
 ```bash
-animus daemon health    # check if actually alive
-animus daemon stop      # try graceful stop
-# If it still exits unexpectedly, run in the foreground:
+animus daemon preflight
+animus plugin install-defaults --include-subjects
+animus daemon start --autonomous
+```
+
+For web UI support:
+
+```bash
+animus plugin install-defaults --include-transports
+```
+
+For a dev machine where you want the daemon to remediate automatically:
+
+```bash
+animus daemon start --autonomous --auto-install
+```
+
+Use `--skip-preflight` only when intentionally debugging without plugins.
+
+### Daemon already running
+
+```bash
+animus daemon health
+animus daemon stop
 animus daemon run
 ```
 
-### Daemon Crashes Immediately
-Check the log:
+### Daemon crashes immediately
 
 ```bash
 animus daemon logs --limit 50
+animus logs tail --level error --since 1h
 animus daemon stream --level error --pretty
 ```
 
 Common causes:
-- **Disk full**: worktrees and build artifacts accumulate. Run `cargo clean` or add a cleanup phase.
-- **Lock contention**: another process holds the daemon lock.
-- **Config error**: invalid workflow YAML. Run `animus workflow config validate`.
 
-## Workflows Fail Immediately (Cancelled in <5 seconds)
+- Missing, unsigned, or unhealthy plugins.
+- Invalid workflow YAML.
+- Disk full from worktrees or build artifacts.
+- Lock contention.
 
-### CLAUDECODE Environment Variable
-When the daemon is started from inside Claude Code, it inherits session env vars that prevent `claude` CLI from launching.
+## Workflows Fail Immediately
 
-**Fix**: Build from latest (commit 47d0d192+) which strips these at spawn points. Or:
+### Claude Code environment variables
+
+When the daemon is started from inside Claude Code, embedded-session env vars
+may prevent nested `claude` runs on older builds.
+
 ```bash
-env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN animus daemon start --autonomous ...
+env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN animus daemon start --autonomous
 ```
 
-### Pool Exhaustion
-If `pool_size` is too small, cron workflows get cancelled when they can't get a pool slot.
+Current Animus strips the known guard vars at provider spawn points.
 
-**Fix**: Increase pool_size. Rule of thumb: `pool_size >= concurrent_crons + 2`.
+### Pool exhaustion
+
+If `pool_size` is too small, schedules or queued workflows can wait too long or
+fail operational checks.
+
 ```bash
-animus daemon start --autonomous --pool-size 5 ...
+animus daemon config --pool-size 5
+animus daemon health
 ```
 
-### "failed to connect runner"
-The agent-runner process isn't responding. Usually means it crashed.
+Rule of thumb: `pool_size >= concurrent_schedules + 2`.
+
+### Runner connection failure
+
 ```bash
 animus runner health
 animus runner orphans detect
-animus daemon stream --cat llm --level warn --pretty
+animus daemon stream --cat runner --level warn --pretty
 animus daemon stop
 animus daemon start --autonomous
 ```
 
-## Workflows Fail at Implementation Phase
+## Workflows Fail During Implementation
 
-### "no changes were detected"
-The agent didn't write any code. Check the task description — it might be too vague.
+### No changes were detected
 
-**Fix**: Update the task with more specific requirements:
+The agent may have lacked enough instructions. Update the task subject with a
+clearer title, labels, status, or plugin-specific body field if the backend
+supports it:
+
 ```bash
-animus task update --id TASK-XXX --description "Specific implementation details..."
+animus subject get --kind task --id TASK-XXX
+animus subject update --kind task --id TASK-XXX --labels backend,needs-detail
 ```
 
-### "missing required field 'commit_message'"
-The implementation phase contract requires a commit. The agent either didn't commit or the output contract wasn't satisfied.
+If the current subject backend does not expose body updates through the generic
+CLI, update the source system directly or create a replacement task subject with
+a clearer `--body`.
 
-**Fix**: This is usually a prompt quality issue. Ensure the agent prompt says to commit changes.
+### Missing required output field
+
+If a phase reports an output-contract error such as a missing commit message,
+inspect the rendered prompt and phase output:
+
+```bash
+animus workflow get --id WF-XXX
+animus workflow prompt render --workflow-id WF-XXX --phase implementation
+animus output phase-outputs --workflow-id WF-XXX
+```
+
+This is usually a workflow prompt or phase contract issue.
 
 ## Queue Issues
 
-### Stale Assigned Entries
-Entries stuck as `assigned` with no running workflow. Happens when daemon restarts mid-workflow.
+### Stale assigned entries
+
+Entries stuck as `assigned` with no running workflow can happen after daemon
+restart or runner crash.
 
 ```bash
-animus queue list              # identify stale entries
-animus queue drop --subject-id TASK-XXX    # remove them
+animus queue list
+animus queue drop --subject-id TASK-XXX
 ```
 
-### Queue Not Filling
-If queue stays empty:
+### Queue not filling
 
-1. Check if there are ready tasks: `animus task list --status ready`
-2. Enqueue a task manually: `animus queue enqueue --task-id TASK-XXX`
-3. Check daemon health: `animus daemon health`
-4. Inspect recent workflows: `animus workflow list --limit 5`
-5. Follow scheduler logs: `animus daemon stream --cat schedule --pretty`
+1. Check ready task subjects: `animus subject list --kind task --status ready`.
+2. Enqueue one manually: `animus queue enqueue --task-id TASK-XXX`.
+3. Check daemon health: `animus daemon health`.
+4. Inspect recent workflows: `animus workflow list --limit 5`.
+5. Follow scheduler logs: `animus daemon stream --cat schedule --pretty`.
 
-## Task State Issues
+## Subject State Issues
 
-### Tasks Stuck as "blocked"
+### Tasks stuck as blocked
+
 ```bash
-animus task list --status blocked
-animus task get --id TASK-XXX
-animus task status --id TASK-XXX --status ready    # force unblock
+animus subject list --kind task --status blocked
+animus subject get --kind task --id TASK-XXX
+animus subject status --kind task --id TASK-XXX --status ready
 ```
 
-### Tasks Stuck as "in-progress"
-No active workflow but task is still in-progress:
+### Tasks stuck as in_progress
+
+No active workflow but the task subject is still in progress:
+
 ```bash
-animus task status --id TASK-XXX --status ready    # reset to ready
+animus subject status --kind task --id TASK-XXX --status ready
 ```
 
-Then verify the queue and workflow state before re-enqueueing.
+Then verify queue and workflow state before re-enqueueing.
 
 ## Log Streaming Patterns
 
-### Watch All New Structured Logs
 ```bash
 animus daemon stream --pretty
-```
-
-### Focus On Scheduler Or Phase Problems
-```bash
 animus daemon stream --cat schedule --level warn --pretty
 animus daemon stream --cat phase --level warn --pretty
-```
-
-### Focus On One Workflow Or Run
-```bash
 animus daemon stream --workflow wf-abc123 --tail 100 --pretty
 animus daemon stream --run run-xyz789 --tail 100 --pretty
 ```
 
-### Compare Live Logs With Run Output
 Use:
-- `animus daemon stream` when you need cross-cutting operational logs
-- `animus output monitor --run-id <id>` when you need the live stdout/stderr stream for a single run
-- `animus output run --run-id <id>` when the run already finished
+
+- `animus daemon stream` for cross-cutting operational logs.
+- `animus logs tail` for active log-storage backend entries.
+- `animus output monitor --run-id <id>` for live stdout/stderr from one run.
+- `animus output run --run-id <id>` for a finished run.
 
 ## PR Issues
 
-### PRs Not Getting Merged
-Check recent workflow state and daemon config:
+### PRs not getting merged
+
 ```bash
 animus workflow list --limit 5
 animus daemon config
-```
-
-If merges depend on a review phase in your workflow, inspect that phase output with:
-
-```bash
 animus output phase-outputs --workflow-id WF-XXX
 ```
 
-### Merge Conflicts
-When multiple task branches diverge from main:
+If merges depend on a review phase, inspect that phase output and the relevant
+GitHub PR checks.
+
+### Merge conflicts
+
 ```bash
 gh pr list --state open --json number,mergeable
 ```
 
-The pr-reviewer should skip conflicted PRs. Rebase manually or create a task to resolve.
+Rebase manually, run a rebase workflow if the project defines one, or create a
+new task subject for conflict resolution.
 
 ## Process Leaks
 
-### Too Many agent-runner Processes
 ```bash
 animus runner orphans detect
 animus runner restart-stats
+animus runner orphans cleanup --run-id <run-id>
 ```
 
 ## State Location Reference
 
-```
+```text
 .animus/
 ├── config.json
-├── pm-config.json
 ├── workflows.yaml
-└── workflows/
+├── workflows/
+├── skills/
+└── plugins/
 ```
 
-```
+```text
 ~/.animus/<repo-scope>/
 ├── core-state.json
 ├── resume-config.json
-├── tasks/
-├── requirements/
+├── workflow.db
+├── daemon/
+│   └── pm-config.json
+├── state/
 ├── runs/
-├── artifacts/
 └── worktrees/
 ```
 
-## Tasks Marked "Done" But PR Never Merged
+## Tasks Marked Done But PR Never Merged
 
-The implementation phase may complete successfully, but push/PR phases fail. The task gets marked "done" by the workflow runner even though the code never reached main.
+The implementation phase may complete successfully while push/PR/merge phases
+fail later.
 
-**Detection:** Task status is "done" but `gh pr list --state merged --search "TASK-XXX"` returns nothing.
+Detection:
 
-**Fix in reconciler prompt:**
+```bash
+animus subject get --kind task --id TASK-XXX
+animus workflow list --task-id TASK-XXX
+gh pr list --state merged --search "TASK-XXX"
 ```
-Check for tasks marked "done" that have NO merged PR.
-These were marked done prematurely. Set them back to "ready"
-and queue rebase-and-retry.
+
+Fix in a reconciler prompt:
+
+```text
+Check for task subjects marked done that have no merged PR.
+Set them back to ready and queue rebase-and-retry or a replacement task.
 ```
 
-## Worktrees Have No node_modules
+## Worktrees Have No Dependencies
 
-Command phases (`pnpm build`, `pnpm test`, `pnpm lint`) fail in worktrees because `node_modules` doesn't exist. The implementation agent works fine (uses Claude Code file tools, not the build system), but command phases need deps.
+Command phases can fail in worktrees because dependencies are not installed.
+Add an install phase before build/test/lint commands:
 
-**Fix:** Add `install-deps` command phase before any command that needs `node_modules`:
 ```yaml
 install-deps:
   mode: command
@@ -217,57 +272,55 @@ install-deps:
     program: pnpm
     args: ["install"]
     cwd_mode: task_root
+  idempotency: idempotent
 ```
 
 ## Reviewer Merges PRs With Failing CI
 
-By default, the reviewer agent doesn't check CI status before merging.
+Add explicit CI policy to the reviewer prompt:
 
-**Fix:** Add to reviewer prompt:
-```
+```text
 Before merging, run: gh pr checks <number>
-If checks fail, evaluate: is the failure from THIS PR or pre-existing?
-- If from this PR: queue rework
-- If pre-existing: merge anyway, create a fix task
-- If pending: skip, next cycle picks it up
+If checks fail, decide whether the failure belongs to this PR.
+If it does, queue rework. If it is pre-existing, merge only if policy allows and create a fix task.
+If checks are pending, skip and let the next cycle pick it up.
 ```
 
 ## Daemon Doesn't Reload YAML Changes
 
-Changes to `.animus/workflows.yaml` or `.animus/workflows/*.yaml` are not picked up by an already-running daemon.
+Validate, then restart:
 
-**Fix:** Validate, then restart:
 ```bash
 animus workflow config validate
 animus daemon stop
 animus daemon start --autonomous --auto-run-ready true --pool-size 3
 ```
 
-## Tasks Stuck in Infinite Retry Loop
+## Infinite Retry Loop
 
-If a task keeps blocking and the planner/reconciler keeps re-enqueuing it, it can waste agent slots forever.
+Detection: a subject cycles between `ready` and `blocked`, or the same
+workflow repeatedly fails with the same phase verdict.
 
-**Detection:** Task version number is very high (>10) and status cycles between ready → blocked.
+Fixes:
 
-**Fixes:**
-1. Check `animus.output.tail --task-id TASK-XXX` for the actual error
-2. Check the worktree: `git -C <worktree_path> log --oneline -3`
-3. If the code is committed but push fails: manually push and create PR
-4. If the task is fundamentally stuck: cancel it and create a better-scoped replacement
-5. Add `consecutive_dispatch_failures > 3` skip rule to the planner prompt
+1. Inspect `animus workflow get --id WF-XXX`.
+2. Inspect run output with `animus output run --run-id <run-id>`.
+3. Check the worktree: `git -C <worktree_path> log --oneline -3`.
+4. If the task is fundamentally stuck, cancel or mark it blocked and create a clearer replacement.
+5. Add a consecutive-failure skip rule to the planner prompt.
 
 ## Parallel Agents Cause Merge Conflicts
 
-Multiple agents running in parallel will conflict on shared files (especially `pnpm-lock.yaml`).
+Mitigations:
 
-**Mitigations:**
-1. Use `rebase-and-retry` workflow — the reviewer queues it for conflicting PRs
-2. Reduce `pool_size` to 1 if conflicts are too frequent
-3. The rebase agent resolves conflicts intelligently (keeps both sides)
+1. Use a rebase-and-retry workflow if the project defines one.
+2. Reduce `pool_size` to 1 for conflict-heavy repos.
+3. Split broad tasks into smaller subjects that touch fewer shared files.
 
-## auto_merge and auto_pr Should Be False
+## auto_merge and auto_pr Should Usually Be False
 
-If the daemon's `auto_merge` is `true`, it merges PRs without code review. Set both to `false` and let the pr-review phase handle merging:
+If daemon-level `auto_merge` is `true`, it can bypass expected review policy.
+For review-first workflows:
 
 ```bash
 animus daemon config --auto-merge false --auto-pr false

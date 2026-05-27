@@ -1,13 +1,14 @@
 ---
 name: animus-setup
-description: Set up Animus in the current project - initialize config, connect MCP, create a first workflow, and start the daemon. Use when bootstrapping Animus in a repo or fixing an incomplete Animus setup.
+description: Set up Animus in the current project - initialize config, connect MCP, install required plugins, create a first workflow, and start the daemon. Use when bootstrapping Animus in a repo or fixing an incomplete Animus setup.
 user_invocable: true
 auto_invoke: false
 ---
 
 You are setting up Animus in the current project.
 
-Do not preload the entire `~/animus-skills/skills/` directory. Start with targeted reads:
+Do not preload the entire `~/animus-skills/skills/` directory. Start with
+targeted reads:
 
 - Read [getting-started](../animus-getting-started/SKILL.md) first for the core Animus mental model.
 - Read [mcp-setup](../animus-mcp-setup/SKILL.md) only when creating or fixing `.mcp.json`.
@@ -18,11 +19,16 @@ Do not preload the entire `~/animus-skills/skills/` directory. Start with target
 
 ## Setup flow
 
-1. Run `animus setup` in the project root to initialize `.animus/`.
-2. Create `.mcp.json` pointing to the `animus` binary.
-3. Create a minimal workflow file.
-4. Start the daemon with conservative defaults.
-5. Create one small test task and verify end-to-end execution.
+1. Run `animus init --walkthrough` in the project root to initialize `.animus/`.
+2. Install required plugins with `animus plugin install-defaults --include-subjects`.
+3. Run `animus daemon preflight` and resolve missing providers or subject backends.
+4. Create or verify `.mcp.json` pointing to the `animus` binary.
+5. Create or validate a minimal workflow file.
+6. Start the daemon with conservative defaults.
+7. Create one small task subject, enqueue it, and verify end-to-end execution.
+
+Use `animus init --walkthrough --non-interactive --no-install` when automation
+should avoid prompts and plugin installs are already handled elsewhere.
 
 ## Minimal workflow
 
@@ -38,6 +44,7 @@ phases:
   implementation:
     mode: agent
     agent: default
+    idempotency: idempotent
     directive: Implement the task and report what changed.
 
 workflows:
@@ -46,22 +53,33 @@ workflows:
     phases: [implementation]
 ```
 
-Expand it only after the daemon, MCP, and task loop work.
+Expand it only after the daemon, MCP, and subject dispatch loop work.
 
 ## Daemon startup
 
 Start with:
 
 ```bash
+animus daemon preflight
 animus daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
 animus daemon health
 ```
 
+If preflight reports missing defaults on a dev machine:
+
+```bash
+animus daemon start --autonomous --auto-install
+```
+
+Use `--skip-preflight` only when intentionally debugging without required
+plugins.
+
 ## Verification
 
 - Run `animus daemon status` or the MCP equivalent.
-- Create a small task with `animus task create`.
-- Enqueue it with `animus queue enqueue`.
+- Create a small task subject with `animus subject create --kind task`.
+- Enqueue it with `animus queue enqueue --task-id <id>`.
 - Confirm the daemon picks it up before adding more workflows or schedules.
 
-If something fails, read only the skill that matches the blocker instead of sweeping the whole repo.
+If something fails, read only the skill that matches the blocker instead of
+sweeping the whole repo.

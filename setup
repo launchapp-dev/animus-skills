@@ -43,7 +43,7 @@ if [[ $INSTALL_CLI -eq 1 ]]; then
     echo "✓ animus already installed: $(command -v animus) ($(animus --version 2>/dev/null | head -1))"
   else
     echo "→ installing animus CLI..."
-    curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/launchapp-dev/animus-cli/main/scripts/install.sh | bash
     export PATH="$HOME/.local/bin:$PATH"
   fi
 fi

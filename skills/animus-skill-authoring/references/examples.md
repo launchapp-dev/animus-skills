@@ -57,11 +57,11 @@ skills:
         - "Glob"
         - "Grep"
         - "Bash"
-        - "task.*"
+        - "subject.*"
         - "output.*"
       deny:
-        - "task.delete"
-        - "requirements.delete"
+        - "queue.drop"
+        - "plugin.uninstall"
 
     model:
       preferred: claude-sonnet-4-6

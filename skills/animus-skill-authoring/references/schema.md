@@ -31,7 +31,7 @@ skills:
         - "Read"
         - "Grep"
         - "Glob"
-        - "task.*"
+        - "subject.*"
       deny:
         - "Write"
         - "Edit"
@@ -99,16 +99,18 @@ Use `directives` for composable rules. Use `system` for a full override.
 ```yaml
 tool_policy:
   allow:
-    - "task.*"
+    - "subject.*"
     - "Read"
-    - "requirements.*"
+    - "output.*"
   deny:
-    - "task.delete"
+    - "queue.drop"
     - "Bash"
     - "git.*"
 ```
 
 `deny` takes precedence over `allow`.
+Use `subject.*` for task and requirement operations; the old `task.*` and
+`requirements.*` MCP families were removed from Animus.
 
 ## Capabilities
 

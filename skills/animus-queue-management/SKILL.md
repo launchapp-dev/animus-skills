@@ -7,7 +7,10 @@ auto_invoke: true
 
 # Queue Management
 
-The dispatch queue controls what work the daemon picks up next. Subjects can be tasks, requirements, or custom dispatches.
+The dispatch queue controls what work the daemon picks up next. Subjects can be
+tasks, requirements, or custom dispatches. Task and requirement records now come
+from `subject_backend` plugins; create them through `animus subject ...` before
+enqueueing their ids.
 
 ## Queue Entry States
 
@@ -40,6 +43,8 @@ animus queue enqueue --task-id TASK-001 --workflow-ref animus.task/quick-fix
 ```
 
 The daemon picks up pending entries and assigns them to agents.
+`--task-id` still exists on queue and workflow commands even though the old
+`animus task ...` CRUD tree was removed.
 
 ### Enqueue Other Subjects
 ```bash
@@ -51,7 +56,7 @@ animus queue enqueue --title "Run nightly build" --description "Verify the relea
 ```
 
 ### Hold / Release
-Temporarily prevent a queued task from being dispatched:
+Temporarily prevent a queued subject from being dispatched:
 ```bash
 animus queue hold --subject-id TASK-001
 animus queue release --subject-id TASK-001
@@ -101,7 +106,9 @@ Repeat `--subject-id` in the exact order you want the daemon to consider.
 ## Patterns
 
 ### Queue Draining
-When all pending entries are processed, the queue is empty. Refill it by enqueueing tasks directly or by running whatever workflow/schedule in your project is responsible for planning work.
+When all pending entries are processed, the queue is empty. Refill it by
+enqueueing task or requirement subjects directly, or by running whatever
+workflow/schedule in your project is responsible for planning work.
 
 ### Stale Assigned Entries
 If a workflow completes or fails but the queue entry stays `assigned`, it's stale. The reconciler cron should drop these, or use:

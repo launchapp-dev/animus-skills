@@ -1,168 +1,146 @@
 ---
 name: animus-task-management
-description: Full task lifecycle — create, list, update, block/unblock, checklists, bulk ops via CLI and MCP
+description: Task lifecycle through the v0.4 subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
 user_invocable: false
 auto_invoke: true
 ---
 
 # Task Management
 
+Current Animus routes tasks through the unified subject surface. The old
+`animus task ...` CLI tree and `animus.task.*` MCP tools were removed; use
+`animus subject --kind task ...` and `animus.subject.*` with `kind: "task"`.
+
+Task operations require a subject backend plugin. For the default local task
+backend, run:
+
+```bash
+animus plugin install-defaults --include-subjects
+animus daemon preflight
+```
+
 ## Task Lifecycle
 
+Common normalized statuses:
+
+```text
+ready -> in_progress -> done
+      -> blocked -> ready
+      -> cancelled
 ```
-backlog → todo → ready → in-progress → done
-                    ↘ blocked → ready
-                    ↘ on-hold → ready
-backlog/todo/ready/in-progress → cancelled
-```
+
+Backends may support additional raw states, but the CLI forwards normalized
+status buckets.
 
 ## CLI Commands
 
 ### Create
+
 ```bash
-animus task create --title "Fix login bug" --priority critical --task-type bugfix
-animus task create --title "Add dark mode" --priority medium --task-type feature --description "Support system theme preference"
+animus subject create --kind task --title "Fix login bug" --priority p1 --status ready
+animus subject create --kind task --title "Add dark mode" --body "Support system theme preference" --priority p2 --labels feature,frontend
 ```
 
-Options:
-- `--priority`: critical, high, medium, low
-- `--task-type`: feature, bugfix, hotfix, refactor, docs, test, chore, experiment
-- `--description`: detailed description
-- `--linked-requirement`: repeat to attach requirement ids
-- `--linked-architecture-entity`: repeat to attach architecture entities
+Supported fields:
+
+- `--kind`: usually `task`; omit only when `.animus/config.json` sets the right `default_subject_kind`
+- `--title`: required for creation
+- `--body`: free-form description
+- `--status`: normalized status such as `ready`, `blocked`, `in_progress`, `done`
+- `--priority`: backend priority bucket, commonly `p0`, `p1`, `p2`, `p3`
+- `--labels`: comma-separated labels
 
 ### List and Filter
+
 ```bash
-animus task list                          # all tasks
-animus task list --status ready           # ready tasks only
-animus task list --status blocked         # blocked tasks
-animus task list --task-type bugfix       # filter by task type
-animus task prioritized                   # sorted by priority
-animus task stats                         # aggregate counts by status/priority/type
+animus subject list --kind task
+animus subject list --kind task --status ready
+animus subject list --kind task --status blocked --limit 50
+animus subject next --kind task
 ```
+
+Use `animus queue stats` and `animus workflow list` for runtime metrics; the old
+task-specific `stats` and `prioritized` commands are gone.
 
 ### Get Details
+
 ```bash
-animus task get --id TASK-001
+animus subject get --kind task --id TASK-001
 ```
+
+Prefer copying the exact id returned by `subject list` or `subject create`,
+especially when using non-default backends that return wire ids like
+`linear:ENG-123`.
 
 ### Update Status
+
 ```bash
-animus task status --id TASK-001 --status ready
-animus task status --id TASK-001 --status in-progress
-animus task status --id TASK-001 --status done
-animus task status --id TASK-001 --status blocked
-animus task status --id TASK-001 --status on-hold
-animus task status --id TASK-001 --status cancelled
+animus subject status --kind task --id TASK-001 --status ready
+animus subject status --kind task --id TASK-001 --status in_progress
+animus subject status --kind task --id TASK-001 --status done
+animus subject status --kind task --id TASK-001 --status blocked
+animus subject status --kind task --id TASK-001 --status cancelled
 ```
 
-Setting `ready` clears `paused`, `blocked_at`, `blocked_reason`, and `blocked_by`.
+### Update Fields
 
-### Pause / Resume
 ```bash
-animus task pause --id TASK-001
-animus task resume --id TASK-001
+animus subject update --kind task --id TASK-001 --status blocked --priority p1
+animus subject update --kind task --id TASK-001 --labels backend,urgent
 ```
 
-### Cancel / Reopen
-```bash
-animus task cancel --id TASK-001 --confirm TASK-001
-animus task reopen --id TASK-001 --confirm TASK-001
-```
-
-### Set Priority / Deadline
-```bash
-animus task set-priority --id TASK-001 --priority critical
-animus task set-deadline --id TASK-001 --deadline "2026-04-01T00:00:00Z"
-```
-
-### Update Content
-```bash
-animus task update --id TASK-001 --title "Updated title" --description "New details"
-```
-
-### Checklists
-```bash
-animus task checklist-add --id TASK-001 --description "Add unit tests"
-animus task checklist-update --id TASK-001 --item-id chk-1 --completed true
-```
-
-Use `animus task get --id TASK-001` first to find the checklist `item_id`.
-
-### Dependencies
-```bash
-animus task dependency-add --id TASK-002 --dependency-id TASK-001 --dependency-type blocked-by
-animus task dependency-remove --id TASK-002 --dependency-id TASK-001
-```
+The current generic subject CLI exposes status, priority, and labels for
+updates. Backend-specific fields such as checklists, dependency edges,
+deadlines, assignees, or native task type are no longer part of the core CLI
+surface; use the backend plugin directly if it provides those operations.
 
 ## MCP Tools
 
 | Tool | Purpose |
 |------|---------|
-| `animus.task.create` | Create a new task |
-| `animus.task.get` | Get task details by ID |
-| `animus.task.list` | List tasks, filter by status |
-| `animus.task.update` | Update task title/description |
-| `animus.task.delete` | Delete a task |
-| `animus.task.assign` | Assign a task to an agent or human |
-| `animus.task.status` | Change task status |
-| `animus.task.stats` | Aggregate task metrics |
-| `animus.task.prioritized` | Get tasks sorted by priority |
-| `animus.task.next` | Get the next recommended task to work on |
-| `animus.task.checklist-add` | Add a checklist item |
-| `animus.task.checklist-update` | Mark checklist item complete/incomplete |
-| `animus.task.bulk-status` | Update multiple task statuses at once |
-| `animus.task.bulk-update` | Bulk update multiple tasks |
-| `animus.task.pause` | Pause a task |
-| `animus.task.resume` | Resume a paused task |
-| `animus.task.cancel` | Cancel a task |
-| `animus.task.set-priority` | Set task priority |
-| `animus.task.set-deadline` | Set or clear task deadline |
-| `animus.task.history` | View task dispatch history |
+| `animus.subject.list` | List task subjects with `kind: "task"` |
+| `animus.subject.get` | Fetch one task subject |
+| `animus.subject.create` | Create a task subject |
+| `animus.subject.update` | Patch task subject fields |
+| `animus.subject.next` | Get the next ready task subject |
+| `animus.subject.status` | Set normalized task status |
 
 ### MCP Examples
 
 ```json
-// Create a task
-{ "title": "Add rate limiting", "priority": "high", "task_type": "feature" }
+{ "kind": "task", "title": "Add rate limiting", "priority": "p1", "status": "ready" }
+```
 
-// List ready tasks
-{ "status": "ready" }
+```json
+{ "kind": "task", "status": "ready", "limit": 25 }
+```
 
-// Update status
-{ "id": "TASK-042", "status": "done" }
-
-// Bulk status update
-{
-  "updates": [
-    { "id": "TASK-001", "status": "done" },
-    { "id": "TASK-002", "status": "cancelled" }
-  ]
-}
+```json
+{ "kind": "task", "id": "TASK-042", "status": "done" }
 ```
 
 ## Patterns
 
-### Promoting from Backlog
-Tasks start as `backlog`. Promote to `ready` when dependencies are met:
+### Promote Work
+
+Tasks are dispatchable when the subject backend reports `ready`:
+
 ```bash
-animus task status --id TASK-005 --status ready
+animus subject status --kind task --id TASK-005 --status ready
 ```
 
-### Blocking and Unblocking
-When a task can't proceed:
-```bash
-animus task status --id TASK-005 --status blocked
-# Later, when the blocker is resolved:
-animus task status --id TASK-005 --status ready
-```
+### Block and Unblock
 
-### Task Dependencies
-Use explicit dependency edges when task ordering matters. They show up in task detail and are respected by prioritization and scheduling logic.
+```bash
+animus subject status --kind task --id TASK-005 --status blocked
+animus subject status --kind task --id TASK-005 --status ready
+```
 
 ### Workflow Integration
+
 Typical flow:
-1. Move the task to `ready`
-2. Enqueue it with `animus queue enqueue --task-id TASK-XXX`
-3. Run a workflow explicitly or let the daemon pick it up
-4. Inspect execution with `animus workflow list`, `animus output run`, and `animus output phase-outputs`
+
+1. Create or select a `ready` task subject.
+2. Enqueue it with `animus queue enqueue --task-id TASK-XXX`.
+3. Run a workflow explicitly with `animus workflow run <workflow-ref> --task-id TASK-XXX`, or let the daemon pick it up.
+4. Inspect execution with `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output run`, and `animus output phase-outputs`.

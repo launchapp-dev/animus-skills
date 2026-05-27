@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+Aligned the skill bundle with the current `launchapp-dev/animus-cli` repo
+surface after the v0.4 plugin extraction:
+
+- Replaced stale `animus task ...`, `animus requirements ...`, `animus.task.*`, and `animus.requirements.*` guidance with the subject-backed `animus subject --kind task|requirement ...` and `animus.subject.*` surfaces.
+- Added daemon plugin preflight and default plugin install guidance: `animus daemon preflight`, `animus plugin install-defaults --include-subjects`, and optional transport/UI plugins.
+- Updated setup/getting-started flow from `animus setup` to `animus init --walkthrough`.
+- Updated MCP references for subject, logs, skill, memory, and plugin tools.
+- Added new auto-invoked reference skills for plugin operations, subject backends, model checks, direct agent operations, observability, and project/history/git management.
+- Corrected pack authoring docs to keep the current `pack.toml` compatibility key as `ao_core`, matching `crates/orchestrator-config/src/pack_config/types.rs`.
+- Updated the setup installer URL to `launchapp-dev/animus-cli/main/scripts/install.sh`.
+
 ## 3.0.0 — 2026-05-14
 
 Aligned with Animus v0.4.0 hard rename: every `ao.*` reference (MCP tool names, env vars, config paths, pack ids, JSON envelope) is renamed to `animus.*`. No deprecation aliases — Animus v0.4.0 dropped `ao.*` entirely. Major version bump because every skill, README, and the setup script changed; any project still pinned to upstream `ao.*` identifiers will break on upgrade.
@@ -9,7 +22,7 @@ Aligned with Animus v0.4.0 hard rename: every `ao.*` reference (MCP tool names, 
 - All env var references updated from `AO_*` → `ANIMUS_*` (`AO_CONFIG_DIR`, `AO_ALLOW_NON_EDITING_PHASE_TOOL`, `AO_WEBHOOK_SECRET`).
 - All config dir references updated from `.ao/` → `.animus/` (project-local) and `~/.ao/` → `~/.animus/` (scoped runtime state).
 - Pack id references updated: `ao.task` → `animus.task`, `ao.review` → `animus.review`, `ao.requirement` → `animus.requirement`.
-- `pack.toml` compatibility key renamed: `ao_core` → `animus_core`.
+- `pack.toml` examples were updated during the rename pass; the current core schema still uses the historical `ao_core` compatibility key.
 
 ### Migration
 Re-run `./setup` from your animus-skills clone to refresh symlinks. Update any project YAML or scripts that hardcoded `.ao/` paths or `AO_*` env vars (see Animus core migration guide). The `.gitignore` now covers both `.animus/` and the legacy `.ao/` while you migrate existing checkouts.
@@ -50,7 +63,7 @@ Breaking rebrand from AO to Animus, plus the conductor pattern docs and a multi-
 
 ### Breaking
 - CLI binary renamed from `ao` to `animus`. Update any scripts that call `ao …` directly.
-- MCP tool prefix renamed from `ao.*` to `animus.*` (e.g. `ao.task.create` → `animus.task.create`).
+- MCP tool prefix renamed from `ao.*` to `animus.*` (e.g. `ao.workflow.run` → `animus.workflow.run`).
 - MCP server name in `.mcp.json` changed from `"ao"` to `"animus"`. Claude Code permission ids likewise: `mcp__ao__ao_*` → `mcp__animus__animus_*`.
 - Slash command `/setup-ao` renamed to `/animus-setup`. Skill directory `setup-ao/` renamed to `setup-animus/`.
 - Plugin name changed from `ao-skills` to `animus-skills`. GitHub repo renamed to `launchapp-dev/animus-skills` (HTTPS redirects from the old URL still work).

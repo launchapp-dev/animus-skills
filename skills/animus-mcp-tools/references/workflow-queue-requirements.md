@@ -1,6 +1,7 @@
 # Workflow, Queue, And Requirement Tools
 
-Use this reference when the Animus operation is about workflow runtime, workflow definitions, queue dispatch, or requirement state.
+Use this reference when the Animus operation is about workflow runtime,
+workflow definitions, queue dispatch, or requirement state.
 
 ## Workflow runtime tools
 
@@ -16,12 +17,17 @@ Use this reference when the Animus operation is about workflow runtime, workflow
 | `animus.workflow.resume` | `id` |
 | `animus.workflow.phase.approve` | `workflow_id`, `phase_id`, `feedback` |
 
-## Workflow decisions and definitions
+## Decisions and checkpoints
 
 | Tool | Key parameters |
 |------|----------------|
 | `animus.workflow.decisions` | `id`, `limit`, `offset`, `max_tokens` |
 | `animus.workflow.checkpoints.list` | `id`, `limit`, `offset`, `max_tokens` |
+
+## Definition and config tools
+
+| Tool | Key parameters |
+|------|----------------|
 | `animus.workflow.phases.list` | `project_root` |
 | `animus.workflow.phases.get` | `phase` |
 | `animus.workflow.definitions.list` | `project_root` |
@@ -40,16 +46,23 @@ Use this reference when the Animus operation is about workflow runtime, workflow
 | `animus.queue.release` | `subject_id` |
 | `animus.queue.drop` | `subject_id`, `project_root` |
 
-## Requirement tools
+## Requirement state
 
-| Tool | Key parameters |
-|------|----------------|
-| `animus.requirements.list` | `limit`, `offset`, `max_tokens`, `status` |
-| `animus.requirements.get` | `id` |
-| `animus.requirements.create` | `title`, `description`, `priority`, `acceptance_criterion[]` |
-| `animus.requirements.update` | `id`, `title`, `description`, `priority`, `status`, `acceptance_criterion[]` |
-| `animus.requirements.delete` | `id` |
-| `animus.requirements.refine` | `id[]`, `focus`, `use_ai`, `tool`, `model`, `timeout_secs`, `start_runner`, `input_json` |
+Requirements are subjects now. The removed `animus.requirements.*` MCP family
+maps to `animus.subject.*` with `kind: "requirement"`.
+
+| Old intent | Current MCP tool |
+|------------|------------------|
+| List requirements | `animus.subject.list` with `kind: "requirement"` |
+| Get a requirement | `animus.subject.get` with `kind: "requirement"` |
+| Create a requirement | `animus.subject.create` with `kind: "requirement"` |
+| Update status or metadata | `animus.subject.update` or `animus.subject.status` with `kind: "requirement"` |
+| Pick next ready requirement | `animus.subject.next` with `kind: "requirement"` |
+
+Requirement refinement is no longer a dedicated core MCP verb. Run the
+appropriate requirements workflow, such as `animus.workflow.run` with a
+requirements workflow ref, or use the subject backend plugin if it exposes a
+plugin-specific method.
 
 ## Practical patterns
 
@@ -66,4 +79,4 @@ Use this reference when the Animus operation is about workflow runtime, workflow
 2. `animus.workflow.get`
 3. `animus.output.run` or `animus.output.jsonl`
 4. `animus.output.phase-outputs`
-5. `animus.task.get`
+5. `animus.subject.get` with the workflow's subject kind and id

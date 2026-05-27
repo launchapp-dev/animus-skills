@@ -372,17 +372,18 @@ Don't declare done until you've watched a real task complete.
 # 1. Validate config
 animus workflow config validate
 animus workflow definitions list
+animus daemon preflight
 
 # 2. Start the daemon
 animus daemon start --autonomous --auto-run-ready true --pool-size 3 --interval-secs 10
 animus daemon health
 
-# 3. Create one real task that exercises the implement workflow
-animus task create --title "<surface>:bootstrap-smoke-test" --task-type chore --priority high \
-  --description "Add a NOTES.md file at repo root with one sentence about the project. Verify worktree, commit, PR flow."
+# 3. Create one real task subject that exercises the implement workflow
+animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --priority p1 --status ready \
+  --body "Add a NOTES.md file at repo root with one sentence about the project. Verify worktree, commit, PR flow."
 
 # 4. Enqueue and watch
-animus queue enqueue --title "<surface>:bootstrap-smoke-test"
+animus queue enqueue --task-id <task-id-returned-by-subject-create>
 animus daemon stream --pretty
 ```
 

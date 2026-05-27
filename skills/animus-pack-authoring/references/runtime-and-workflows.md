@@ -59,10 +59,10 @@ agents:
     mcp_servers: ["animus"]
     tool_policy:
       allow:
-        - task.*
+        - subject.*
         - output.*
       deny:
-        - task.delete
+        - queue.drop
         - project.remove
     skills:
       - code-review

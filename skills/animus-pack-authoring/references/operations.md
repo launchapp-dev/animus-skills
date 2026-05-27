@@ -80,7 +80,7 @@ description = "Sync Animus tasks with Jira issues."
 mode = "project"
 
 [compatibility]
-animus_core = ">=0.1.0"
+ao_core = ">=0.1.0"
 workflow_schema = "v2"
 subject_schema = "v2"
 

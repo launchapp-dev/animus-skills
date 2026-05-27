@@ -2,7 +2,7 @@
 
 > The fastest way to turn Claude Code (or Codex, OpenCode, Cursor) into an autonomous engineering team that ships PRs while you sleep.
 
-[Animus](https://github.com/launchapp-dev/animus-cli) is a Rust agent orchestrator. A daemon dispatches workflows from a queue, spawns Claude / Codex / Gemini sessions in isolated worktrees, runs your tests, opens PRs, and reviews them — on cron, on demand, or in response to events. **animus-skills** is the skill bundle that teaches your agent how to drive it.
+[Animus](https://github.com/launchapp-dev/animus-cli) is a Rust agent orchestrator. A daemon dispatches workflows from a queue, uses provider and subject plugins to run agents in isolated worktrees, runs your tests, opens PRs, and reviews them — on cron, on demand, or in response to events. **animus-skills** is the skill bundle that teaches your agent how to drive it.
 
 You point a fresh agent at this README. It installs the CLI, links the skills, wires up MCP, and you start running workflows in about a minute.
 
@@ -57,7 +57,7 @@ The script:
 /plugin marketplace add launchapp-dev/animus-skills
 ```
 
-This skips the CLI install and MCP wiring — pair it with a manual `curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash` if you don't already have `animus`.
+This skips the CLI install and MCP wiring — pair it with a manual `curl -fsSL https://raw.githubusercontent.com/launchapp-dev/animus-cli/main/scripts/install.sh | bash` if you don't already have `animus`.
 
 ## See it work
 
@@ -67,7 +67,7 @@ Claude: [scaffolds .animus/, writes config.json, generates a first workflow YAML
          starts the daemon, verifies MCP is reachable]
 
 You:    Create a task to add rate limiting to the /api/upload endpoint.
-Claude: [calls animus.task.create — task TASK-001 enqueued]
+Claude: [calls animus.subject.create with kind=task, then enqueues TASK-001]
 
 You:    Run it.
 Claude: [calls animus.workflow.run — daemon picks up TASK-001, spawns a
@@ -104,9 +104,15 @@ These load automatically when the conversation needs them — you don't type a s
 |-------|----------------|
 | `animus-configuration` | …you ask about `.animus/`, daemon config, agent runtime, env vars, state layout |
 | `animus-task-management` | …creating, listing, updating, blocking, or bulk-editing tasks |
+| `animus-subject-operations` | …working with subject backends, task/requirement replacement surfaces, Linear/SQLite/Markdown/custom subject kinds |
 | `animus-daemon-operations` | …starting, stopping, monitoring, or debugging the daemon |
+| `animus-observability` | …checking status, logs, daemon stream, run output, artifacts, runner health, web UI, or triggers |
 | `animus-queue-management` | …enqueueing, holding, releasing, dropping, or reordering work |
 | `animus-mcp-tools` | …the agent needs an exact `animus.*` MCP tool name or parameter shape |
+| `animus-plugin-operations` | …installing, updating, signing, locking, inspecting, or troubleshooting Animus plugins |
+| `animus-model-operations` | …checking model availability, provider API-key status, rosters, validation, or model evals |
+| `animus-agent-operations` | …running direct agent executions, controlling runs, or using agent memory/message channels |
+| `animus-project-history-git` | …managing project registry entries, execution history, Git repos, worktrees, or confirmation records |
 | `animus-workflow-patterns` | …authoring pipelines — QA gates, command phases, conflict resolution, CI checks |
 | `animus-agent-personas` | …configuring product-lifecycle agents (PO, architect, auditor, docs-writer, devops) |
 | `animus-mcp-servers-for-agents` | …connecting agents to Context7, package-version, sequential-thinking, memory, or GitHub MCP |
@@ -129,14 +135,15 @@ These load automatically when the conversation needs them — you don't type a s
 
 After setup you have:
 
-- **`animus` CLI** at `~/.local/bin/animus` — ~30 subcommand groups (`task`, `workflow`, `queue`, `daemon`, `agent`, `runner`, `vision`, `requirements`, `architecture`, `mcp`, `web`, `tui`, `doctor`, …)
+- **`animus` CLI** at `~/.local/bin/animus` — command groups for `subject`, `workflow`, `queue`, `daemon`, `agent`, `project`, `git`, `skill`, `model`, `pack`, `plugin`, `runner`, `history`, `logs`, `trigger`, `mcp`, `web`, `init`, `doctor`, …
 - **A daemon** that runs in the background, dispatches workflows from a queue, and manages agent processes in isolated worktrees
-- **An MCP server** (`animus mcp serve`) that exposes ~80 typed tools — your agent calls them directly instead of shelling out
-- **Project-local config** in `.animus/` (workflow YAML, daemon settings) — checked in, sharable with teammates
+- **A plugin-based runtime** — provider plugins install with `animus plugin install-defaults`; subject and transport/UI defaults are added with `--include-subjects` and `--include-transports`; trigger and log-storage backends are plugin-discovered when installed
+- **An MCP server** (`animus mcp serve`) that exposes typed tools — your agent calls them directly instead of shelling out
+- **Project-local config** in `.animus/` (workflow YAML, skills, pack overrides) — checked in, sharable with teammates
 - **Scoped runtime state** in `~/.animus/<repo-scope>/` — runs, artifacts, compiled config — never pollutes your repo
-- **A web UI** (`animus web`) for queue inspection, run replay, and live event streaming — React 18, embedded in the binary
+- **A web UI** (`animus web`) backed by installed transport/UI plugins for queue inspection, run replay, and live event streaming
 
-Workflows are battle-tested across 150+ autonomous PRs (see `animus-workflow-patterns`). Bundled examples in `.animus/workflows/`: `standard` (research → plan → impl → test → review → PR), `hotfix` (skip research, fast-path), `research` (no code changes), and a `custom` template.
+Workflows are battle-tested across 150+ autonomous PRs (see `animus-workflow-patterns`). Current projects either author workflows in `.animus/workflows*.yaml`, initialize from a template, or install/pin workflow packs such as `animus.task`, `animus.review`, and `animus.requirement`.
 
 ## Troubleshooting
 
@@ -146,7 +153,7 @@ Workflows are battle-tested across 150+ autonomous PRs (see `animus-workflow-pat
 
 **MCP tools missing in Claude / Codex?** Restart your agent so it picks up the new `.mcp.json`. Verify with `animus mcp serve --help` to confirm the binary is on `PATH`.
 
-**Daemon won't start?** `animus doctor` runs a full health check (binary, paths, git, repo scope, queue lock). For everything else, `/animus-troubleshooting`.
+**Daemon won't start?** Run `animus doctor` and `animus daemon preflight`. Missing provider or subject plugins are fixed with `animus plugin install-defaults --include-subjects`. For everything else, `/animus-troubleshooting`.
 
 **Agent says "Cannot be launched inside another Claude Code session"?** The daemon inherits `CLAUDECODE=1` from a parent Claude Code shell. Start it from a clean terminal, or prefix with `env -u CLAUDECODE animus daemon start`.
 

@@ -1,16 +1,28 @@
-# Agent, Daemon, And Task Tools
+# Agent, Daemon, And Subject Tools
 
-Use this reference when the Animus operation is primarily about agent control, daemon runtime control, or task lifecycle changes.
+Use this reference when the Animus operation is primarily about agent control,
+daemon runtime control, or task/requirement lifecycle changes.
 
 ## Agent control
 
 | Tool | Key parameters |
 |------|----------------|
+| `animus.agent.list` | `project_root` |
+| `animus.agent.get` | `id`, `project_root` |
 | `animus.agent.run` | `tool`, `model`, `prompt`, `cwd`, `timeout_secs`, `context_json`, `runtime_contract_json`, `detach`, `run_id`, `runner_scope`, `project_root` |
 | `animus.agent.control` | `run_id`, `action` (`pause`, `resume`, `terminate`), `runner_scope` |
 | `animus.agent.status` | `run_id`, `runner_scope` |
+| `animus.agent.memory.get` | `agent`, `project_root` |
+| `animus.agent.memory.append` | `agent`, `text`, `source`, `project_root` |
+| `animus.agent.memory.clear` | `agent`, `project_root` |
+| `animus.agent.message.send` | `channel`, `from`, `to`, `text`, `workflow_id`, `phase_id`, `project_root` |
+| `animus.agent.message.list` | `channel`, `agent`, `limit`, `project_root` |
 
 ## Daemon management
+
+The MCP daemon tools cover runtime state. CLI-only startup helpers such as
+`animus daemon preflight`, `--auto-install`, and `--skip-preflight` are not
+separate MCP tools.
 
 | Tool | Key parameters |
 |------|----------------|
@@ -26,35 +38,21 @@ Use this reference when the Animus operation is primarily about agent control, d
 | `animus.daemon.config` | `project_root` |
 | `animus.daemon.config-set` | `auto_merge`, `auto_pr`, `auto_commit_before_merge`, `auto_prune_worktrees_after_merge`, `auto_run_ready`, `pool_size` or `max_agents`, `interval_secs`, `max_tasks_per_tick`, `stale_threshold_hours`, `phase_timeout_secs`, `idle_timeout_secs`, `notification_config_json`, `notification_config_file`, `clear_notification_config`, `project_root` |
 
-## Task query tools
+## Subject tools
+
+The subject surface replaces the removed `animus.task.*` and
+`animus.requirements.*` tool families. Use `kind: "task"` for local tasks,
+`kind: "requirement"` for requirements, or another kind claimed by an
+installed `subject_backend` plugin.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.task.list` | `status`, `priority`, `task_type`, `assignee_type`, `tag[]`, `risk`, `linked_requirement`, `linked_architecture_entity`, `search`, `limit`, `offset`, `max_tokens` |
-| `animus.task.get` | `id` |
-| `animus.task.prioritized` | `status`, `priority`, `assignee_type`, `search`, `limit`, `offset`, `max_tokens` |
-| `animus.task.next` | `project_root` |
-| `animus.task.stats` | `project_root` |
-| `animus.task.history` | `id` |
-
-## Task mutation tools
-
-| Tool | Key parameters |
-|------|----------------|
-| `animus.task.create` | `title`, `description`, `priority`, `task_type`, `linked_requirement[]`, `linked_architecture_entity[]`, `project_root` |
-| `animus.task.update` | `id`, `title`, `description`, `priority`, `status`, `assignee`, `linked_architecture_entity[]`, `replace_linked_architecture_entities`, `input_json` |
-| `animus.task.delete` | `id`, `confirm`, `dry_run` |
-| `animus.task.status` | `id`, `status` |
-| `animus.task.assign` | `id`, `assignee`, `assignee_type`, `agent_role`, `model` |
-| `animus.task.pause` | `id` |
-| `animus.task.resume` | `id` |
-| `animus.task.cancel` | `id`, `confirm`, `dry_run` |
-| `animus.task.set-priority` | `id`, `priority` |
-| `animus.task.set-deadline` | `id`, `deadline` |
-| `animus.task.checklist-add` | `id`, `description` |
-| `animus.task.checklist-update` | `id`, `item_id`, `completed` |
-| `animus.task.bulk-status` | `updates[]`, `on_error` |
-| `animus.task.bulk-update` | `updates[]`, `on_error` |
+| `animus.subject.list` | `kind`, `status`, `priority`, `limit`, `offset`, `max_tokens` |
+| `animus.subject.get` | `kind`, `id` |
+| `animus.subject.create` | `kind`, `title`, `description`, `priority`, `status`, `labels[]`, `input_json` |
+| `animus.subject.update` | `kind`, `id`, `title`, `description`, `priority`, `status`, `labels[]`, `input_json` |
+| `animus.subject.next` | `kind` |
+| `animus.subject.status` | `kind`, `id`, `status` |
 
 ## Practical patterns
 
@@ -62,11 +60,11 @@ Use this reference when the Animus operation is primarily about agent control, d
 
 1. `animus.daemon.health`
 2. `animus.queue.stats`
-3. `animus.task.stats`
+3. `animus.subject.list` with `kind: "task"` and a small `limit`
 
 ### Create and dispatch a task
 
-1. `animus.task.create`
-2. `animus.queue.enqueue`
+1. `animus.subject.create` with `kind: "task"` and `status: "ready"`
+2. `animus.queue.enqueue` with the returned task id as `task_id`
 3. `animus.daemon.health`
 4. `animus.workflow.list`
