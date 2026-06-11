@@ -65,11 +65,11 @@ skills:
 
     model:
       preferred: claude-sonnet-4-6
-      fallback:
-        - claude-opus-4-6
+      fallback: claude-opus-4-6
 
     mcp_servers:
-      - animus      - context7
+      - animus
+      - context7
 
     capabilities:
       writes_files: true

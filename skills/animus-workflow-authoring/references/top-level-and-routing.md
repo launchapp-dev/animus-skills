@@ -12,6 +12,7 @@ phase_catalog:
 workflows:
 phases:
 agents:
+agent_channels:
 models:
 tools_allowlist:
 mcp_servers:
@@ -21,7 +22,10 @@ integrations:
 schedules:
 triggers:
 daemon:
+secrets:
 ```
+
+`agent_channels:` defines named channels for agent-to-agent messaging. `secrets:` maps logical secret names to process env vars; reference them in any YAML scalar with `${secret.<name>}`.
 
 Prefer this list over older docs that still describe `pipelines:` as the canonical surface.
 

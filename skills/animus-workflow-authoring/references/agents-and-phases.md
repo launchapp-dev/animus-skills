@@ -94,6 +94,49 @@ phases:
       mutates_state: true
 ```
 
+### Phase fields
+
+| Field | Type | Mode | Description |
+|-------|------|------|-------------|
+| `mode` | string | required | `agent`, `command`, or `manual` |
+| `agent` (alias `agent_id`) | string | agent | Agent profile to spawn |
+| `directive` | string | agent | Task prompt for the phase |
+| `system_prompt` | string | agent | Phase-level system context override |
+| `skills` | list | agent | Skill names to activate for this phase only |
+| `runtime` | object | agent | Overrides: `tool`, `tool_profile`, `model`, `fallback_models`, `fallback_tools`, `reasoning_effort`, `permission_mode`, `web_search`, `network_access`, `timeout_secs`, `max_attempts` |
+| `capabilities` | object | agent | Boolean capability flags |
+| `output_contract` | object | agent | Expected output fields and types |
+| `output_json_schema` | object | agent | JSON schema for phase output |
+| `decision_contract` | object | agent | Required evidence / confidence / risk thresholds |
+| `retry` | object | any | Max attempts and backoff |
+| `default_tool` | string | agent | Preferred tool override |
+| `idempotency` | string | any | Whether the phase is safe to re-run |
+| `worktree` | object/string | any | Worktree mode (`auto`/`required`/`skip`), `cleanup`, `base_ref`; shorthand `worktree: skip` is accepted |
+| `evals` | object | any | Pass checks, `pass_threshold`, `on_fail`, `max_reworks` |
+| `command` | object | command | Program spec (required for command mode) |
+| `manual` | object | manual | Human instructions (required for manual mode) |
+
+### Skills on agents vs phases
+
+Skills attach at two points, both as plain lists of skill names:
+
+```yaml
+agents:
+  reviewer:
+    model: claude-sonnet-4-6
+    tool: claude
+    skills: [code-review]      # active in every phase this agent runs
+
+phases:
+  review:
+    mode: agent
+    agent: reviewer
+    directive: Review the diff.
+    skills: [security-lens]    # active in this phase only
+```
+
+Setting `skills:` on an agent in project YAML replaces the base profile's list (omit it to inherit). At spawn time each skill is resolved by source precedence, filtered by its `activation` rules for the selected tool/model (non-matching skills are skipped silently), then merged: prompt fragments, directives, env, and MCP servers accumulate across skills, while `tool_policy`, `model`, and `timeout_secs` are last-wins — list order matters for those three. Put role-defining skills on the agent, phase-specific lenses on the phase, and restrictive tool-policy skills last.
+
 ### Command phase
 
 Use command phases for deterministic operations.
