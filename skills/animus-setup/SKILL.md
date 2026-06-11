@@ -77,7 +77,7 @@ plugins.
 ## Verification
 
 - Run `animus daemon status` or the MCP equivalent.
-- Create a small task subject with `animus subject create --kind task`.
+- Create a small task subject with `animus subject create --kind task --title "Verify setup"`.
 - Enqueue it with `animus queue enqueue --task-id <id>`.
 - Confirm the daemon picks it up before adding more workflows or schedules.
 

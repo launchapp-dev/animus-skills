@@ -76,9 +76,19 @@ animus subject update --kind task --id TASK-001 --labels backend,urgent
 animus subject status --kind task --id TASK-001 --status done
 ```
 
-The generic CLI update surface currently supports normalized `status`,
-`priority`, and replacement `labels`. Backend-specific fields belong in the
-backend plugin's own API or `animus plugin call`.
+The generic CLI update surface supports only normalized `status`, `priority`,
+and replacement `labels` — update rejects `--body`. Create additionally
+accepts `--body`. Backend-specific fields belong in the backend plugin's own
+API or `animus plugin call`.
+
+Delete:
+
+```bash
+animus subject delete --kind task --id TASK-001 --yes
+```
+
+`--yes` confirms the destructive operation. Without it the command only
+prints what would be deleted and exits 0.
 
 ## Normalized Statuses
 
@@ -86,7 +96,7 @@ Common statuses:
 
 ```text
 ready
-in_progress
+in-progress
 blocked
 done
 cancelled
@@ -119,6 +129,8 @@ Use:
 
 Set `kind` to `task`, `requirement`, or the custom kind claimed by the subject
 backend plugin.
+
+Delete is CLI-only: there is no `animus.subject.delete` MCP tool.
 
 ## Backend Troubleshooting
 

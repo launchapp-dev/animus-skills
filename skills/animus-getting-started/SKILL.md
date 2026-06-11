@@ -177,9 +177,19 @@ your-project/
 └── ~/.animus/<repo-scope>/
     ├── core-state.json
     ├── resume-config.json
+    ├── cost-state.v1.json
     ├── workflow.db
+    ├── config/
+    │   ├── state-machines.v1.json
+    │   ├── workflow-config.v2.json
+    │   └── agent-runtime-config.v2.json
     ├── daemon/
     │   └── pm-config.json
+    ├── docs/
+    ├── logs/
+    ├── mcp-oauth-cache/
+    ├── runner/
     ├── runs/
+    ├── state/
     └── worktrees/
 ```

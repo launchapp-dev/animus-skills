@@ -95,20 +95,35 @@ workflows:
               target: implementation
 ```
 
+For simple flows, `post_success.merge` on the workflow can replace the push/PR phases — the daemon merges the task branch after the workflow succeeds:
+
+```yaml
+workflows:
+  - id: scaffold
+    post_success:
+      merge:
+        strategy: squash         # squash | merge | rebase
+        target_branch: main
+        create_pr: true
+        auto_merge: false
+        cleanup_worktree: true
+    phases: [...]
+```
+
 ## Critical: cwd_mode for Command Phases
 
-**This is the #1 gotcha.** While `cwd_mode` defaults to `task_root`, it's best practice to always set it explicitly for clarity. If you accidentally override it to `project_root`, the command runs in the main repo — NOT in the task's worktree.
+**This is the #1 gotcha.** The default is inconsistent across config layers: the workflow YAML parser resolves an omitted `cwd_mode` to `project_root`, while the serde runtime-config layer defaults to `task_root` — so an unconfigured command phase may run in the main repo, NOT in the task's worktree. Never rely on the default: always set `cwd_mode: task_root` explicitly on command phases that operate on task code.
 
 ```yaml
 command:
-  cwd_mode: task_root    # default, but be explicit
+  cwd_mode: task_root    # NOT the default — set it explicitly
 ```
 
 Without this, `git push` pushes from `main` (nothing to push), `gh pr create` sees no branch, and `pnpm build` may use stale code.
 
 ### cwd_mode options:
-- `task_root` — the task's git worktree (default — what you almost always want)
-- `project_root` — main repo directory
+- `task_root` — the task's git worktree (what you almost always want for task code)
+- `project_root` — main repo directory (the default when omitted in workflow YAML)
 - `path` — custom relative path (requires `cwd_path`)
 
 ## Why Command Phases Over Agent Phases for Git/PR
@@ -236,8 +251,9 @@ The conductor is an Opus-grade agent on a cron. Each sweep it: reads state, pick
 ```yaml
 agents:
   conductor:
-    model: claude-opus-4-7
+    model: claude-opus-4-8
     tool: claude
+    reasoning_effort: high      # low | medium | high
     mcp_servers: ["animus", "memory", "github", "sequential-thinking"]
     system_prompt: |
       You are the conductor. Read AGENT_PRINCIPLES.md first.
@@ -268,7 +284,7 @@ schedules:
     workflow_ref: conductor-loop
 ```
 
-**Why one daemon, not many:** with one daemon, the conductor has full state visibility, agents create their own worktrees under `<project>/worktrees/<repo-id>--<branch>`, and tasks are titled `<repo-id>:<action>`. Per-repo sub-daemons fragment state and force the conductor to coordinate cross-daemon — almost always wrong.
+**Why one daemon, not many:** with one daemon, the conductor has full state visibility, the daemon manages each task's worktree under `~/.animus/<repo-scope>/worktrees/`, and tasks are titled `<repo-id>:<action>`. Per-repo sub-daemons fragment state and force the conductor to coordinate cross-daemon — almost always wrong.
 
 ## Dual-Brain Conductor (Cross-Check)
 
@@ -313,6 +329,46 @@ workflows:
 ```
 
 Cap `max_rework_attempts` at 2–3. Beyond that, the QA gate is masking a real problem — let it fail and surface the task as blocked. Apply this gate to `update-deps`, `sync-feature`, `fix-build`, `fix-lint`, `create-template`, `design-improve`, etc.
+
+For deterministic gates, declare `evals` directly on the phase instead of a separate QA agent — checks run after the phase produces its result:
+
+```yaml
+phases:
+  implement-feature:
+    mode: agent
+    agent: implementer
+    evals:
+      pass_threshold: 1.0        # default — all checks must pass
+      on_fail: rework            # or block (default) — pause for a human
+      max_reworks: 2
+      checks:
+        - { id: build, kind: command, command: pnpm, args: ["build"] }
+        - { id: lint,  kind: command, command: pnpm, args: ["lint"] }
+```
+
+`kind: llm_judge` (with `agent` + `prompt`) covers checks that need judgment. On rework, the failure context is injected into the next attempt's prompt.
+
+## Phase Guardrails: budget, skip_if, idempotency
+
+Three phase-entry knobs that keep autonomous loops bounded:
+
+```yaml
+workflows:
+  - id: implement
+    budget: { max_cost_usd: 10.0 }         # workflow cap subsumes phase caps
+    phases:
+      - implement-feature:
+          budget:
+            max_tokens: 500000
+            max_cost_usd: 5.0
+            on_exceed: pause               # pause (default) | fail | warn
+      - install-deps:
+          skip_if: ["subject_kind == 'requirement'"]
+```
+
+- `budget` — token/cost ceiling (input + output + reasoning). `pause` moves the workflow to manual approval with reason `budget_exceeded`.
+- `skip_if` — guards evaluated against the subject (`==` / `!=` on `subject_kind`, `subject_id`, or any subject attribute). A matched guard skips the phase and records why.
+- `idempotency` — set `idempotency: idempotent` on phase definitions that are safe to re-run; after a daemon crash those auto-retry. `sideeffecting` (or the default `unknown`) blocks for manual `animus workflow resume <run_id> --force`. Mark command phases like `install-deps` and `build-check` idempotent.
 
 ## Scheduled Specialists (Cross-Check & Memory)
 
@@ -440,15 +496,15 @@ Rules:
 
 ## Worktree + Task Title Conventions
 
-In single-daemon SDLC, agents create their own worktrees. Standardize the path so multiple agents can be in flight without colliding:
+The daemon manages task worktrees — agents should not invent their own paths. Each task gets a worktree under the repo's scoped state dir:
 
 ```
-<project-root>/worktrees/<repo-id>--<branch-or-action>/
+~/.animus/<repo-scope>/worktrees/task-<sanitized-task-id>/
 ```
 
-Example: `~/animus-templates/worktrees/launchapp-nextjs--update-deps-2026-05-04/`
+`<repo-scope>` is `<repo-name>-<hash>` (hash of the canonical project root), and the default branch is `animus/<sanitized-task-id>`. Multiple agents stay isolated because each task gets its own worktree.
 
-Task title format mirrors this: `<repo-id>:<action>`. The implementer agent parses `<repo-id>` to pick the worktree target.
+Task title format: `<repo-id>:<action>`. The implementer agent parses `<repo-id>` to pick which repo to operate on.
 
 ```bash
 animus subject create --kind task --title "launchapp-nextjs:update-deps" --status ready
@@ -656,4 +712,4 @@ Production failures that taught these:
 
 7. **No `AGENT_PRINCIPLES.md`** — the conductor's `system_prompt` becomes a 2000-line tuning surface that triggers a daemon restart on every edit. Extract policy into a sibling file the conductor reads at sweep start.
 
-8. **Per-repo sub-daemons** — feels like isolation; actually fragments state and forces the conductor to coordinate cross-daemon. One daemon, one conductor, agents create their own worktrees.
+8. **Per-repo sub-daemons** — feels like isolation; actually fragments state and forces the conductor to coordinate cross-daemon. One daemon, one conductor, daemon-managed worktrees per task.

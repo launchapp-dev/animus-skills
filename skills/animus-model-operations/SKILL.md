@@ -22,14 +22,14 @@ animus daemon preflight
 Check explicit model ids:
 
 ```bash
-animus model availability --model claude-sonnet-4-5
-animus model availability --model gpt-5.4 --model glm-5
+animus model availability --model claude-sonnet-4-6
+animus model availability --model gpt-5.4 --model zai-coding-plan/glm-5
 ```
 
 For scripts, pass provider input as a JSON array of `model[:tool]` strings:
 
 ```bash
-animus model availability --input-json '["claude-sonnet-4-5","gpt-5.4:codex"]'
+animus model availability --input-json '["claude-sonnet-4-6","gpt-5.4:codex"]'
 ```
 
 Use availability when choosing phase routing, validating an upgrade, or
@@ -38,9 +38,9 @@ checking whether a provider plugin recognizes a model id.
 ## Provider and API-Key Status
 
 ```bash
-animus model status --cli-tool claude --model-id claude-sonnet-4-5
+animus model status --cli-tool claude --model-id claude-sonnet-4-6
 animus model status --cli-tool codex --model-id gpt-5.4
-animus model status --cli-tool opencode --model-id glm-5
+animus model status --cli-tool opencode --model-id zai-coding-plan/glm-5
 ```
 
 This is the fastest operator check for "is this model configured for this CLI
@@ -51,10 +51,12 @@ tool and provider plugin?"
 Validate models directly:
 
 ```bash
-animus model validate --model claude-sonnet-4-5 --model gpt-5.4
+animus model validate --model claude-sonnet-4-6 --model gpt-5.4
 ```
 
-Validate the model requirements implied by a task:
+With no `--model` flags, validation runs against the default model set.
+`--task-id` is a pass-through label echoed in the output JSON for audit
+purposes — it does not look up the task or its model requirements:
 
 ```bash
 animus model validate --task-id TASK-001
@@ -76,7 +78,7 @@ keys, or adding a provider-specific model.
 ## Model Evaluations
 
 ```bash
-animus model eval run --model claude-sonnet-4-5 --model gpt-5.4
+animus model eval run --model claude-sonnet-4-6 --model gpt-5.4
 animus model eval report
 ```
 
@@ -88,7 +90,7 @@ changes separate from model eval changes so regressions are easy to attribute.
 1. `animus plugin list` to confirm the provider plugin is installed.
 2. `animus model status --cli-tool <tool> --model-id <model>` to verify credentials and provider setup.
 3. `animus model availability --model <model>` to confirm recognition.
-4. `animus model validate --model <model>` or `--task-id <id>` before dispatch.
+4. `animus model validate --model <model>` before dispatch.
 5. Update workflow YAML only after the model checks pass.
 
 ## Troubleshooting

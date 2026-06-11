@@ -20,6 +20,8 @@ Animus agents can do more than write code. This skill covers persona agents that
 
 ## Product Lifecycle Agents (add to custom.yaml)
 
+The third-party MCP servers below (`sequential-thinking`, `memory`, `context7`, `package-version`, `github`) do not ship with Animus — only the built-in `animus` server does. Declare each in the project's `mcp_servers:` map (workflow YAML) before agents can reference them.
+
 ### Product Owner
 
 Evaluates the feature set, manages requirements, creates tasks for gaps.
@@ -96,7 +98,7 @@ docs-writer:
   mcp_servers: ["animus", "context7"]
 ```
 
-**Cron:** Every 3 hours.
+**Cron:** Every 3 hours. The docs-writer can also capture recurring conventions as project skills via the `animus.skill.create` / `animus.skill.update` MCP tools.
 
 ### DevOps
 
@@ -162,7 +164,7 @@ When one agent owns dispatch for a fleet (template manager, product-owner-of-man
 
 ```yaml
 conductor:
-  model: claude-opus-4-7        # judgment work — Opus pays back
+  model: claude-opus-4-8        # judgment work — Opus pays back
   tool: claude
   mcp_servers: ["animus", "memory", "github", "sequential-thinking"]
   system_prompt: |

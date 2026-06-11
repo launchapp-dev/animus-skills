@@ -18,6 +18,27 @@ daemon runtime control, or task/requirement lifecycle changes.
 | `animus.agent.message.send` | `channel`, `from`, `to`, `text`, `workflow_id`, `phase_id`, `project_root` |
 | `animus.agent.message.list` | `channel`, `agent`, `limit`, `project_root` |
 
+## Agent interactions and escalation
+
+`animus.agent.ask` and `animus.agent.request_approval` are blocking
+escalation calls: they park the agent until a human answers or the timeout
+elapses (default 600s, max 3600). `ask` times out with an instruction to
+proceed on best judgment; `request_approval` times out as `deny` (fail
+closed), and an agent profile `approval_policy` can auto-allow or auto-deny
+without escalating. Both operate on the server's own project scope and do not
+take `project_root`.
+
+The `animus.interactions.*` pair is the human-side inbox. It is only
+registered when the server runs with `animus mcp serve --management`, so an
+agent cannot answer its own question or approve its own request.
+
+| Tool | Key parameters |
+|------|----------------|
+| `animus.agent.ask` | `agent_id`, `question`, `options[]`, `timeout_secs`, `workflow_id`, `task_id` |
+| `animus.agent.request_approval` | `agent_id`, `action`, `tool_name`, `arguments`, `timeout_secs`, `workflow_id`, `task_id` |
+| `animus.interactions.list` | `all`, `agent_id`, `limit`, `project_root` |
+| `animus.interactions.answer` | `id`, `text` (questions), `decision` + `message` (approvals), `answered_by`, `project_root` |
+
 ## Daemon management
 
 The MCP daemon tools cover runtime state. CLI-only startup helpers such as

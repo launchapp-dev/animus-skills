@@ -87,8 +87,18 @@ until capacity frees.
 animus daemon health
 ```
 
-Use this for daemon liveness, pool state, active agents, queue depth, runner
-health, and plugin health checks.
+Use this for daemon liveness, pool state, active agents, queue depth, provider
+plugin health, and plugin health checks.
+
+### Metrics
+
+```bash
+animus daemon metrics
+animus daemon metrics --watch --interval-secs 5 --pretty
+```
+
+`--watch` continuously refreshes the snapshot; `--pretty` renders a
+human-readable table instead of raw JSON.
 
 ### Events
 
@@ -131,6 +141,7 @@ Filters:
 - `--tail <n>` — replay recent entries before following.
 - `--no-follow` — print the tail and exit.
 - `--pretty` — colorized human output. Omit for raw JSONL.
+- `--full` — with `--pretty`, render full message bodies (LLM output, command stdout) as formatted markdown instead of truncated previews.
 
 There is no `--phase` flag in the current CLI; filter phase entries with
 `--cat phase` and pipe JSON to `jq` when needed.
@@ -236,7 +247,6 @@ Common causes:
 
 - Missing or unhealthy provider/subject plugins.
 - Disk full from accumulated worktrees or logs.
-- Too many runner processes.
 - Lock file contention.
 
 ### Process leaks

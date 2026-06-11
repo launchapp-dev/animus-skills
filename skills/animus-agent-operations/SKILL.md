@@ -41,6 +41,8 @@ Useful flags:
 - `--tool <TOOL>` selects provider CLI such as `claude`, `codex`, or `gemini`.
 - `--model <MODEL>` overrides the configured model for that tool.
 - `--prompt <TEXT>` sends direct prompt text.
+- `--reasoning-effort low|medium|high` overrides provider reasoning effort (also settable as `reasoning_effort` on agent profiles and phase `runtime`).
+- `--permission-mode <MODE>` forwards a provider permission/approval mode verbatim (claude `default|acceptEdits|bypassPermissions|plan`, codex `untrusted|on-failure|on-request|never`, gemini `default|auto_edit|yolo`).
 - `--cwd <PATH>` must resolve inside the project root.
 - `--timeout-secs <N>` caps the run.
 - `--context-json <JSON>` passes agent context.
@@ -51,6 +53,13 @@ Useful flags:
 - `--jsonl-dir <PATH>` overrides persisted run log location.
 - `--start-runner true|false` controls automatic runner startup.
 - `--runner-scope project|global` selects runner config scope.
+
+MCP wiring for a run:
+
+- `--agent <AGENT_ID>` gives the run that profile's declared MCP servers.
+- `--skill <SKILL>` adds a skill's declared MCP servers (unioned with the profile's).
+- `--mcp-server <NAME>` wires an extra MCP server by name (repeatable; `animus` selects the built-in stdio surface).
+- `--no-animus-mcp` drops the built-in `animus` MCP server from the resolved set.
 
 ## Control and Status
 
@@ -84,7 +93,7 @@ The top-level MCP memory tools are more granular:
 - `animus.memory.clear`
 
 Spawned workflow agents only receive memory tools when their profile has
-`capabilities.memory: true`.
+`memory: { enabled: true }`.
 
 ## Agent Messages
 
@@ -97,6 +106,20 @@ animus agent message list --agent architect
 Use message channels for coordination between configured profiles. Keep durable
 facts in memory; keep run-specific coordination in messages.
 
+## Interactions
+
+Agents escalate to humans with the blocking MCP tools `animus.agent.ask`
+(question; timeout tells the agent to proceed) and
+`animus.agent.request_approval` (approval; timeout denies, fail closed).
+Pending requests park until answered:
+
+```bash
+animus agent interactions list              # pending; --all includes answered/expired
+animus agent interactions show <id>
+animus agent interactions answer <id> --text "Use option B"
+animus agent interactions answer <id> --allow    # or --deny, optionally --message
+```
+
 ## MCP Tools
 
 Direct agent tools:
@@ -104,6 +127,8 @@ Direct agent tools:
 - `animus.agent.list`, `get`, `run`, `control`, `status`
 - `animus.agent.memory.get`, `append`, `clear`
 - `animus.agent.message.send`, `list`
+- `animus.agent.ask`, `request_approval` — blocking human escalation
+- `animus.interactions.list`, `answer` — inspect and answer pending escalations
 
 Top-level memory tools:
 
@@ -114,4 +139,4 @@ Top-level memory tools:
 - Direct run fails before model startup: check `animus model status --cli-tool <tool> --model-id <model>`.
 - Provider tool is missing: install provider plugins and rerun daemon preflight.
 - Run appears stuck: inspect `animus runner health`, `animus daemon stream --run <run-id>`, and `animus output monitor --run-id <run-id>`.
-- Memory unavailable inside a workflow phase: check the agent profile's `capabilities.memory` setting.
+- Memory unavailable inside a workflow phase: check the agent profile's `memory: { enabled: true }` setting.

@@ -30,7 +30,9 @@ in-tree `events.jsonl` fallback when no log storage plugin is active.
 | `animus.runner.health` | `project_root` |
 | `animus.runner.orphans-detect` | `project_root` |
 | `animus.runner.orphans-cleanup` | `run_id`, `project_root` |
-| `animus.runner.restart-stats` | `project_root` |
+
+Restart statistics are CLI-only (`animus runner restart-stats`); there is no
+matching MCP tool.
 
 ## Skills
 
@@ -39,11 +41,18 @@ in-tree `events.jsonl` fallback when no log storage plugin is active.
 | `animus.skill.list` | `project_root`, `source` |
 | `animus.skill.get` | `project_root`, `name` |
 | `animus.skill.search` | `project_root`, `query`, `source`, `limit` |
+| `animus.skill.create` | `name`, `description`, `prompt`, `tags[]`, `tool_policy`, `model`, `mcp_servers[]`, `category`, `activation`, `capabilities`, `overwrite`, `project_root` |
+| `animus.skill.update` | `name`, plus any patchable field (`description`, `prompt`, `tags[]`, `tool_policy`, `model`, `mcp_servers[]`, `category`, `capabilities`), `project_root` |
 
 Skill sources include project, user, installed pack/registry, built-in
 fallbacks, and lower-trust agent-host probes such as `~/.claude/skills` and
 `~/.codex/skills`. Agent-host skills are prompt-text-only; structural fields
 are stripped.
+
+`animus.skill.create` and `animus.skill.update` write project-scoped skills
+only, at `.animus/config/skill_definitions/<name>.yaml`. Create refuses to
+overwrite unless `overwrite` is true; update patches only the supplied fields
+and fails for non-project skills.
 
 ## Memory
 

@@ -101,10 +101,11 @@ current CLI tree does not have a matching `animus output tail` command.
 
 ```bash
 animus runner health
-animus runner restart-stats
 animus runner orphans detect
 animus runner orphans cleanup --run-id <run-id>
 ```
+
+`--run-id` can be repeated to clean up multiple runs in one call.
 
 Use runner commands when agent processes are stuck, orphaned, or failing to
 restart cleanly.

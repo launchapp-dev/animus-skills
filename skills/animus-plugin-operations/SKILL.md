@@ -31,13 +31,13 @@ Use `--auto-install` to install recommended missing defaults. Use
 
 ## Discovery
 
-Default discovery order:
+Default discovery order (first source to yield a name wins):
 
-1. `~/.animus/plugins.yaml`
-2. Legacy `~/.config/animus/plugins.yaml` only when the new registry is absent
-3. `.animus/plugins/`
-4. `$ANIMUS_PLUGIN_DIR` when explicitly set
-5. `$ANIMUS_PLUGIN_PATH`
+1. Registry config `~/.animus/plugins.yaml`; legacy `~/.config/animus/plugins.yaml` only when the new registry is absent
+2. Project-local `<project_root>/.animus/plugins/`
+3. Global install dir: `$ANIMUS_PLUGIN_DIR` if set, otherwise `~/.animus/plugins/` — scanned unconditionally
+4. `$ANIMUS_PLUGIN_PATH` (colon-separated directories)
+5. System `$PATH` (opt-in only)
 
 `$PATH` scanning is opt-in:
 
@@ -107,17 +107,29 @@ animus plugin call --name animus-subject-linear --method 'linear/list' --params 
 Use `plugin call` for plugin-specific methods that are not wrapped by the core
 CLI or MCP subject surfaces.
 
+## Diagnostics, Cache, and Scope
+
+- `animus plugin doctor` — per-role view of installed plugins (installed_kind + native_kind) with duplicate/collision detection.
+- `animus plugin status [NAME]` — per-plugin runtime status (pid, state, last RPC, restart count); only provider runtimes report live fields, other kinds show `discovered`.
+- `animus plugin rename <NAME> --to <KIND>` — change an installed plugin's `installed_kind` in the lockfile; the binary and manifest `native_kind` are untouched.
+- `animus plugin cache clear|list` — inspect or wipe the manifest cache under `~/.animus/cache/manifests/`; clear after a manual binary swap. `ANIMUS_DISABLE_MANIFEST_CACHE=1` (also accepts `true`/`yes`) is the kill switch.
+- `animus plugin scope show|set|reset` — per-project plugin scoping via `.animus/plugin-scope.yaml` (`mode: all`, `flavor-only`, or `allowlist`) so discovery and preflight only iterate the project's relevant plugins.
+
 ## Marketplace and Updates
 
 ```bash
 animus plugin search linear --kind subject_backend
 animus plugin browse --kind provider
 animus plugin browse --available
-animus plugin update --dry-run
-animus plugin update animus-provider-codex --tag v0.2.3
+animus plugin update --all --check
+animus plugin update --name animus-provider-codex --tag v0.2.3
 ```
 
-There is no `plugin list --check-updates`; use `plugin update --dry-run`.
+`plugin update` requires exactly one selector: `--all`, `--kind <KIND>`, or
+`--name <NAME>` (a bare positional name still works as a legacy form).
+`--check` previews the diff without writing; `--dry-run` is a legacy alias.
+
+There is no `plugin list --check-updates`; use `plugin update --all --check`.
 
 ## Lockfile
 
@@ -132,13 +144,19 @@ to `~/.animus/plugins.lock`.
 
 ## Scaffolding
 
+Two paths:
+
+- `animus plugin new --kind subject|provider|trigger` clones the
+  `launchapp-dev/animus-plugin-template` repo (needs network).
+- `animus plugin scaffold trigger <NAME>` writes a self-contained starter
+  project from built-in templates, offline. Trigger only.
+
 ```bash
 animus plugin new --kind subject --name jira --org my-org
 animus plugin new --kind provider --name openai-compat --out-dir ./animus-provider-openai-compat
 animus plugin new --kind trigger --name webhook --template-version main
+animus plugin scaffold trigger fswatch
 ```
-
-Supported scaffold kinds are `subject`, `provider`, and `trigger`.
 
 ## MCP Tools
 

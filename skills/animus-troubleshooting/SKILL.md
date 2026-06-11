@@ -42,6 +42,20 @@ animus daemon start --autonomous --auto-install
 
 Use `--skip-preflight` only when intentionally debugging without plugins.
 
+If preflight reports missing plugins that are installed, check per-project
+plugin scoping — `flavor-only` or `allowlist` modes in
+`.animus/plugin-scope.yaml` can exclude them from discovery:
+
+```bash
+animus plugin scope show
+```
+
+### Stale PID file
+
+A leftover `daemon.pid` pointing at a dead process can block daemon start.
+`animus doctor` detects it; `animus doctor --fix` removes the stale pid file
+(and a dead control socket).
+
 ### Daemon already running
 
 ```bash
@@ -130,6 +144,16 @@ animus output phase-outputs --workflow-id WF-XXX
 
 This is usually a workflow prompt or phase contract issue.
 
+## Crashed or Stuck Phase Sessions
+
+`animus doctor` detects both:
+
+- Zombie sessions: phase session JSON stuck in `running` for over 6 hours
+  after a daemon or provider crash. `animus doctor --fix` closes them out
+  (status normalized to `failed`).
+- Recent crashes: phase sessions `blocked` within the last 24 hours. After
+  reviewing run output, recover with `animus workflow resume <id> --force`.
+
 ## Queue Issues
 
 ### Stale assigned entries
@@ -213,9 +237,33 @@ new task subject for conflict resolution.
 
 ```bash
 animus runner orphans detect
-animus runner restart-stats
 animus runner orphans cleanup --run-id <run-id>
 ```
+
+`--run-id` is repeatable to clean up several runs in one call.
+
+## permission_denied Errors
+
+When `principals.yaml` sets `policy.rbac: enforce`, daemon control calls are
+authorized per principal and denied calls fail with `permission_denied`.
+
+```bash
+animus auth whoami
+```
+
+Shows the resolved principal. Use the global `--as <principal>` flag to run a
+command as a different mapped principal.
+
+## MCP OAuth Failures
+
+If an OAuth-protected MCP server rejects requests or its token expired:
+
+```bash
+animus mcp auth-status
+animus mcp auth <server>
+```
+
+`auth-status` shows token expiry per server; `auth` reruns the browser login.
 
 ## State Location Reference
 

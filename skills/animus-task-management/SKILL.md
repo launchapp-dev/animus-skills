@@ -1,6 +1,6 @@
 ---
 name: animus-task-management
-description: Task lifecycle through the v0.4 subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
+description: Task lifecycle through the unified subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
 user_invocable: false
 auto_invoke: true
 ---
@@ -24,13 +24,14 @@ animus daemon preflight
 Common normalized statuses:
 
 ```text
-ready -> in_progress -> done
+ready -> in-progress -> done
       -> blocked -> ready
       -> cancelled
 ```
 
 Backends may support additional raw states, but the CLI forwards normalized
-status buckets.
+status buckets. The canonical display form is hyphenated (`in-progress`), but
+the parser accepts `in_progress` on input too.
 
 ## CLI Commands
 
@@ -46,7 +47,7 @@ Supported fields:
 - `--kind`: usually `task`; omit only when `.animus/config.json` sets the right `default_subject_kind`
 - `--title`: required for creation
 - `--body`: free-form description
-- `--status`: normalized status such as `ready`, `blocked`, `in_progress`, `done`
+- `--status`: normalized status such as `ready`, `blocked`, `in-progress`, `done`
 - `--priority`: backend priority bucket, commonly `p0`, `p1`, `p2`, `p3`
 - `--labels`: comma-separated labels
 
@@ -76,7 +77,7 @@ especially when using non-default backends that return wire ids like
 
 ```bash
 animus subject status --kind task --id TASK-001 --status ready
-animus subject status --kind task --id TASK-001 --status in_progress
+animus subject status --kind task --id TASK-001 --status in-progress
 animus subject status --kind task --id TASK-001 --status done
 animus subject status --kind task --id TASK-001 --status blocked
 animus subject status --kind task --id TASK-001 --status cancelled
@@ -93,6 +94,16 @@ The current generic subject CLI exposes status, priority, and labels for
 updates. Backend-specific fields such as checklists, dependency edges,
 deadlines, assignees, or native task type are no longer part of the core CLI
 surface; use the backend plugin directly if it provides those operations.
+
+### Delete
+
+```bash
+animus subject delete --kind task --id TASK-001 --yes
+```
+
+`--yes` confirms the destructive operation; without it the command only prints
+what would be deleted. Backends that do not support delete return an
+unsupported error. There is no MCP delete tool, so deletion is CLI-only.
 
 ## MCP Tools
 

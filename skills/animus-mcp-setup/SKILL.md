@@ -69,17 +69,18 @@ animus daemon preflight
 
 | Prefix | Tools | Purpose |
 |--------|-------|---------|
-| `animus.agent.*` | 10 | Agent runs, profiles, memory, and messages |
+| `animus.agent.*` | 12 | Agent runs, profiles, memory, messages, ask/approval |
+| `animus.interactions.*` | 2 | Answer pending agent questions (`mcp serve --management` only) |
 | `animus.daemon.*` | 11 | Daemon lifecycle and monitoring |
 | `animus.subject.*` | 6 | Task, requirement, and external subject CRUD |
 | `animus.queue.*` | 7 | Dispatch queue management |
 | `animus.workflow.*` | 16 | Workflow execution, phases, config, checkpoints |
 | `animus.output.*` | 6 | Run output, JSONL, monitor, artifacts |
-| `animus.runner.*` | 4 | Runner health and diagnostics |
+| `animus.runner.*` | 3 | Runner health and orphan cleanup |
 | `animus.logs.*` | 1 | Active log backend tailing |
-| `animus.skill.*` | 3 | Skill list, resolve, and search |
+| `animus.skill.*` | 5 | Skill list, resolve, search, create, update |
 | `animus.memory.*` | 4 | Project-scoped agent memory |
-| `animus.plugin.*` | 9+ | Plugin control and marketplace tools |
+| `animus.plugin.*` | 9 | Plugin control and marketplace tools |
 
 `animus.task.*` and `animus.requirements.*` are gone. Use
 `animus.subject.*` with `kind: "task"` or `kind: "requirement"`.
@@ -163,6 +164,24 @@ animus --project-root /path/to/project mcp serve
 
 The server speaks JSON-RPC 2.0 over stdio.
 
+`animus mcp memory` starts the separate memory-context MCP server that
+workflow phases use.
+
+## OAuth-Protected Upstream Servers
+
+For MCP servers that require OAuth (configured with an `oauth:` block in
+workflow config):
+
+```bash
+animus mcp auth <server>        # browser login; tokens go to the OS keychain
+animus mcp auth-status          # show authenticated servers and token expiry
+animus mcp auth-logout <server> # delete stored tokens
+```
+
+At run time Animus launches the `animus-mcp-proxy` stdio bridge automatically
+for these servers, so agents never see tokens. Details live in
+`docs/reference/mcp-oauth.md` in the animus-cli repo.
+
 ## Troubleshooting
 
 ### MCP server not found
@@ -183,6 +202,6 @@ The server speaks JSON-RPC 2.0 over stdio.
 
 ### Tool mismatch or missing methods
 
-- Compare against `/Users/samishukri/ao-cli/docs/reference/mcp-tools.md`.
+- Compare against `docs/reference/mcp-tools.md` in the animus-cli repo.
 - Translate stale `animus.task.*` and `animus.requirements.*` calls to
   `animus.subject.*`.

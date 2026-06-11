@@ -16,7 +16,8 @@ schedules:
 
 1. Project overrides in `.animus/plugins/<pack-id>/`
 2. Installed packs in `~/.animus/packs/<pack-id>/<version>/`
-3. Bundled packs in the Animus binary
+
+Animus no longer ships bundled packs in the binary. Pinning a pack to the `bundled` source fails; install from an external repository and pin as `installed` or `project_override`.
 
 ## CLI commands
 
@@ -58,13 +59,16 @@ animus pack registry list
 animus pack registry remove --id community
 ```
 
-## Bundled packs
+## First-party packs
+
+These are not bundled in the binary; install them from their external repos with `animus pack install`.
 
 | Pack | Exports | Purpose |
 |------|---------|---------|
 | `animus.task` | standard, ui-ux, quick-fix, gated, triage, refine | Task workflow pipelines |
-| `animus.review` | cycle | Reusable code-review and testing loop |
-| `animus.requirement` | draft, refine, plan, execute | Requirement planning and execution |
+| `animus.review` | cycle | Review-cycle sub-workflow composed by `animus.task` workflows |
+| `animus.requirement` | draft, refine, plan, execute | Requirement planning and materialization |
+| `animus.core-skills` | (skills only) | Default skill catalog (implementation, code-review, debugging, ...) |
 
 ## Example connector pack
 
@@ -80,7 +84,7 @@ description = "Sync Animus tasks with Jira issues."
 mode = "project"
 
 [compatibility]
-ao_core = ">=0.1.0"
+animus_core = ">=0.1.0"
 workflow_schema = "v2"
 subject_schema = "v2"
 
