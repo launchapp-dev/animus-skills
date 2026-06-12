@@ -14,9 +14,10 @@ schedules:
 
 ## Resolution order
 
-1. Project overrides in `.ao/plugins/<pack-id>/`
-2. Installed packs in `~/.ao/packs/<pack-id>/<version>/`
-3. Bundled packs in the Animus binary
+1. Project overrides in `.animus/plugins/<pack-id>/`
+2. Installed packs in `~/.animus/packs/<pack-id>/<version>/`
+
+Packs are no longer bundled in the Animus binary — the former bundled packs live as standalone repos (`launchapp-dev/animus-pack-{core-skills,task,requirement,review}`) and install via `animus init --install-packs` or `animus pack install`.
 
 ## CLI commands
 
@@ -34,9 +35,11 @@ animus pack install --path ./my-pack --force --activate
 animus pack list
 animus pack list --active-only
 animus pack list --source installed
-animus pack inspect --pack-id my-org.my-pack
-animus pack inspect --path ./my-pack
+animus pack info --pack-id my-org.my-pack
+animus pack info --path ./my-pack
 ```
+
+`info` is the canonical detail verb; `animus pack inspect` keeps working as an alias.
 
 ### Pin or disable a pack
 
@@ -46,7 +49,17 @@ animus pack pin --pack-id animus.task --source installed
 animus pack pin --pack-id my-org.my-pack --disable
 ```
 
-Pack selections are stored in `.ao/state/pack-selection.v1.json`.
+Pack selections are stored in `~/.animus/<repo-scope>/state/pack-selection.v1.json`.
+
+### Uninstall a pack
+
+```bash
+animus pack uninstall --pack-id my-org.my-pack --dry-run
+animus pack uninstall --pack-id my-org.my-pack
+animus pack uninstall --pack-id my-org.my-pack --version 0.1.0
+```
+
+Uninstall removes the installed pack (all versions unless `--version` is given) plus its project selection entry. It refuses while project workflow YAML still references the pack unless `--force`.
 
 ### Marketplace
 
@@ -58,7 +71,9 @@ animus pack registry list
 animus pack registry remove --id community
 ```
 
-## Bundled packs
+## Recommended packs
+
+The recommended pack set (installed via `animus init --install-packs`):
 
 | Pack | Exports | Purpose |
 |------|---------|---------|
@@ -80,7 +95,7 @@ description = "Sync Animus tasks with Jira issues."
 mode = "project"
 
 [compatibility]
-ao_core = ">=0.1.0"
+animus_core = ">=0.1.0"
 workflow_schema = "v2"
 subject_schema = "v2"
 

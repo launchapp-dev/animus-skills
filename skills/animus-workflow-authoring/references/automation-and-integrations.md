@@ -105,7 +105,7 @@ triggers:
     workflow_ref: respond-to-webhook
     enabled: true
     config:
-      secret_env: AO_WEBHOOK_SECRET
+      secret_env: MY_WEBHOOK_SECRET
       max_triggers_per_minute: 10
     input:
       source: webhook
@@ -117,22 +117,22 @@ Supported trigger types are:
 - `webhook`
 - `github_webhook`
 
-`file_watcher` requires `config.paths`. Webhook-style triggers use `config.secret_env` and `config.max_triggers_per_minute`.
+`file_watcher` requires `config.paths`. Webhook-style triggers use `config.secret_env` and `config.max_triggers_per_minute`. Store the secret value itself in the OS keychain with `animus secret set MY_WEBHOOK_SECRET` rather than in the daemon's environment.
 
 ## Daemon config
 
-Use `daemon:` for project-local runtime behavior.
+Use `daemon:` for project-local runtime behavior. The daemon honours exactly four fields from this block: `auto_run_ready`, `active_hours`, `phase_routing`, and `mcp`.
 
 ```yaml
 daemon:
-  interval_secs: 300
-  pool_size: 2
-  active_hours: "00:00-06:00"
   auto_run_ready: true
-  auto_merge: false
-  auto_pr: false
-  auto_commit_before_merge: true
-  auto_prune_worktrees: true
+  active_hours: "00:00-06:00"
+  phase_routing:
+    implementation:
+      tool: claude
+      model: claude-sonnet-4-6
 ```
 
-`max_agents` is accepted as an alias for `pool_size`.
+Other `DaemonConfig` fields (`pool_size`, `interval_secs`, `max_task_retries`, `retry_cooldown_secs`) round-trip through compilation but are not read from YAML — set `pool_size` and `interval_secs` via `animus daemon config --pool-size <n> --interval-secs <n>` (persisted to `~/.animus/<repo-scope>/daemon/pm-config.json`) or the equivalent `animus daemon start` / `run` flags. `max_agents` is accepted as an alias for `pool_size`.
+
+The daemon git/merge policy keys (`auto_merge`, `auto_pr`, `auto_commit_before_merge`, `auto_prune_worktrees`) were removed in v0.5.x; declaring them still compiles but emits a removed-key warning. Configure merge/PR behavior per workflow with `post_success.merge` instead.

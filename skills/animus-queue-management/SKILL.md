@@ -36,7 +36,7 @@ Returns: total, pending, assigned, held counts.
 ### Enqueue a Task
 ```bash
 animus queue enqueue --task-id TASK-001
-animus queue enqueue --task-id TASK-001 --workflow-ref ao.task/quick-fix
+animus queue enqueue --task-id TASK-001 --workflow-ref animus.task/quick-fix
 ```
 
 The daemon picks up pending entries and assigns them to agents.
@@ -51,19 +51,23 @@ animus queue enqueue --title "Run nightly build" --description "Verify the relea
 ```
 
 ### Hold / Release
-Temporarily prevent a queued task from being dispatched:
+Temporarily prevent queued subjects from being dispatched. `hold`, `release`, and `drop` all take one or more subject ids as positional arguments, or `--all`:
 ```bash
-animus queue hold --subject-id TASK-001
-animus queue release --subject-id TASK-001
+animus queue hold TASK-001 TASK-002 TASK-003
+animus queue release TASK-001
+animus queue release --all --yes
 ```
+
+The legacy `--subject-id <ID>` flag form still works. Per-item failures do not stop the batch; results are summarized and the exit code is non-zero if any item failed.
 
 ### Drop (Remove)
-Remove a queue entry regardless of status:
+Remove queue entries regardless of status:
 ```bash
-animus queue drop --subject-id TASK-001
+animus queue drop TASK-001
+animus queue drop --all --yes
 ```
 
-Use this to clean up stale assigned entries that are stuck.
+Use this to clean up stale assigned entries that are stuck. `--all` requires confirmation (`--yes` in scripts and `--json` pipelines).
 
 ### Reorder
 Set dispatch priority order:
@@ -80,9 +84,9 @@ Repeat `--subject-id` in the exact order you want the daemon to consider.
 | `animus.queue.list` | List all queue entries |
 | `animus.queue.stats` | Aggregate queue metrics |
 | `animus.queue.enqueue` | Add a dispatch to the queue |
-| `animus.queue.hold` | Hold a pending entry |
-| `animus.queue.release` | Release a held entry |
-| `animus.queue.drop` | Remove an entry (any status) |
+| `animus.queue.hold` | Hold pending entries (`subject_id` or `subject_ids[]`) |
+| `animus.queue.release` | Release held entries (`subject_id` or `subject_ids[]`) |
+| `animus.queue.drop` | Remove entries, any status (`subject_id` or `subject_ids[]`) |
 | `animus.queue.reorder` | Set dispatch order |
 
 ### MCP Examples
@@ -92,10 +96,13 @@ Repeat `--subject-id` in the exact order you want the daemon to consider.
 { "task_id": "TASK-042" }
 
 // Enqueue with workflow override
-{ "task_id": "TASK-042", "workflow_ref": "ao.task/quick-fix" }
+{ "task_id": "TASK-042", "workflow_ref": "animus.task/quick-fix" }
 
 // Drop a stuck entry
 { "subject_id": "TASK-042" }
+
+// Drop several at once
+{ "subject_ids": ["TASK-042", "TASK-043"] }
 ```
 
 ## Patterns
@@ -106,7 +113,7 @@ When all pending entries are processed, the queue is empty. Refill it by enqueue
 ### Stale Assigned Entries
 If a workflow completes or fails but the queue entry stays `assigned`, it's stale. The reconciler cron should drop these, or use:
 ```bash
-animus queue drop --subject-id TASK-XXX
+animus queue drop TASK-XXX
 ```
 
 ### Duplicate Prevention

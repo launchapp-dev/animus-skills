@@ -11,16 +11,16 @@ Do not preload the entire `~/animus-skills/skills/` directory. Start with target
 
 - Read [getting-started](../animus-getting-started/SKILL.md) first for the core Animus mental model.
 - Read [mcp-setup](../animus-mcp-setup/SKILL.md) only when creating or fixing `.mcp.json`.
-- Read [workflow-authoring](../animus-workflow-authoring/SKILL.md) only when editing `.ao/workflows.yaml` or `.ao/workflows/*.yaml`.
+- Read [workflow-authoring](../animus-workflow-authoring/SKILL.md) only when editing `.animus/workflows.yaml` or `.animus/workflows/*.yaml`.
 - Read [daemon-operations](../animus-daemon-operations/SKILL.md) only when starting, checking, or debugging the daemon.
 - Read [troubleshooting](../animus-troubleshooting/SKILL.md) only if setup fails.
 - Use [configuration](../animus-configuration/SKILL.md), [task-management](../animus-task-management/SKILL.md), [queue-management](../animus-queue-management/SKILL.md), and [mcp-tools](../animus-mcp-tools/SKILL.md) as lookup references, not mandatory preload.
 
 ## Setup flow
 
-1. Run `animus setup` in the project root to initialize `.ao/`.
+1. Run `animus init --walkthrough` in the project root to initialize `.animus/`, detect AI CLIs, and install default plugins. Add `--install-packs` to also install the recommended workflow packs and reach a runnable state immediately. (`animus setup` was removed in v0.4.4 — use `animus init`.)
 2. Create `.mcp.json` pointing to the `animus` binary.
-3. Create a minimal workflow file.
+3. Create a minimal workflow file (or keep the bundled hello-world template the walkthrough copies into `.animus/workflows/`).
 4. Start the daemon with conservative defaults.
 5. Create one small test task and verify end-to-end execution.
 
@@ -60,7 +60,7 @@ animus daemon health
 ## Verification
 
 - Run `animus daemon status` or the MCP equivalent.
-- Create a small task with `animus task create`.
+- Create a small task with `animus subject create --kind task --title "..."`.
 - Enqueue it with `animus queue enqueue`.
 - Confirm the daemon picks it up before adding more workflows or schedules.
 

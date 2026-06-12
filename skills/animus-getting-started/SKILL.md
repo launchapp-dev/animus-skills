@@ -34,23 +34,27 @@ Verify: `which animus && animus --version`
 
 ```bash
 cd /path/to/your/project
-animus setup
+animus init --walkthrough --install-packs
 ```
 
+The walkthrough detects installed AI CLIs, installs the default plugins, and copies the bundled hello-world workflow. `--install-packs` also installs and activates the recommended workflow packs (`animus.core-skills`, `animus.task`, `animus.requirement`, `animus.review`), which takes the project straight to a runnable state. (`animus setup` was removed in v0.4.4 — `animus init` replaced it.)
+
 This creates:
-- `.ao/config.json` — project-level Animus config
-- `.ao/pm-config.json` — project daemon config
-- `.ao/workflows.yaml` and `.ao/workflows/` — workflow sources
+- `.animus/config.json` — project-level Animus config
+- `.animus/workflows.yaml` and `.animus/workflows/` — workflow sources
+
+Daemon settings persist under the repo-scoped runtime root at `~/.animus/<repo-scope>/daemon/pm-config.json`, managed via `animus daemon config`.
 
 ## Core Concepts
 
 ### Tasks
-Units of work. Each task has an ID (TASK-001), title, status, priority, and type.
+Units of work, managed through the unified subject surface (`animus subject --kind task`). Each task has an ID (TASK-001), title, status, and priority.
 
 ```bash
-animus task create --title "Add user authentication" --priority high --task-type feature
-animus task list --status ready
-animus task status --id TASK-001 --status in-progress
+animus subject create --kind task --title "Add user authentication" --priority high
+animus subject list --kind task --status ready
+animus subject status --kind task --id task:TASK-001 --status in-progress
+animus subject next --kind task
 ```
 
 ### Workflows
@@ -83,7 +87,7 @@ animus queue stats
 
 ```bash
 # Create a task
-animus task create --title "Add health check endpoint" --priority high --task-type feature
+animus subject create --kind task --title "Add health check endpoint" --priority high
 
 # Enqueue it
 animus queue enqueue --task-id TASK-001
@@ -102,8 +106,8 @@ animus daemon stream --pretty
 Animus exposes all operations as MCP tools. When running inside Claude Code or any MCP-aware AI:
 
 ```
-animus.task.create    — create tasks
-animus.task.list      — list tasks by status
+animus.subject.create — create tasks (kind=task)
+animus.subject.list   — list tasks by status (kind=task)
 animus.queue.enqueue  — add work to the dispatch queue
 animus.daemon.health  — check daemon status
 animus.workflow.run   — trigger a workflow manually
@@ -121,18 +125,16 @@ animus output monitor --run-id <run-id>
 
 ```
 your-project/
-├── .ao/
+├── .animus/
 │   ├── config.json
-│   ├── pm-config.json
 │   ├── workflows.yaml
 │   └── workflows/
 │       └── custom.yaml
-└── ~/.ao/<repo-scope>/          # Repo-scoped runtime state
+└── ~/.animus/<repo-scope>/      # Repo-scoped runtime state
     ├── core-state.json
     ├── resume-config.json
-    ├── tasks/
-    ├── requirements/
+    ├── config/                  # compiled workflow + agent runtime config
+    ├── daemon/                  # daemon.log + pm-config.json
     ├── runs/
-    ├── artifacts/
-    └── worktrees/
+    └── artifacts/
 ```

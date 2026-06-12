@@ -367,7 +367,7 @@ Surface them via `tools_allowlist` so command phases can call them. Cuts agent t
 Conductor system prompts grow — ship targets, gates, kill criteria, anti-patterns. Tuning those by editing the agent's `system_prompt:` triggers a daemon restart and is a high-friction loop for product-side changes. Extract the policy into a sibling file the conductor reads at sweep start:
 
 ```
-.ao/workflows/
+.animus/workflows/
 ├── agents.yaml             # conductor system_prompt: "READ FIRST: AGENT_PRINCIPLES.md"
 ├── workflows.yaml
 ├── schedules.yaml
@@ -451,9 +451,17 @@ Example: `~/animus-templates/worktrees/launchapp-nextjs--update-deps-2026-05-04/
 Task title format mirrors this: `<repo-id>:<action>`. The implementer agent parses `<repo-id>` to pick the worktree target.
 
 ```bash
-animus task create --title "launchapp-nextjs:update-deps" --workflow-ref update-deps
-animus task create --title "launchapp-nuxt:fix-build"     --workflow-ref fix-build
-animus task create --title "launchapp-react-router:design-improve" --workflow-ref design-improve
+animus subject create --kind task --title "launchapp-nextjs:update-deps"
+animus subject create --kind task --title "launchapp-nuxt:fix-build"
+animus subject create --kind task --title "launchapp-react-router:design-improve"
+```
+
+The workflow ref is bound at dispatch time, not on the task itself:
+
+```bash
+animus queue enqueue --task-id TASK-XXX --workflow-ref update-deps
+# or run directly:
+animus workflow run --task-id TASK-XXX --workflow-ref fix-build
 ```
 
 This convention lets you grep `animus queue list` for all in-flight work on a single repo, and lets the conductor write rules like "skip queueing the same `<repo-id>:<action>` 3+ times in a week — that loop is broken."
