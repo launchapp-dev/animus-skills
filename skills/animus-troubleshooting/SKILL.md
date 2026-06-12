@@ -57,8 +57,8 @@ animus daemon start --autonomous --pool-size 5 ...
 ### "failed to connect runner"
 The agent-runner process isn't responding. Usually means it crashed.
 ```bash
-animus runner health
-animus runner orphans detect
+animus plugin status
+animus doctor --check orphan_cli_processes
 animus daemon stream --cat llm --level warn --pretty
 animus daemon stop
 animus daemon start --autonomous
@@ -167,8 +167,7 @@ The pr-reviewer should skip conflicted PRs. Rebase manually or create a task to 
 
 ### Too Many agent-runner Processes
 ```bash
-animus runner orphans detect
-animus runner restart-stats
+animus doctor --check orphan_cli_processes
 ```
 
 ## State Location Reference

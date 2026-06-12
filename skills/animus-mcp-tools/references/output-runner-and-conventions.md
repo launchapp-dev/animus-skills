@@ -1,6 +1,6 @@
-# Output, Runner, And Conventions
+# Output And Conventions
 
-Use this reference when reading Animus execution output, checking runner health, or deciding how to shape list and batch requests.
+Use this reference when reading Animus execution output or deciding how to shape list and batch requests.
 
 ## Output tools
 
@@ -13,14 +13,13 @@ Use this reference when reading Animus execution output, checking runner health,
 | `animus.output.artifacts` | `execution_id` |
 | `animus.output.phase-outputs` | `workflow_id`, `phase_id`, `project_root` |
 
-## Runner tools
+## Provider health and orphan cleanup
 
-| Tool | Key parameters |
-|------|----------------|
-| `animus.runner.health` | `project_root` |
-| `animus.runner.orphans-detect` | `project_root` |
-| `animus.runner.orphans-cleanup` | `run_id`, `project_root` |
-| `animus.runner.restart-stats` | `project_root` |
+The `animus.runner.*` tool family was removed in v0.5.13. Use instead:
+
+- Provider plugin health: `animus.plugin.list` / CLI `animus plugin status` (includes per-provider state and the aggregate `provider_plugins_healthy` flag)
+- Daemon-level health: `animus.daemon.health`
+- Orphaned CLI processes: CLI `animus doctor --check orphan_cli_processes` (`--fix` prunes dead tracker entries; live PIDs get a manual kill suggestion)
 
 ## Shared conventions
 

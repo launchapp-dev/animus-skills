@@ -242,5 +242,5 @@ ps -p $(cat ~/.ao/<repo-scope>/daemon/daemon.lock)
 Agent-runner processes can accumulate across daemon restarts:
 ```bash
 pgrep -f agent-runner | wc -l    # count
-animus runner orphans detect
+animus doctor --check orphan_cli_processes
 ```

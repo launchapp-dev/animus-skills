@@ -13,7 +13,7 @@ Open only the reference file that matches the operation:
 
 - Read [references/agent-daemon-task.md](references/agent-daemon-task.md) for `animus.agent.*`, `animus.daemon.*`, and `animus.task.*`.
 - Read [references/workflow-queue-requirements.md](references/workflow-queue-requirements.md) for `animus.workflow.*`, `animus.queue.*`, and `animus.requirements.*`.
-- Read [references/output-runner-and-conventions.md](references/output-runner-and-conventions.md) for `animus.output.*`, `animus.runner.*`, pagination, batch behavior, and shared conventions.
+- Read [references/output-runner-and-conventions.md](references/output-runner-and-conventions.md) for `animus.output.*`, pagination, batch behavior, and shared conventions.
 
 ## Rules
 
@@ -30,6 +30,6 @@ Open only the reference file that matches the operation:
 - Use `animus.workflow.*` for runs, definitions, approvals, and checkpoints.
 - Use `animus.output.*` for logs, event streams, and phase outputs.
 - Use `animus.daemon.*` for scheduler runtime state.
-- Use `animus.runner.*` for orphan and health checks.
+- Runner tools were removed in v0.5.13: use `animus.plugin.list`/`animus plugin status` for provider health and `animus doctor --check orphan_cli_processes` for orphan cleanup.
 
 If you need exact parameters, open the domain reference instead of guessing from memory.

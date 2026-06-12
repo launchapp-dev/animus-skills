@@ -70,7 +70,6 @@ Once connected, the assistant gets access to:
 | `animus.workflow.*` | 16 tools | Workflow execution, phases, config, checkpoints |
 | `animus.output.*` | 6 tools | Run output, tail, monitor, artifacts |
 | `animus.requirements.*` | 6 tools | Requirement CRUD and refinement |
-| `animus.runner.*` | 4 tools | Runner health and diagnostics |
 | `animus.agent.*` | 3 tools | Agent control and status |
 
 ## Claude Code Settings
@@ -107,8 +106,8 @@ To auto-approve Animus MCP tools, add to `.claude/settings.local.json`. If your 
       "mcp__animus__animus_output_tail",
       "mcp__animus__animus_output_run",
       "mcp__animus__animus_output_phase_outputs",
-      "mcp__animus__animus_runner_health",
-      "mcp__animus__animus_runner_orphans_detect"
+      "mcp__animus__animus_plugin_list",
+      "mcp__animus__animus_daemon_health"
     ]
   },
   "enableAllProjectMcpServers": true
