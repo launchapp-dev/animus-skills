@@ -17,7 +17,11 @@ schedules:
 1. Project overrides in `.animus/plugins/<pack-id>/`
 2. Installed packs in `~/.animus/packs/<pack-id>/<version>/`
 
+<<<<<<< HEAD
 Packs are no longer bundled in the Animus binary — the former bundled packs live as standalone repos (`launchapp-dev/animus-pack-{core-skills,task,requirement,review}`) and install via `animus init --install-packs` or `animus pack install`.
+=======
+Animus no longer ships bundled packs in the binary. Pinning a pack to the `bundled` source fails; install from an external repository and pin as `installed` or `project_override`.
+>>>>>>> origin/main
 
 ## CLI commands
 
@@ -49,6 +53,7 @@ animus pack pin --pack-id animus.task --source installed
 animus pack pin --pack-id my-org.my-pack --disable
 ```
 
+<<<<<<< HEAD
 Pack selections are stored in `~/.animus/<repo-scope>/state/pack-selection.v1.json`.
 
 ### Uninstall a pack
@@ -60,6 +65,9 @@ animus pack uninstall --pack-id my-org.my-pack --version 0.1.0
 ```
 
 Uninstall removes the installed pack (all versions unless `--version` is given) plus its project selection entry. It refuses while project workflow YAML still references the pack unless `--force`.
+=======
+Pack selections are stored in `.animus/state/pack-selection.v1.json`.
+>>>>>>> origin/main
 
 ### Marketplace
 
@@ -71,15 +79,22 @@ animus pack registry list
 animus pack registry remove --id community
 ```
 
+<<<<<<< HEAD
 ## Recommended packs
 
 The recommended pack set (installed via `animus init --install-packs`):
+=======
+## First-party packs
+
+These are not bundled in the binary; install them from their external repos with `animus pack install`.
+>>>>>>> origin/main
 
 | Pack | Exports | Purpose |
 |------|---------|---------|
 | `animus.task` | standard, ui-ux, quick-fix, gated, triage, refine | Task workflow pipelines |
-| `animus.review` | cycle | Reusable code-review and testing loop |
-| `animus.requirement` | draft, refine, plan, execute | Requirement planning and execution |
+| `animus.review` | cycle | Review-cycle sub-workflow composed by `animus.task` workflows |
+| `animus.requirement` | draft, refine, plan, execute | Requirement planning and materialization |
+| `animus.core-skills` | (skills only) | Default skill catalog (implementation, code-review, debugging, ...) |
 
 ## Example connector pack
 

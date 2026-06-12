@@ -1,6 +1,10 @@
 {
   "name": "animus-skills",
+<<<<<<< HEAD
   "version": "2.3.0",
+=======
+  "version": "3.0.0",
+>>>>>>> origin/main
   "description": "Skills for using Animus — an autonomous agent orchestrator for software development workflows",
   "author": { "name": "launchapp.dev" },
   "homepage": "https://github.com/launchapp-dev/animus-skills",

@@ -75,34 +75,33 @@ Write to project root. Structure:
 
 Non-goals are as important as goals — they keep the conductor from drifting into adjacent work. Push the user to name at least two.
 
-## Phase 3 — registry.yaml (or surfaces.yaml)
+## Phase 3 — REGISTRY.md
 
 For fleets and multi-repo projects only. Skip for single-repo.
 
+<<<<<<< HEAD
 ```yaml
 # .animus/registry.yaml — what surfaces this project owns
 ship_mode: parallel        # parallel | sequential | flagship-first
 ship_readiness_target: 70
+=======
+Write `REGISTRY.md` at project root. This is a **convention document, not CLI-parsed config** — Animus never reads it; the conductor does, because Phase 5's prompt tells it to (same mechanism as AGENT_PRINCIPLES.md). One row per surface the project owns:
+>>>>>>> origin/main
 
-surfaces:
-  - id: my-app-flagship
-    role: flagship
-    repo: github.com/<owner>/<repo>
-    framework: <react-router|nextjs|nuxt|...>
-    path: ~/brain/repos/my-app-flagship
-    ship_targets:
-      build: pass
-      lint: 0_errors
-      e2e: ">= 70"
+```markdown
+# Surface Registry
 
-  - id: my-app-mobile
-    role: variant
-    repo: github.com/<owner>/<mobile-repo>
-    path: ~/brain/repos/my-app-mobile
-    ship_targets: { ... }
+Conductor: read before queueing any fleet work. Convention only — not parsed by Animus.
+
+Ship mode: parallel (parallel | sequential | flagship-first)
+
+| Surface          | Role     | Repo                          | Path                          | Ship gates                            |
+|------------------|----------|-------------------------------|-------------------------------|---------------------------------------|
+| my-app-flagship  | flagship | github.com/<owner>/<repo>     | ~/brain/repos/my-app-flagship | build pass, lint 0 errors, e2e >= 70% |
+| my-app-mobile    | variant  | github.com/<owner>/<mobile>   | ~/brain/repos/my-app-mobile   | build pass                            |
 ```
 
-If the user doesn't have a clear flagship/variant relationship, omit `role` and just list surfaces.
+If the user doesn't have a clear flagship/variant relationship, drop the Role column and just list surfaces. When you write the conductor prompt in Phase 5, add `REGISTRY.md` to its READ FIRST list.
 
 ## Phase 4 — AGENT_PRINCIPLES.md
 
@@ -124,7 +123,7 @@ Write to `.animus/workflows/agents.yaml`. Always include the conductor; include 
 ```yaml
 agents:
   conductor:
-    model: claude-opus-4-7         # Opus pays back on judgment work
+    model: claude-opus-4-8         # Opus pays back on judgment work
     tool: claude
     mcp_servers: ["animus", "memory", "github", "sequential-thinking"]
     system_prompt: |
@@ -175,7 +174,7 @@ phases:
   implement-feature:
     mode: agent
     agent: implementer
-    directive: "Implement the assigned task. Worktree at <project>/worktrees/<surface-id>--<branch>. Commit, push, open PR."
+    directive: "Implement the assigned task. You start inside the task's daemon-managed worktree (~/.animus/<repo>-<hash>/worktrees/task-<task-id>). Commit, push, open PR."
     capabilities: { mutates_state: true }
 
   qa-changes:
@@ -358,7 +357,7 @@ This project runs an Animus daemon (single-daemon SDLC). Conductor sweeps every 
 - **.animus/workflows/{agents,phases,workflows,schedules,mcp-servers}.yaml** — daemon config
 - **scripts/** — repo-health.sh, sweep-dispatch.sh, ...
 - **reports/** — specialist outputs the conductor reads each sweep
-- **worktrees/** — agents create their own at `<project>/worktrees/<surface-id>--<branch>`
+- Per-task worktrees are daemon-managed under `~/.animus/<repo>-<hash>/worktrees/task-<task-id>`
 
 Watch the daemon: `animus daemon stream --pretty`
 Sweep priorities: `.animus/workflows/AGENT_PRINCIPLES.md` §3
@@ -372,17 +371,23 @@ Don't declare done until you've watched a real task complete.
 # 1. Validate config
 animus workflow config validate
 animus workflow definitions list
+animus daemon preflight
 
 # 2. Start the daemon
 animus daemon start --autonomous --auto-run-ready true --pool-size 3 --interval-secs 10
 animus daemon health
 
+<<<<<<< HEAD
 # 3. Create one real task that exercises the implement workflow
 animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --priority high \
+=======
+# 3. Create one real task subject that exercises the implement workflow
+animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --priority p1 --status ready \
+>>>>>>> origin/main
   --body "Add a NOTES.md file at repo root with one sentence about the project. Verify worktree, commit, PR flow."
 
 # 4. Enqueue and watch
-animus queue enqueue --title "<surface>:bootstrap-smoke-test"
+animus queue enqueue --task-id <task-id-returned-by-subject-create>
 animus daemon stream --pretty
 ```
 

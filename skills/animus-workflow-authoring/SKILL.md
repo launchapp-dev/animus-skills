@@ -58,7 +58,10 @@ workflows:
 5. Configure merge and PR behavior per workflow via `post_success.merge` — the daemon-level `auto_merge` / `auto_pr` / `auto_commit_before_merge` / `auto_prune_worktrees` keys were removed in v0.5.x and now only emit a removed-key warning.
 6. Use `default_workflow_ref` when the repo should have a stable implicit default.
 7. Prefer pack refs like `animus.task/standard` over copying bundled behavior into project YAML.
+<<<<<<< HEAD
 8. Keep credentials out of YAML: use `${VAR}` env interpolation for non-secret config and `animus secret set <KEY>` (OS keychain) for secrets.
+=======
+>>>>>>> origin/main
 
 ## Validation
 

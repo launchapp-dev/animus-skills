@@ -47,7 +47,8 @@ phases:
 
 ```yaml
 tools_allowlist:
-  - animus  - gh
+  - animus
+  - gh
   - pnpm
 
 agents:
@@ -59,10 +60,10 @@ agents:
     mcp_servers: ["animus"]
     tool_policy:
       allow:
-        - task.*
+        - subject.*
         - output.*
       deny:
-        - task.delete
+        - queue.drop
         - project.remove
     skills:
       - code-review
@@ -134,7 +135,7 @@ decision_contract:
   allow_missing_decision: false
 ```
 
-Evidence kinds include `tests-passed`, `tests-failed`, `code-review-clean`, `code-review-issues`, `files-modified`, `requirements-met`, `research-complete`, `manual-verification`, and `custom`.
+Evidence kinds include `tests_passed`, `tests_failed`, `code_review_clean`, `code_review_issues`, `files_modified`, `requirements_met`, `research_complete`, `manual_verification`, `no_changes_needed`, and `custom`.
 
 ## MCP server descriptors
 

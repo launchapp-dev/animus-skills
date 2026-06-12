@@ -17,8 +17,8 @@ my-pack/
 │   └── tools.toml
 ├── schedules/
 │   └── schedules.yaml
-└── subjects/
-    └── schemas.yaml
+└── skills/
+    └── my-skill.yaml
 ```
 
 Only include the directories your manifest actually references.
@@ -68,6 +68,9 @@ tools = "mcp/tools.toml"
 [schedules]
 file = "schedules/schedules.yaml"
 
+[skills]
+root = "skills"
+
 [[dependencies]]
 id = "animus.review"
 version = ">=0.1.0"
@@ -93,13 +96,17 @@ optional = []
 | top-level | `title` | Yes | Human-readable name |
 | top-level | `description` | No | Free text description |
 | `ownership` | `mode` | Yes | `bundled`, `installed`, or `project` |
+<<<<<<< HEAD
 | `compatibility` | `animus_core` | No | Semver range (legacy key `ao_core` still parses) |
+=======
+| `compatibility` | `animus_core` | No | Semver range. `ao_core` is accepted as an alias. |
+>>>>>>> origin/main
 | `compatibility` | `workflow_schema` | No | Usually `v2` |
 | `compatibility` | `subject_schema` | No | Usually `v2` |
 | `subjects` | `kinds` | No | Required if `subjects` block exists |
 | `subjects` | `default_kind` | No | Must appear in `subjects.kinds` |
-| `workflows` | `root` | Yes | Relative path to workflow YAML |
-| `workflows` | `exports` | Yes | Must be non-empty and prefixed with `<pack-id>/` |
+| `workflows` | `root` | No | Relative path to workflow YAML; required if `workflows` block exists |
+| `workflows` | `exports` | No | Must be non-empty and prefixed with `<pack-id>/` if `workflows` block exists |
 | `runtime` | `agent_overlay` | No | Relative path |
 | `runtime` | `workflow_overlay` | No | Relative path |
 | `runtime.requirements` | `runtime` | No | One of `node`, `python`, `uv`, `npm`, `pnpm` |
@@ -110,6 +117,8 @@ optional = []
 | `mcp` | `servers` | No | Relative path to `servers.toml` |
 | `mcp` | `tools` | No | Relative path to `tools.toml` |
 | `schedules` | `file` | No | Relative path to schedules YAML |
+| `skills` | `root` | No | Directory of `*.yaml` skill manifests, default `skills` |
+| `skills` | `aliases` | No | Map of alias name to YAML file stem under `skills.root` |
 | `dependencies` | `id` | No | Pack ID |
 | `dependencies` | `version` | No | Semver requirement |
 | `dependencies` | `optional` | No | Default false |
@@ -124,7 +133,8 @@ optional = []
 
 ## Validation constraints that matter
 
-- `workflows.exports` cannot be empty.
+- A pack must declare at least one of `workflows` or `skills`.
+- `workflows.exports` cannot be empty when `workflows` is present.
 - Every export must start with `<pack-id>/`.
 - Relative paths must stay inside the pack root.
 - `subjects.default_kind` must be listed in `subjects.kinds`.

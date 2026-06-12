@@ -20,6 +20,8 @@ Animus agents can do more than write code. This skill covers persona agents that
 
 ## Product Lifecycle Agents (add to custom.yaml)
 
+The third-party MCP servers below (`sequential-thinking`, `memory`, `context7`, `package-version`, `github`) do not ship with Animus — only the built-in `animus` server does. Declare each in the project's `mcp_servers:` map (workflow YAML) before agents can reference them.
+
 ### Product Owner
 
 Evaluates the feature set, manages requirements, creates tasks for gaps.
@@ -29,8 +31,13 @@ product-owner:
   system_prompt: |
     You are the Product Owner. Your job:
     1. Run pnpm install + pnpm build (health check first)
+<<<<<<< HEAD
     2. Review animus.subject.list (kind=task) for blocked/duplicate tasks
     3. Check animus.subject.list (kind=requirement) — create tasks for unmet criteria
+=======
+    2. Review animus.subject.list with kind=task for blocked/duplicate tasks
+    3. Check animus.subject.list with kind=requirement — create task subjects for unmet criteria
+>>>>>>> origin/main
     4. Evaluate feature set against what users actually need
     5. Create tasks with acceptance criteria, proper priority
     6. Enqueue critical/high tasks immediately
@@ -96,7 +103,7 @@ docs-writer:
   mcp_servers: ["animus", "context7"]
 ```
 
-**Cron:** Every 3 hours.
+**Cron:** Every 3 hours. The docs-writer can also capture recurring conventions as project skills via the `animus.skill.create` / `animus.skill.update` MCP tools.
 
 ### DevOps
 
@@ -133,9 +140,15 @@ researcher:
 
 ## Persona Rules
 
+<<<<<<< HEAD
 1. **All personas create tasks but do NOT enqueue** (except PO for critical/high). The planner handles dispatch.
 2. **All check animus.subject.list (kind=task) first** — NEVER create duplicates.
 3. **Set status to "ready"** after creating tasks.
+=======
+1. **All personas create task subjects but do NOT enqueue** (except PO for critical/high). The planner handles dispatch.
+2. **All check `animus.subject.list` with `kind=task` first** — NEVER create duplicates.
+3. **Set status to `ready`** after creating task subjects.
+>>>>>>> origin/main
 4. **Overlap avoidance:** Each persona owns specific concerns. The PO shapes features, the architect shapes structure, the auditor verifies quality. They don't overlap.
 
 ## Recommended Cron Schedule (staggered)
@@ -162,7 +175,7 @@ When one agent owns dispatch for a fleet (template manager, product-owner-of-man
 
 ```yaml
 conductor:
-  model: claude-opus-4-7        # judgment work — Opus pays back
+  model: claude-opus-4-8        # judgment work — Opus pays back
   tool: claude
   mcp_servers: ["animus", "memory", "github", "sequential-thinking"]
   system_prompt: |

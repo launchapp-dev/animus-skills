@@ -11,7 +11,9 @@ Animus agents can connect to external MCP servers beyond the built-in `animus` s
 
 ## Configuring MCP Servers
 
-### 1. Define servers in custom.yaml (top-level)
+### 1. Define servers under the top-level `mcp_servers:` key
+
+Servers go in `.animus/workflows.yaml` or any `.animus/workflows/*.yaml` file:
 
 ```yaml
 mcp_servers:
@@ -31,6 +33,20 @@ mcp_servers:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-github"]
 ```
+
+Each entry picks exactly one transport via `transport:`:
+
+- `stdio` (default when omitted) — requires `command:`; optional `args:` and `env:`. `url` must not be set.
+- `http` — requires `url:` (an `http://` or `https://` endpoint). `command`, `args`, and `env` must not be set.
+
+```yaml
+mcp_servers:
+  my-remote:
+    transport: http
+    url: https://mcp.example.com/mcp
+```
+
+Optional per-server fields: `config:` (arbitrary key-value config passed to the server) and `tools:` (declared tool-name list — schema-validated but not currently enforced as a runtime filter, so don't rely on it to restrict access).
 
 ### 2. Bind servers to agent profiles
 
@@ -57,6 +73,38 @@ implementer:
     that uses external libraries, use resolve-library-id and
     get-library-docs to look up the CURRENT API.
 ```
+
+## OAuth-Protected HTTP Servers
+
+http servers can carry an `oauth:` block. Flows: `authorization_code` (interactive browser login via `animus mcp auth <server>`), `client_credentials`, `refresh_token`, `manual_bearer`. Credential material is read from env vars via `*_env` fields (`client_id_env`, `client_secret_env`, `refresh_token_env`, `bearer_env`), never from YAML. Other fields: `token_url`, `scopes`, `audience`, `cache` (default true).
+
+```yaml
+mcp_servers:
+  github:
+    transport: http
+    url: https://api.githubcopilot.com/mcp/
+    oauth:
+      flow: authorization_code
+      scopes: [repo, read:user]
+```
+
+CLI: `animus mcp auth <server>` (login), `animus mcp auth-status`, `animus mcp auth-logout <server>`. Full shape and validation rules: `docs/reference/mcp-oauth.md` in animus-cli.
+
+## Phase-Level Bindings
+
+Top-level `phase_mcp_bindings` attaches servers to specific phases (mainly used by pack overlays):
+
+```yaml
+phase_mcp_bindings:
+  research:
+    servers: [context7]
+```
+
+Server names must resolve against the `mcp_servers:` map. See the pack-authoring docs for how packs ship these.
+
+## Per-Run Wiring (CLI)
+
+`animus agent run` and `animus chat` accept `--mcp-server <name>` (repeatable; adds a server by name, `animus` selects the built-in stdio surface) and `--no-animus-mcp` (drops the built-in `animus` server from the resolved set).
 
 ## Recommended Servers
 

@@ -1,8 +1,13 @@
 # Workflow And Queue Tools
 
+<<<<<<< HEAD
 Use this reference when the Animus operation is about workflow runtime, workflow definitions, or queue dispatch.
 
 Requirements no longer have their own tool family: the `animus.requirements.*` tools were removed in v0.4.4. Use the `animus.subject.*` tools with `kind=requirement` (see [agent-daemon-task.md](agent-daemon-task.md) for the subject tool table).
+=======
+Use this reference when the Animus operation is about workflow runtime,
+workflow definitions, queue dispatch, or requirement state.
+>>>>>>> origin/main
 
 ## Workflow runtime tools
 
@@ -20,12 +25,17 @@ Requirements no longer have their own tool family: the `animus.requirements.*` t
 
 Gate rejection (`animus workflow phase reject`) is CLI-only — there is no matching MCP tool. Pruning terminal runs (`animus workflow prune` / `animus workflow delete --run-id`) is also CLI-only.
 
-## Workflow decisions and definitions
+## Decisions and checkpoints
 
 | Tool | Key parameters |
 |------|----------------|
 | `animus.workflow.decisions` | `id`, `limit`, `offset`, `max_tokens` |
 | `animus.workflow.checkpoints.list` | `id`, `limit`, `offset`, `max_tokens` |
+
+## Definition and config tools
+
+| Tool | Key parameters |
+|------|----------------|
 | `animus.workflow.phases.list` | `project_root` |
 | `animus.workflow.phases.get` | `phase` |
 | `animus.workflow.definitions.list` | `project_root` |
@@ -44,7 +54,27 @@ Gate rejection (`animus workflow phase reject`) is CLI-only — there is no matc
 | `animus.queue.release` | `subject_id` or `subject_ids[]` |
 | `animus.queue.drop` | `subject_id` or `subject_ids[]`, `project_root` |
 
+<<<<<<< HEAD
 `hold`, `release`, and `drop` are bulk-capable: pass `subject_ids[]` for multiple subjects in one call (per-item failures don't stop the batch). The CLI equivalents also accept positional ids and `--all --yes`.
+=======
+## Requirement state
+
+Requirements are subjects now. The removed `animus.requirements.*` MCP family
+maps to `animus.subject.*` with `kind: "requirement"`.
+
+| Old intent | Current MCP tool |
+|------------|------------------|
+| List requirements | `animus.subject.list` with `kind: "requirement"` |
+| Get a requirement | `animus.subject.get` with `kind: "requirement"` |
+| Create a requirement | `animus.subject.create` with `kind: "requirement"` |
+| Update status or metadata | `animus.subject.update` or `animus.subject.status` with `kind: "requirement"` |
+| Pick next ready requirement | `animus.subject.next` with `kind: "requirement"` |
+
+Requirement refinement is no longer a dedicated core MCP verb. Run the
+appropriate requirements workflow, such as `animus.workflow.run` with a
+requirements workflow ref, or use the subject backend plugin if it exposes a
+plugin-specific method.
+>>>>>>> origin/main
 
 ## Practical patterns
 
@@ -61,4 +91,8 @@ Gate rejection (`animus workflow phase reject`) is CLI-only — there is no matc
 2. `animus.workflow.get`
 3. `animus.output.run` or `animus.output.jsonl`
 4. `animus.output.phase-outputs`
+<<<<<<< HEAD
 5. `animus.subject.get` (`kind: "task"`)
+=======
+5. `animus.subject.get` with the workflow's subject kind and id
+>>>>>>> origin/main

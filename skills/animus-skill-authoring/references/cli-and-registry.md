@@ -15,7 +15,12 @@ animus skill search --registry community
 ```bash
 animus skill install --name code-review --registry community
 animus skill install --name code-review --version "^1.0" --allow-prerelease
+animus skill install --path .animus/skills/code-review/SKILL.md
+animus skill install --path .animus/skills/
 ```
+
+`--path` accepts a Markdown skill file, a single skill folder, or a directory of
+skill folders. `--name` is optional when installing from `--path`.
 
 ## List skills
 
@@ -29,16 +34,24 @@ animus skill list --source project
 ```bash
 animus skill info --name code-review
 animus skill update --name code-review --version "^2.0"
+<<<<<<< HEAD
 animus skill uninstall --name code-review --dry-run
 animus skill uninstall --name code-review
 ```
 
 `info` is the canonical detail verb (`show` remains as an alias). `uninstall` removes an installed skill's materialized files plus its registry/lock entries; it supports `--source` and `--dry-run`.
+=======
+animus skill update
+```
+
+Omitting `--name` on `update` re-resolves every installed skill.
+>>>>>>> origin/main
 
 ## Publish a skill
 
 ```bash
 animus skill publish --name code-review --version "1.0.0" --source my-org --registry community
+animus skill publish --name code-review --version "1.0.0" --source github --registry community --artifact ./dist/code-review.tgz --integrity sha256-...
 ```
 
 ## Registry commands

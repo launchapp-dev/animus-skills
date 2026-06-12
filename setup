@@ -43,7 +43,7 @@ if [[ $INSTALL_CLI -eq 1 ]]; then
     echo "✓ animus already installed: $(command -v animus) ($(animus --version 2>/dev/null | head -1))"
   else
     echo "→ installing animus CLI..."
-    curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/launchapp-dev/animus-cli/main/scripts/install.sh | bash
     export PATH="$HOME/.local/bin:$PATH"
   fi
 fi
@@ -176,5 +176,5 @@ echo "  CLI:    $(command -v animus 2>/dev/null || echo '[install pending]')"
 echo ""
 echo "Next:"
 echo "  1. Restart your agent (e.g. Claude Code, Codex)."
-echo "  2. From a project root, run /animus-setup to scaffold .ao/ and your first workflow."
+echo "  2. From a project root, run /animus-setup to scaffold .animus/ and your first workflow."
 echo "  3. Verify MCP: ask the agent to call animus.daemon.status."
