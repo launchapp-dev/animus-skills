@@ -23,7 +23,9 @@ The `animus.runner.*` tool family was removed in v0.5.13. Use instead:
 
 ## Shared conventions
 
-Every MCP tool accepts optional `project_root`.
+Most project-scoped MCP tools accept optional `project_root` (the blocking
+`animus.agent.ask` / `animus.agent.request_approval` tools deliberately do
+not).
 
 ```json
 { "project_root": "/path/to/project" }
@@ -43,7 +45,7 @@ List responses use the `animus.mcp.list.result.v1` envelope.
 
 ## Batch behavior
 
-Batch tools such as `animus.task.bulk-status`, `animus.task.bulk-update`, and `animus.workflow.run-multiple` accept `on_error`.
+The batch tool `animus.workflow.run-multiple` accepts `on_error` (the `animus.task.bulk-*` tools were removed in v0.4.4).
 
 | Value | Behavior |
 |-------|----------|

@@ -1,13 +1,13 @@
 ---
 name: animus-daemon-operations
-description: Start, stop, monitor the Animus daemon — health checks, events, logs, pool sizing, common issues
+description: Start, stop, restart, monitor the Animus daemon — health checks, events, logs, pool sizing, common issues
 user_invocable: false
 auto_invoke: true
 ---
 
 # Daemon Operations
 
-The Animus daemon is a background process that dispatches workflows from the queue, manages agent processes, and runs cron schedules.
+The Animus daemon is a background process that dispatches workflows from the queue, supervises plugin processes, and runs cron schedules.
 
 ## Starting the Daemon
 
@@ -16,40 +16,60 @@ The Animus daemon is a background process that dispatches workflows from the que
 animus daemon start
 ```
 
+Every start runs a plugin preflight first. Default posture is refuse-to-start
+when a required role (provider, `subject_kind:task`, `subject_kind:requirement`,
+`workflow_runner`, `queue`) is unsatisfied; the error prints the exact
+`animus plugin install ...` fix. Pass `--auto-install` to install the
+recommended defaults on the fly, or `--skip-preflight` as a dev escape hatch.
+`animus daemon preflight` runs the same check as a standalone report.
+
 ### Autonomous Mode (recommended)
 ```bash
-animus daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
+animus daemon start --autonomous --auto-run-ready true --pool-size 5
 ```
 
 Options:
 - `--autonomous` — fork to background, detach from terminal
 - `--auto-run-ready true` — automatically dispatch ready tasks from queue (default: true)
 - `--pool-size N` — max concurrent agent workflows
-- `--interval-secs N` — housekeeping timer interval in seconds (default: 5)
-- `--auto-merge true` — auto-merge approved PRs
-- `--auto-commit-before-merge true` — commit worktree changes before merge
+- `--interval-secs N` — fallback heartbeat in seconds (default: 5). Dispatch is event-driven (subject/queue mutations nudge the daemon, cron fires on precise deadlines); this only bounds pickup of out-of-band edits and paces housekeeping
+- `--auto-install` — install missing required plugins from recommended defaults during preflight
+- `--skip-preflight` — bypass the plugin preflight (dev only)
 - `--startup-cleanup` — run cleanup before scheduling (default: true)
 - `--resume-interrupted` — resume interrupted workflows (default: true)
 - `--reconcile-stale` — reconcile stale task/workflow state (default: true)
 - `--stale-threshold-hours N` — flag in-progress tasks as stale after N hours (default: 24)
 - `--max-tasks-per-tick N` — max new workflows to dispatch per tick (default: 2)
 - `--phase-timeout-secs N` — override phase timeout
-- `--idle-timeout-secs N` — override workflow idle timeout
-- `--skip-runner` — do not auto-start the runner process
+
+The old `--auto-merge`, `--auto-pr`, `--auto-commit-before-merge`, and
+`--idle-timeout-secs` flags were removed in v0.5.x — merge/PR policy lives in
+workflow YAML `post_success.merge`, executed by the workflow-runner plugin.
 
 ### Foreground Mode
 ```bash
-animus daemon run --pool-size 2 --interval-secs 5
+animus daemon run --pool-size 2
 ```
 
-Use foreground mode when debugging startup failures or runner issues.
+Use foreground mode when debugging startup or plugin issues. `--once` runs a single scheduler tick and exits.
+
+### Restart
+```bash
+animus daemon restart --autonomous --pool-size 5
+```
+
+Graceful stop, then start with the supplied flags (start flags come from the
+restart invocation, not the previous run — pass `--autonomous` to restart into
+background mode). `--shutdown-timeout-secs N` bounds the wait for in-flight
+agents (default 60). Use this after installing/updating plugins or changing
+daemon transport settings.
 
 ### Pool Size Guidance
 - **pool_size=2**: minimal, may starve cron workflows (also the default `--max-tasks-per-tick`)
 - **pool_size=5**: good default — 3 crons + 2 task workflows
 - **pool_size=8**: heavy workload, needs sufficient API quota
 
-Cron workflows (work-planner, reconciler, pr-reviewer) each take one pool slot when running. If pool_size < number of simultaneous crons, some will be cancelled.
+Cron workflows each take one pool slot when running. If pool_size < number of simultaneous crons, some will be skipped until capacity frees up. The effective cap is `min(pool_size, ANIMUS_WORKFLOW_CONCURRENCY_MAX)` (default 10).
 
 ## Monitoring
 
@@ -58,25 +78,33 @@ Cron workflows (work-planner, reconciler, pr-reviewer) each take one pool slot w
 animus daemon health
 ```
 
-Returns: status, active_agents, pool_size, pool_utilization, runner status, queued_tasks.
+Returns: status, active agents, pool size/utilization, queue depth, a
+`runtime: paused (since <ts>)` / `runtime: active` line (so a paused scheduler
+is distinguishable from a stuck one), and one row per discovered plugin from
+the live status registry — a plugin disabled by the restart supervisor reports
+`Unhealthy` with a cooldown detail and degrades the top-level verdict.
+Provider health is rolled up as `provider_plugins_healthy` (the agent-runner
+sidecar and its `runner_connected` field were deleted in v0.5.3 — provider
+plugins run the CLIs end to end).
 
 ### Events
 ```bash
-animus daemon events --limit 50
+animus daemon events --limit 50      # bounded history
+animus daemon events --follow        # keep streaming until Ctrl-C
 ```
 
-Event types: `health`, `queue`, `workflow`, `task-state-change`.
+Event types: `health`, `queue`, `workflow`, `task-state-change` (plus interaction lifecycle events).
 
 ### Logs
 ```bash
-animus daemon logs --limit 100
+animus daemon logs --limit 100 [--search <substr>]
 ```
 
-Log file location: `~/.ao/<repo-scope>/daemon/daemon.log`
+Log file location: `~/.animus/<repo-scope>/daemon/daemon.log`
 
 ### Live Structured Log Streaming — `animus daemon stream`
 
-The single most useful operational tool. One JSONL stream merges everything the daemon, every running workflow, and every spawned agent process emit — phase transitions, LLM calls, queue mutations, schedule fires, runner crashes — with consistent structure (`ts`, `level`, `cat`, `workflow_id`, `run_id`, `phase`, `msg`, `data`). It replaces tailing five log files at once.
+The single most useful operational tool. One JSONL stream merges everything the daemon, every running workflow, and every spawned agent process emit — phase transitions, LLM calls, queue mutations, schedule fires, plugin crashes — with consistent structure (`ts`, `level`, `cat`, `workflow_id`, `run_id`, `phase`, `msg`, `data`). It replaces tailing five log files at once.
 
 ```bash
 animus daemon stream --pretty                          # firehose, colorized
@@ -87,7 +115,7 @@ animus daemon stream --cat llm | jq -r '.data.tokens'  # raw JSON → pipe to jq
 ```
 
 **Filters:**
-- `--cat <prefix>` — category. Common: `llm`, `phase`, `schedule`, `queue`, `runner`, `daemon`, `agent`, `task`.
+- `--cat <prefix>` — category prefix. Common: `llm`, `phase`, `schedule`, `queue`, `daemon`, `plugin`, `task`, `reconciliation`.
 - `--level <debug|info|warn|error>` — minimum level. Default is `info`.
 - `--workflow <id>` — narrow to one workflow. Combine with `--run` for a single execution.
 - `--run <id>` — narrow to one run.
@@ -104,9 +132,10 @@ animus daemon stream --cat llm | jq -r '.data.tokens'  # raw JSON → pipe to jq
 | `phase` | Phase start, transition, verdict, rework loops, exit code |
 | `schedule` | Cron fires, schedule-skipped-because-busy, next-fire timestamps |
 | `queue` | Enqueue, dispatch, hold, drop, reorder, dependency resolution |
-| `runner` | Agent process spawn/exit, crash recovery, orphan detection |
+| `plugin` | Plugin spawn/handshake/dispatch, restart supervision, disable cooldowns |
 | `daemon` | Pool sizing, autonomous mode toggles, config reloads |
-| `task` | State changes (ready → in-progress → done) and checklist updates |
+| `task` | State changes (ready → in-progress → done) |
+| `reconciliation` | Zombie-workflow and stale in-progress sweeps |
 
 ### Production stream patterns
 
@@ -123,7 +152,7 @@ Top half shows when the conductor fires; bottom half shows what dispatches it pr
 ```bash
 animus daemon stream --cat llm --pretty
 ```
-Each call prints `provider model tokens_in/tokens_out latency cost`. Spot model-routing bugs (Sonnet running on what should be Haiku work) and runaway prompts (token counts climbing each iteration of a rework loop).
+Each call prints `provider model tokens_in/tokens_out latency cost`. Spot model-routing bugs (Sonnet running on what should be Haiku work) and runaway prompts (token counts climbing each iteration of a rework loop). For aggregates, see `animus cost summary`.
 
 **Single workflow run, end to end:**
 ```bash
@@ -159,8 +188,9 @@ animus daemon stream --cat phase | jq 'select(.msg == "rework_dispatched")'
 | `animus daemon stream` | Structured JSONL — daemon + every workflow + every run, one merged stream | Default. Almost always what you want. |
 | `animus daemon events` | Coarse event history (`health`, `queue`, `workflow`, `task-state-change`) | Audit trail, MCP-friendly, smaller volume than stream |
 | `animus daemon logs` | Raw daemon log file lines | Snapshot a window, no follow |
+| `animus events tail` | Workflow lifecycle events (`phase_started`, `workflow_completed`, ...) | Scripting against one workflow's lifecycle |
 | `animus output monitor --run-id <id>` | Raw stdout/stderr from one agent process | When the agent itself is misbehaving (timeouts, weird tool errors). Stream tells you *what* phase failed; `output monitor` tells you *why*. |
-| `animus output run --id <id>` | One-shot dump of a finished run's output | Post-mortem, not live |
+| `animus output read --run-id <id>` | One-shot dump of a finished run's output | Post-mortem, not live |
 
 **Rule of thumb:** start with `animus daemon stream`. If a phase failed and the JSON `data` doesn't tell you why, drop down to `animus output monitor` for that specific run.
 
@@ -169,11 +199,12 @@ animus daemon stream --cat phase | jq 'select(.msg == "rework_dispatched")'
 animus daemon status
 ```
 
+`--json` includes `runtime_paused` / `paused_at` while the daemon is reachable.
 
 ## Stopping
 
 ```bash
-animus daemon stop
+animus daemon stop [--shutdown-timeout-secs 60]
 ```
 
 Graceful shutdown waits for in-flight work up to the configured timeout.
@@ -181,10 +212,12 @@ Graceful shutdown waits for in-flight work up to the configured timeout.
 ### Persistent Config
 ```bash
 animus daemon config
-animus daemon config --pool-size 3 --auto-run-ready true --auto-merge false --auto-pr false
+animus daemon config --pool-size 3 --auto-run-ready true --interval-secs 10
 ```
 
-`animus daemon config` is the current mutation command for daemon settings. The MCP name remains `animus.daemon.config-set`.
+`animus daemon config` is the current mutation command for daemon settings,
+persisted at `~/.animus/<repo-scope>/daemon/pm-config.json` and hot-reloaded
+once per tick. The MCP name remains `animus.daemon.config-set`.
 
 ## MCP Tools
 
@@ -196,26 +229,36 @@ animus daemon config --pool-size 3 --auto-run-ready true --auto-merge false --au
 | `animus.daemon.health` | Detailed health metrics |
 | `animus.daemon.events` | Recent daemon events |
 | `animus.daemon.logs` | Read daemon log |
-| `animus.daemon.stream` | Stream structured logs in real time (CLI only) |
 | `animus.daemon.agents` | List active agent processes |
 | `animus.daemon.config` | Read daemon config |
 | `animus.daemon.config-set` | Update daemon config over MCP |
-| `animus.daemon.clear-logs` | Clear log file |
 | `animus.daemon.pause` | Pause dispatch |
 | `animus.daemon.resume` | Resume dispatch |
 
+`animus daemon stream`, `restart`, `preflight`, `metrics`, and `clear-logs` are CLI-only — no MCP equivalents.
+
 ## Daemon Architecture
 
-Animus resolves a project root, loads repo-scoped runtime state under `~/.ao/<repo-scope>/`, manages the queue, and uses `agent-runner` to launch `claude`, `codex`, or `gemini` for workflow phases.
+Animus resolves a project root, loads repo-scoped runtime state under
+`~/.animus/<repo-scope>/`, manages the queue, and dispatches workflow phases
+through installed plugins: the `workflow_runner` plugin drives phase
+execution, and provider plugins (`animus-provider-claude`, `-codex`,
+`-gemini`, ...) spawn the underlying CLIs end to end. There is no separate
+agent-runner sidecar process (deleted in v0.5.3).
 
 ## Common Issues
 
 ### CLAUDECODE Environment Variable
-When starting the daemon from inside Claude Code, the `CLAUDECODE` and `CLAUDE_CODE_SESSION_ACCESS_TOKEN` env vars are inherited. These cause spawned `claude` CLI processes to fail.
+When starting the daemon from inside Claude Code, the `CLAUDECODE` env var is
+inherited, which would block spawned `claude` CLI processes. Animus detects
+and unsets it before spawning a nested `claude` CLI, so current builds need no
+workaround. On older builds: `env -u CLAUDECODE animus daemon start --autonomous ...`
 
-**Fix**: The daemon strips these at spawn points automatically (as of commit 47d0d192). If running an older build, use:
+### Daemon Refuses to Start (preflight)
+A missing required plugin role fails startup with the exact install command.
 ```bash
-env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN animus daemon start --autonomous ...
+animus daemon preflight          # standalone report (exit 2 = missing roles)
+animus plugin install-defaults   # or: animus daemon start --auto-install
 ```
 
 ### Daemon Crashes
@@ -226,21 +269,21 @@ animus daemon stream --level error --pretty
 ```
 
 Common causes:
-- Disk full (worktrees accumulate)
-- Too many agent-runner processes (process leak)
+- Disk full (worktrees and old runs accumulate — `animus workflow prune --older-than 30 --yes` reclaims run/artifact disk)
+- A flapping plugin (check `animus plugin status` for restart counts and supervisor cooldowns)
 - Lock file contention
 
 ### Stale Lock
 If the daemon won't start ("daemon already running"):
 ```bash
-# Check if actually running
-ps -p $(cat ~/.ao/<repo-scope>/daemon/daemon.lock)
-# If not running, the lock is stale — daemon start will clean it up
+animus daemon status                       # check if actually running
+animus doctor --fix                        # cleans stale daemon pid/lock files
 ```
 
-### Process Leak
-Agent-runner processes can accumulate across daemon restarts:
+### Orphaned CLI Processes
+Provider CLI processes can be orphaned by crashes:
 ```bash
-pgrep -f agent-runner | wc -l    # count
-animus doctor --check orphan_cli_processes
+animus doctor --check orphan_cli_processes        # detect
+animus doctor --check orphan_cli_processes --fix  # prune dead tracker entries
 ```
+Live PIDs get a manual `kill` suggestion (the tracker is global across projects).

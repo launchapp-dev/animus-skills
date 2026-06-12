@@ -1,6 +1,8 @@
-# Workflow, Queue, And Requirement Tools
+# Workflow And Queue Tools
 
-Use this reference when the Animus operation is about workflow runtime, workflow definitions, queue dispatch, or requirement state.
+Use this reference when the Animus operation is about workflow runtime, workflow definitions, or queue dispatch.
+
+Requirements no longer have their own tool family: the `animus.requirements.*` tools were removed in v0.4.4. Use the `animus.subject.*` tools with `kind=requirement` (see [agent-daemon-task.md](agent-daemon-task.md) for the subject tool table).
 
 ## Workflow runtime tools
 
@@ -14,7 +16,9 @@ Use this reference when the Animus operation is about workflow runtime, workflow
 | `animus.workflow.pause` | `id`, `confirm`, `dry_run` |
 | `animus.workflow.cancel` | `id`, `confirm`, `dry_run` |
 | `animus.workflow.resume` | `id` |
-| `animus.workflow.phase.approve` | `workflow_id`, `phase_id`, `feedback` |
+| `animus.workflow.phase.approve` | `workflow_id`, `phase_id` (alias `phase`), `feedback` (alias `note`) |
+
+Gate rejection (`animus workflow phase reject`) is CLI-only — there is no matching MCP tool. Pruning terminal runs (`animus workflow prune` / `animus workflow delete --run-id`) is also CLI-only.
 
 ## Workflow decisions and definitions
 
@@ -36,20 +40,11 @@ Use this reference when the Animus operation is about workflow runtime, workflow
 | `animus.queue.stats` | `project_root` |
 | `animus.queue.enqueue` | `task_id`, `requirement_id`, `title`, `description`, `workflow_ref`, `input_json` |
 | `animus.queue.reorder` | `subject_ids[]` |
-| `animus.queue.hold` | `subject_id` |
-| `animus.queue.release` | `subject_id` |
-| `animus.queue.drop` | `subject_id`, `project_root` |
+| `animus.queue.hold` | `subject_id` or `subject_ids[]` |
+| `animus.queue.release` | `subject_id` or `subject_ids[]` |
+| `animus.queue.drop` | `subject_id` or `subject_ids[]`, `project_root` |
 
-## Requirement tools
-
-| Tool | Key parameters |
-|------|----------------|
-| `animus.requirements.list` | `limit`, `offset`, `max_tokens`, `status` |
-| `animus.requirements.get` | `id` |
-| `animus.requirements.create` | `title`, `description`, `priority`, `acceptance_criterion[]` |
-| `animus.requirements.update` | `id`, `title`, `description`, `priority`, `status`, `acceptance_criterion[]` |
-| `animus.requirements.delete` | `id` |
-| `animus.requirements.refine` | `id[]`, `focus`, `use_ai`, `tool`, `model`, `timeout_secs`, `start_runner`, `input_json` |
+`hold`, `release`, and `drop` are bulk-capable: pass `subject_ids[]` for multiple subjects in one call (per-item failures don't stop the batch). The CLI equivalents also accept positional ids and `--all --yes`.
 
 ## Practical patterns
 
@@ -66,4 +61,4 @@ Use this reference when the Animus operation is about workflow runtime, workflow
 2. `animus.workflow.get`
 3. `animus.output.run` or `animus.output.jsonl`
 4. `animus.output.phase-outputs`
-5. `animus.task.get`
+5. `animus.subject.get` (`kind: "task"`)
