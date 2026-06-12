@@ -29,8 +29,8 @@ product-owner:
   system_prompt: |
     You are the Product Owner. Your job:
     1. Run pnpm install + pnpm build (health check first)
-    2. Review animus.task.list for blocked/duplicate tasks
-    3. Check animus.requirements.list — create tasks for unmet criteria
+    2. Review animus.subject.list (kind=task) for blocked/duplicate tasks
+    3. Check animus.subject.list (kind=requirement) — create tasks for unmet criteria
     4. Evaluate feature set against what users actually need
     5. Create tasks with acceptance criteria, proper priority
     6. Enqueue critical/high tasks immediately
@@ -134,7 +134,7 @@ researcher:
 ## Persona Rules
 
 1. **All personas create tasks but do NOT enqueue** (except PO for critical/high). The planner handles dispatch.
-2. **All check animus.task.list first** — NEVER create duplicates.
+2. **All check animus.subject.list (kind=task) first** — NEVER create duplicates.
 3. **Set status to "ready"** after creating tasks.
 4. **Overlap avoidance:** Each persona owns specific concerns. The PO shapes features, the architect shapes structure, the auditor verifies quality. They don't overlap.
 
@@ -169,7 +169,7 @@ conductor:
     You are the conductor for <project>.
 
     ## READ FIRST
-    Read `.ao/workflows/AGENT_PRINCIPLES.md` before anything else.
+    Read `.animus/workflows/AGENT_PRINCIPLES.md` before anything else.
     That file owns ship targets, gates, kill criteria, and anti-patterns.
 
     ## Mission

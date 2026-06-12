@@ -45,13 +45,13 @@ workflows:
     name: Standard Workflow
     description: Repository default delivery workflow.
     phases:
-      - workflow_ref: ao.task/standard
+      - workflow_ref: animus.task/standard
 
   - id: hotfix-workflow
     name: Hotfix Workflow
     description: Fast-track workflow for urgent fixes.
     phases:
-      - workflow_ref: ao.task/quick-fix
+      - workflow_ref: animus.task/quick-fix
 ```
 
 Project YAML usually wraps canonical pack refs instead of reimplementing bundled task logic.
@@ -137,7 +137,7 @@ workflows:
   - id: standard
     name: Standard
     phases:
-      - workflow_ref: ao.task/standard
+      - workflow_ref: animus.task/standard
     post_success:
       merge:
         strategy: merge

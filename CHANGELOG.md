@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.0 — 2026-06-11
+
+### Changed
+- Aligned the skill set with the Animus v0.5.13 surface: `animus task`/`animus requirements` examples moved to the unified `animus subject --kind <kind>` surface; removed MCP families (`animus.task.*`, `animus.requirements.*`) replaced with `animus.subject.*`; `.ao/` → `.animus/` and `~/.ao/<scope>/` → `~/.animus/<repo-scope>/` paths everywhere; daemon settings pointed at `~/.animus/<repo-scope>/daemon/pm-config.json`; dead daemon-block `auto_merge`/`auto_pr`/`auto_commit_before_merge`/`auto_prune_worktrees` keys removed from every example (merge/PR policy is per-workflow `post_success.merge`); `animus setup` references replaced with `animus init` (`--walkthrough`, `--install-packs`); canonical detail verbs adopted (`pack info`, `skill info`); `pack uninstall` / `skill uninstall` documented; queue bulk operations (positional ids, `--all --yes`, `subject_ids[]`) documented; pack refs renamed `ao.*` → `animus.*` and `pack.toml` `ao_core` → `animus_core`; bundled-pack claims replaced with the extracted `launchapp-dev/animus-pack-*` reality.
+
 ## 2.2.0 — 2026-05-06
 
 ### Added

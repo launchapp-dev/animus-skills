@@ -24,12 +24,16 @@ animus skill list
 animus skill list --source project
 ```
 
-## Show or update a skill
+## Inspect, update, or uninstall a skill
 
 ```bash
-animus skill show --name code-review
+animus skill info --name code-review
 animus skill update --name code-review --version "^2.0"
+animus skill uninstall --name code-review --dry-run
+animus skill uninstall --name code-review
 ```
+
+`info` is the canonical detail verb (`show` remains as an alias). `uninstall` removes an installed skill's materialized files plus its registry/lock entries; it supports `--source` and `--dry-run`.
 
 ## Publish a skill
 

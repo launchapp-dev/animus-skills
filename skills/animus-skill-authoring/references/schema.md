@@ -157,9 +157,10 @@ Leave both empty for universal activation.
 
 ## Skill sources and priority
 
+Resolution priority is project > user > installed/pack (highest wins on name collisions). Current builds no longer emit builtin skill rows — the former bundled skills moved into the `animus.core-skills` pack.
+
 | Priority | Source | Location |
 |:--------:|--------|----------|
-| 1 | Builtin | Embedded in Animus binary |
-| 2 | Installed | `~/.ao/state/skills-registry.v1.json` |
-| 3 | User | `~/.ao/config/skill_definitions/*.yaml` |
-| 4 | Project | `.ao/skill_definitions/*.yaml` |
+| 1 (highest) | Project | `.animus/config/skill_definitions/*.yaml` (or `.animus/skills/<name>/SKILL.md`) |
+| 2 | User | `~/.animus/config/skill_definitions/*.yaml` |
+| 3 | Installed | `~/.animus/<repo-scope>/state/skills-registry.v1.json` |
