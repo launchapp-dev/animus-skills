@@ -8,14 +8,18 @@ workflow definitions, queue dispatch, or requirement state.
 | Tool | Key parameters |
 |------|----------------|
 | `animus.workflow.run` | `task_id`, `requirement_id`, `title`, `description`, `workflow_ref`, `input_json` |
-| `animus.workflow.run-multiple` | `runs[]`, `on_error` |
+| `animus.workflow.run-multiple` | `runs[]` (each: `task_id`, `workflow_ref`, `input_json`), `on_error` |
 | `animus.workflow.execute` | `task_id`, `workflow_ref`, `phase`, `model`, `tool`, `phase_timeout_secs`, `input_json` |
 | `animus.workflow.get` | `id` |
 | `animus.workflow.list` | `status`, `workflow_ref`, `task_id`, `phase_id`, `search`, `sort`, `limit`, `offset`, `max_tokens` |
 | `animus.workflow.pause` | `id`, `confirm`, `dry_run` |
 | `animus.workflow.cancel` | `id`, `confirm`, `dry_run` |
 | `animus.workflow.resume` | `id` |
-| `animus.workflow.phase.approve` | `workflow_id`, `phase_id`, `feedback` |
+| `animus.workflow.phase.approve` | `workflow_id`, `phase_id` (alias `phase`), `feedback` (alias `note`) |
+| `animus.workflow.phase.reject` | `workflow_id`, `phase_id` (alias `phase`), `reason` (alias `note`/`feedback`, required) |
+
+`animus.workflow.phase.reject` is the decline-path mirror of `phase.approve`;
+both require a pending gate phase.
 
 ## Decisions and checkpoints
 
@@ -42,9 +46,12 @@ workflow definitions, queue dispatch, or requirement state.
 | `animus.queue.stats` | `project_root` |
 | `animus.queue.enqueue` | `task_id`, `requirement_id`, `title`, `description`, `workflow_ref`, `input_json` |
 | `animus.queue.reorder` | `subject_ids[]` |
-| `animus.queue.hold` | `subject_id` |
-| `animus.queue.release` | `subject_id` |
-| `animus.queue.drop` | `subject_id`, `project_root` |
+| `animus.queue.hold` | `subject_id`, `subject_ids[]` |
+| `animus.queue.release` | `subject_id`, `subject_ids[]` |
+| `animus.queue.drop` | `subject_id`, `subject_ids[]`, `project_root` |
+
+`hold`, `release`, and `drop` accept either a single `subject_id` or a bulk
+`subject_ids[]` array; each id is processed independently.
 
 ## Requirement state
 

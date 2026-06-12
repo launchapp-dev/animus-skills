@@ -25,7 +25,17 @@ daemon:
 secrets:
 ```
 
-`agent_channels:` defines named channels for agent-to-agent messaging. `secrets:` maps logical secret names to process env vars; reference them in any YAML scalar with `${secret.<name>}`.
+`agent_channels:` defines named channels for agent-to-agent messaging.
+
+`secrets:` maps logical secret names to env vars (`env`, `required` —
+default true, `description`); reference them in any YAML scalar with
+`${secret.<name>}`. Resolution happens at compile time: explicit process env
+wins, then the project-scoped keychain populated by `animus secret set`.
+A plain `${VAR}` whose name matches `TOKEN|KEY|SECRET|PASSWORD` outside the
+`secrets:` block lints a move-it-to-secrets warning. `${...}` inside YAML
+comments is not interpolated, and `animus workflow phases upsert` /
+`definitions upsert` write generated overlays with `${...}` references
+preserved unresolved — resolved secret values never land in the project tree.
 
 Prefer this list over older docs that still describe `pipelines:` as the canonical surface.
 
@@ -65,7 +75,8 @@ Project YAML usually wraps canonical pack refs instead of reimplementing bundled
 Workflow phases can be:
 
 - A simple phase ID like `implementation`
-- A rich phase entry with `max_rework_attempts`, `on_verdict`, and `skip_if`
+- A rich phase entry (a single-key map) with `max_rework_attempts`,
+  `on_verdict`, `skip_if`, and `budget`
 - A sub-workflow reference via `workflow_ref`
 
 ```yaml
@@ -132,9 +143,53 @@ workflows:
 
 Variable expansion uses `{{var_name}}` placeholders in authored text.
 
+## Budget caps
+
+A `budget:` block sets cost ceilings, either top-level on a workflow
+definition (authoritative across all phases) or inline on a rich phase entry
+(resets per rework attempt). At least one of `max_tokens` / `max_cost_usd`
+is required, both must be > 0.
+
+```yaml
+workflows:
+  - id: expensive-flow
+    name: Expensive Flow
+    phases:
+      - exploration:
+          budget:
+            max_tokens: 100_000
+            max_cost_usd: 1.00
+            on_exceed: fail
+      - implementation
+    budget:
+      max_tokens: 1_000_000
+      max_cost_usd: 5.00
+      on_exceed: pause      # pause (default) | fail | warn
+```
+
+Caps are ENFORCED by the daemon's housekeeping sweep (once per heartbeat
+interval): on a newly crossed cap, `pause` pauses the workflow, `fail` fails
+the current phase terminally, `warn` records and notifies only. Breaches are
+visible in `animus subject get` (inline pause cause), `animus daemon health`
+(`budget_enforcement` line + 24h rollup), and `animus status`. Caveats: a
+phase in flight can overshoot by up to one sweep, and enforcement requires a
+running daemon. Kill-switch: `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT=1`
+(daemon restart required).
+
+## Worktree control
+
+A `worktree:` block on a workflow definition sets the default; a phase-level
+`worktree:` always overrides it. Modes: `auto` (default), `required`
+(fail-fast if creation fails), `skip` (run in the project root). Long form
+adds `cleanup` (default true) and `base_ref`; `worktree: skip` is accepted as
+a short-form scalar. Enforcement is owned by the workflow runner plugin
+(v0.4.0+); older runners treat everything as `auto`.
+
 ## Post-success hooks
 
-Use `post_success.merge` to control merge and PR behavior after all phases succeed.
+Use `post_success.merge` to control merge and PR behavior after all phases
+succeed. This is the only merge/PR automation surface — the daemon-level git
+policy keys were removed in v0.5.13.
 
 ```yaml
 workflows:

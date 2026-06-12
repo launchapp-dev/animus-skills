@@ -1,6 +1,6 @@
 ---
 name: animus-workflow-patterns
-description: Battle-tested pipeline patterns — QA gates, command phases, conflict resolution, CI checks, stale PR handling
+description: Battle-tested pipeline patterns — QA gates, command phases, conflict resolution, CI checks, stale PR handling, budget guardrails, human approval gates
 user_invocable: false
 auto_invoke: true
 ---
@@ -95,7 +95,7 @@ workflows:
               target: implementation
 ```
 
-For simple flows, `post_success.merge` on the workflow can replace the push/PR phases — the daemon merges the task branch after the workflow succeeds:
+For simple flows, `post_success.merge` on the workflow can replace the push/PR phases — the workflow runner plugin merges the task branch after the workflow succeeds. This is the ONLY built-in merge/PR surface: the old daemon `auto_merge`/`auto_pr` config keys are gone, and `animus git` is inspection-only (no `commit`/`push`/`pull` verbs) — anything git-mutating in a pipeline is either `post_success.merge` or a shell `git`/`gh` command phase like the ones above:
 
 ```yaml
 workflows:
@@ -330,7 +330,7 @@ workflows:
 
 Cap `max_rework_attempts` at 2–3. Beyond that, the QA gate is masking a real problem — let it fail and surface the task as blocked. Apply this gate to `update-deps`, `sync-feature`, `fix-build`, `fix-lint`, `create-template`, `design-improve`, etc.
 
-For deterministic gates, declare `evals` directly on the phase instead of a separate QA agent — checks run after the phase produces its result:
+For deterministic gates, `evals` can be declared directly on the phase instead of a separate QA agent — **but as of v0.5.14 evals parse and validate only; the workflow runner does not execute them yet, so phases advance regardless of the gate**. Declaring an `evals:` block emits a declared-but-unenforced warning at compile time and in `animus workflow config validate`. Author the gate now if you want, but keep a real `qa-changes` agent phase (or a command phase) as the enforced gate until the runner pin lands:
 
 ```yaml
 phases:
@@ -346,7 +346,7 @@ phases:
         - { id: lint,  kind: command, command: pnpm, args: ["lint"] }
 ```
 
-`kind: llm_judge` (with `agent` + `prompt`) covers checks that need judgment. On rework, the failure context is injected into the next attempt's prompt.
+`kind: llm_judge` (with `agent` + `prompt`) covers checks that need judgment. On rework, the failure context is injected into the next attempt's prompt. (Unlike evals, `budget:` caps ARE enforced — see the next section.)
 
 ## Phase Guardrails: budget, skip_if, idempotency
 
@@ -366,9 +366,57 @@ workflows:
           skip_if: ["subject_kind == 'requirement'"]
 ```
 
-- `budget` — token/cost ceiling (input + output + reasoning). `pause` moves the workflow to manual approval with reason `budget_exceeded`.
+- `budget` — token/cost ceiling (input + output + reasoning), **enforced by the daemon** on its housekeeping cadence (once per heartbeat, default 30s). `on_exceed: pause` (default) pauses the workflow and annotates the task — `animus subject get` shows `paused by workflow wf-... — budget exceeded ($7.50 > $5.00 max_cost_usd)`; `fail` fails the current phase; `warn` records only. The workflow-level cap is authoritative over phase caps; phase caps reset per rework attempt. Honest caveats: an in-flight phase can overshoot by up to one sweep, and enforcement needs a running daemon. Breaches surface in `animus daemon health`, `animus status` (Budget section), `animus cost decisions`, and the per-run `animus output decisions` log — so autonomous loops can finally rely on cost guardrails instead of trusting the conductor's discipline.
 - `skip_if` — guards evaluated against the subject (`==` / `!=` on `subject_kind`, `subject_id`, or any subject attribute). A matched guard skips the phase and records why.
-- `idempotency` — set `idempotency: idempotent` on phase definitions that are safe to re-run; after a daemon crash those auto-retry. `sideeffecting` (or the default `unknown`) blocks for manual `animus workflow resume <run_id> --force`. Mark command phases like `install-deps` and `build-check` idempotent.
+- `idempotency` — set `idempotency: idempotent` on phase definitions that are safe to re-run; after a daemon crash those auto-retry. `sideeffecting` (or the default `unknown`) blocks for manual `animus workflow resume --id <run_id> --force`. Mark command phases like `install-deps` and `build-check` idempotent.
+
+## Human Approval Gate (Suspend/Resume HITL)
+
+Agents can ask questions and request approvals mid-phase via the `animus.agent.ask` / `animus.agent.request_approval` MCP tools. In a workflow phase the call suspends: the workflow pauses, the pending interaction lands in the inbox, and answering resumes the provider session with the decision as feedback. Scope it per agent with `approval_policy`:
+
+```yaml
+agents:
+  implementer:
+    model: claude-sonnet-4-6
+    tool: claude
+    approval_policy:
+      auto_allow: ["cargo *", "pnpm *", "git.commit"]
+      auto_deny:  ["git.push*"]        # deny wins on overlap (fail closed)
+      default: ask                     # ask (escalate to human) | allow | deny
+```
+
+Answer from the inbox:
+
+```bash
+animus agent interactions list                 # pending questions + approvals
+animus agent interactions show <ID>
+animus agent interactions answer <ID> --allow
+animus agent interactions answer <ID> --deny --message "too risky"
+animus agent interactions answer <ID> --text "use the copy table"   # question
+animus agent interactions answer <ID> --select "Format=Summary"     # structured question (one per --select)
+```
+
+With the claude provider, the gate covers more than explicit MCP calls: the transport wires `animus.agent.request_approval` as the CLI's `--permission-prompt-tool`, so the provider's own gated tool calls and native `AskUserQuestion` prompts land in this same inbox (structured questions answer via `--select` / `--text`).
+
+Answering a suspend-created approval resumes the paused workflow automatically (if the resume spawn fails, the output carries the exact `animus workflow resume` command). Use this instead of a `mode: manual` phase when the *agent* knows where the risky moment is — the gate fires only when actually hit, not on every run. Unanswered approvals deny fail-closed on timeout, so a forgotten inbox never silently allows.
+
+This pairs well with AGENT_PRINCIPLES.md anti-patterns: encode "no auto-merge of PRs touching auth" as `auto_deny` globs the agent cannot talk its way around.
+
+Adjacent knob, different layer: `permission_mode` on agent profiles (and phase `runtime:` overrides) sets the provider's own gating posture (claude `--permission-mode`, codex `approval_policy`, gemini approval mode). Caveat: ad-hoc `animus agent run` / `animus chat send` honor it today, but workflow-phase enforcement waits on the workflow-runner plugin pin — don't rely on `permission_mode` as a workflow gate yet; `approval_policy` + the interactions inbox is the enforced path.
+
+## Phase Skills as Shared Capability
+
+Phase-level `skills:` actually apply to phase agents now (requires workflow-runner plugin v0.4.2+; `animus daemon preflight` warns when the installed runner is older and would silently ignore them). The effective set is the phase's `skills:` ∪ the agent profile's `skills:` — so a shared `qa-changes` phase can carry the QA skill once instead of every tester profile redeclaring it:
+
+```yaml
+phases:
+  qa-changes:
+    mode: agent
+    agent: tester
+    skills: [code-review]      # applies regardless of which tester profile runs it
+```
+
+Typo'd skill names are not silent: explicit `skills:` declarations that don't resolve WARN at compile time and in `animus workflow config validate`; at runtime a miss is a loud dispatch-log warning plus a `missing` metadata record (never a hard failure). Verify after a run with `animus output phase-outputs --workflow-id <id>` — it shows requested vs applied vs missing skills per phase.
 
 ## Scheduled Specialists (Cross-Check & Memory)
 
@@ -686,23 +734,39 @@ animus daemon stream --cat llm --pretty | grep -E "opus|gpt-5"
 ```
 Dual-brain (Opus + Codex) is the pattern most likely to surprise you on cost. Watch the merged stream until you've seen one full cycle and confirmed the offset crons aren't double-firing.
 
-**Rework loop detection in real time:**
+**Rework loop detection:**
 ```bash
-animus daemon stream --cat phase | jq 'select(.msg == "rework_dispatched")'
+animus daemon stream --cat phase --pretty | grep -i rework      # live
+animus workflow decisions --id <workflow-id>                    # recorded rework verdicts per run
 ```
 If you see the same `<repo-id>:<action>` task rework three times within a sweep window, your `qa-changes` gate is hiding a structural problem — let it fail (anti-pattern #5).
 
-See `animus-daemon-operations` for the full filter matrix and the stream-vs-events-vs-logs decision table.
+**Alerting without polling:** notifier plugins receive `workflow-failed` and `task-blocked` events (fired once per transition, not per tick), plus `workflow-budget-breach` (once per breach) — wire a Slack/webhook notifier for those three and you can stop tail-watching for failures entirely.
+
+Not sure which surface to reach for? `animus daemon observe` is the front-door — bare invocation prints a data-source matrix (events vs logs vs stream) plus a recent merged tail; `--follow` delegates to the live stream. See `animus-daemon-operations` for the full filter matrix.
+
+## Run Retention for Autonomous Loops
+
+A conductor on a 30-min cron produces ~48 runs/day, each with `runs/`, `artifacts/`, and persisted phase outputs under `~/.animus/<repo-scope>/`. Prune on a schedule or you'll find out the hard way:
+
+```bash
+animus workflow prune --older-than 30d            # preview (dry-run is the default)
+animus workflow prune --older-than 30d --yes      # delete; unit suffixes work (12h, 90m)
+animus workflow prune --keep-last 200 --status failed --yes
+animus workflow delete --run-id <RUN_ID> --yes    # surgical single-run removal
+```
+
+Only terminal runs (`completed`, `failed`, `escalated`, `cancelled`) are eligible — in-progress and paused runs are always skipped. Wrap the prune in a weekly command-phase workflow on its own schedule, like any other scan.
 
 ## Anti-Patterns (Things That Look Right But Aren't)
 
 Production failures that taught these:
 
-1. **Cron storms** — every schedule starts on the minute (`0 * * * *`). At hour rollover, 8 schedules fire simultaneously; the daemon serializes and the actual sweep runs minutes late. Stagger: `0 * * * *`, `7 * * * *`, `14 * * * *`, etc.
+1. **Cron storms** — every schedule starts on the minute (`0 * * * *`). The event-driven scheduler fires each cron on its precise deadline now (no more waiting for the next tick), but 8 simultaneous fires still contend for the per-tick dispatch budget and pool slots — later spawns get rejected and retried. Stagger: `0 * * * *`, `7 * * * *`, `14 * * * *`, etc.
 
 2. **Conductor that dispatches multiple tasks per sweep** — feels efficient but obscures which dispatch moved the score. Cap at one dispatch per sweep until you have telemetry to know which dispatches help.
 
-3. **Agent that creates AND enqueues** — the planner enqueues. Specialists CREATE tasks (status: ready) and let the planner pick them up. Agents that auto-enqueue race the planner and double-execute.
+3. **Agent that creates AND enqueues** — the planner enqueues. Specialists CREATE tasks (status: ready) and let the planner pick them up. Agents that auto-enqueue race the planner and double-execute. Note the asymmetry that makes the split enforceable: `animus queue enqueue` is an operator command that drains even when `daemon.auto_run_ready: false`, while created-Ready tasks only auto-dispatch when that flag is on.
 
 4. **Reading every report every sweep** — the conductor loads `reports/**/*` and burns 50K tokens on stale data. Filter by mtime ≥ "since last sweep" and only read what changed.
 

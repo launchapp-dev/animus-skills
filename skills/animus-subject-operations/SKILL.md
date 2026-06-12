@@ -24,12 +24,16 @@ animus subject <command> --kind requirement
 Subject operations require an installed subject backend plugin:
 
 ```bash
-animus plugin install-defaults --include-subjects
+animus plugin install-defaults
 animus daemon preflight
 ```
 
-The default subject set includes `subject-default`, `subject-requirements`,
-`subject-linear`, `subject-sqlite`, and `subject-markdown`.
+As of v0.5.14, bare `install-defaults` installs the flavor's required set,
+which includes `subject-default` (kind=task) and `subject-requirements`
+(kind=requirement). The recommended extras — `subject-linear`,
+`subject-sqlite`, `subject-markdown`, `subject-github` — install via
+`--include-recommended` (the legacy `--include-subjects` flag still works
+and adds the recommended subject slice).
 
 There is no in-tree subject fallback after v0.4.12. If
 `ANIMUS_DAEMON_DISABLE_SUBJECT_PLUGINS=1` is set, subject calls behave as if no
@@ -81,6 +85,30 @@ and replacement `labels` — update rejects `--body`. Create additionally
 accepts `--body`. Backend-specific fields belong in the backend plugin's own
 API or `animus plugin call`.
 
+`subject status ... --status ready` prints an `unstuck: cleared ...` line
+(stderr, human output) naming any `paused` / `blocked_*` flags the
+transition cleared. `subject get` explains stalls: a task bound to a paused
+workflow carries a `paused by workflow <id>` annotation in `blocked_reason`
+(enriched with the cause on budget breaches, e.g. `— budget exceeded
+($7.50 > $5.00 max_cost_usd)`).
+
+Batch create/update (up to 100 items per call, mirroring the
+`animus.subject.batch-*` MCP tools):
+
+```bash
+animus subject batch-create --kind task --file items.json
+animus subject batch-update --kind task --file patches.json --on-error continue
+```
+
+`--file` takes a JSON items array — bare array or `{"items": [...]}`
+wrapper. Create items are `{"title", "status"?, "priority"?, "labels"?,
+"body"?}`; update items are `{"id", "status"?, "priority"?, "labels"?}`
+with at least one patch field. `--on-error stop` (default) skips remaining
+items after the first failure; `continue` runs every item. Output is an
+`animus.cli.v1`-wrapped `animus.cli.batch.result.v1` envelope with per-item
+results; a batch where any item failed exits non-zero with the full payload
+under `/error/details`.
+
 Delete:
 
 ```bash
@@ -116,6 +144,21 @@ animus workflow run animus.task/standard --task-id TASK-001
 Queue and workflow command flags still use `--task-id` and `--requirement-id`
 for compatibility, but the backing data comes from subjects.
 
+Dispatch is event-driven: `subject create/update/status` and
+`queue enqueue/release` (CLI and MCP) send a fire-and-forget `daemon/nudge`,
+so the daemon reacts effectively immediately — `--interval-secs` is only a
+fallback heartbeat, not the dispatch latency. Explicit `queue enqueue`
+entries drain even when `daemon.auto_run_ready` is `false`; that flag gates
+only ready-task auto-dispatch.
+
+## Exit Codes
+
+`animus subject` commands use typed exit codes (also on `cost`, `events`,
+and `plugin`): invalid input exits `2`, not-found exits `3`, unavailable
+(missing plugin / daemon unreachable) exits `5`. Scripts that matched exit
+`1` for these cases must update; `1` is now reserved for unclassified
+internal errors.
+
 ## MCP Tools
 
 Use:
@@ -126,15 +169,18 @@ Use:
 - `animus.subject.update`
 - `animus.subject.next`
 - `animus.subject.status`
+- `animus.subject.batch-create` (`items[]`, `on_error`, 100-item cap)
+- `animus.subject.batch-update` (`items[]`, `on_error`, 100-item cap)
 
 Set `kind` to `task`, `requirement`, or the custom kind claimed by the subject
-backend plugin.
+backend plugin. Batch responses use the `animus.mcp.batch.result.v1` schema
+with succeeded/failed/skipped counts and per-item results.
 
 Delete is CLI-only: there is no `animus.subject.delete` MCP tool.
 
 ## Backend Troubleshooting
 
-- `NotFound` for every subject call: no plugin claims that kind, or subject plugins are disabled.
+- `Unavailable` (exit code 5) for every subject call: no plugin claims that kind, or subject plugins are disabled. `NotFound` (exit code 3) means the backend is routable but the subject id does not exist.
 - Daemon refuses to start: run `animus daemon preflight`; install missing subject plugins.
 - Unexpected state names: distinguish normalized Animus status from native backend status.
 - Missing body/title update support in CLI: use a backend-specific plugin method if exposed.

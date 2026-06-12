@@ -27,7 +27,18 @@ Animus no longer ships bundled packs in the binary. Pinning a pack to the `bundl
 animus pack install --path ./my-pack
 animus pack install --name my-pack --registry my-registry
 animus pack install --path ./my-pack --force --activate
+animus pack install --path ./my-pack --dry-run          # print dependency closure + plugin requirements, install nothing
+animus pack install --path ./my-pack --no-deps          # skip declared pack dependencies
+animus pack install --path ./my-pack --install-plugins  # install missing [[requires_plugins]] without prompting
 ```
+
+As of v0.5.14, `install` also resolves the pack's non-optional
+`[[dependencies]]` after the parent (semver-aware skip of already-installed,
+depth cap 5 with cycle detection; a failing dependency never aborts the parent
+and prints the manual command), and checks `[[requires_plugins]]` against the
+installed-plugin registry (interactive prompt default-yes; non-interactive runs
+print exact `animus plugin install <repo>@<tag>` commands unless
+`--install-plugins` is passed).
 
 ### List and inspect packs
 
@@ -35,9 +46,24 @@ animus pack install --path ./my-pack --force --activate
 animus pack list
 animus pack list --active-only
 animus pack list --source installed
-animus pack inspect --pack-id my-org.my-pack
-animus pack inspect --path ./my-pack
+animus pack info --pack-id my-org.my-pack
+animus pack info --path ./my-pack
 ```
+
+`pack info` reports pack dependencies and required plugins with
+installed/missing status. The `pack inspect` alias was retired in v0.5.14.
+
+### Uninstall a pack
+
+```bash
+animus pack uninstall my-org.my-pack --dry-run
+animus pack uninstall my-org.my-pack            # all versions + project selection entry
+animus pack uninstall my-org.my-pack --version 0.1.0
+animus pack uninstall my-org.my-pack --force    # even when project workflow YAML still references it
+```
+
+Uninstall applies immediately (no `--yes`); use `--dry-run` to preview. It
+refuses while project workflow YAML references the pack unless `--force`.
 
 ### Pin or disable a pack
 
@@ -47,7 +73,8 @@ animus pack pin --pack-id animus.task --source installed
 animus pack pin --pack-id my-org.my-pack --disable
 ```
 
-Pack selections are stored in `.animus/state/pack-selection.v1.json`.
+Pack selections are stored in `~/.animus/<repo-scope>/state/pack-selection.v1.json`
+(pack content installs machine-wide; activation is per-project).
 
 ### Marketplace
 
@@ -59,9 +86,28 @@ animus pack registry list
 animus pack registry remove --id community
 ```
 
+### Publish a pack
+
+```bash
+animus pack publish --path ./my-pack --registry community \
+  --url https://github.com/my-org/my-pack --category devops
+```
+
+`publish` validates the manifest, registers the pack in the locally cached
+registry clone, and prints git commit/push instructions — it does not push
+automatically. `--path` defaults to the current directory; the registry must
+already exist via `animus pack registry add`.
+
 ## First-party packs
 
-These are not bundled in the binary; install them from their external repos with `animus pack install`.
+These are not bundled in the binary. `animus init` installs and activates them
+from their pinned GitHub release tags in `default-install.json` (interactive
+walkthrough offers it default-yes; pass `--install-packs` for non-interactive
+runs, `--no-packs` to skip the prompt entirely). Per-pack failures never abort
+init — each pack reports `installed` / `already_installed` / `failed` with a
+manual recovery command. `ANIMUS_INIT_PACK_SOURCE_DIR` overrides the GitHub
+clone with a local `<dir>/<pack-id>` source for offline installs. You can also
+install them individually with `animus pack install`.
 
 | Pack | Exports | Purpose |
 |------|---------|---------|

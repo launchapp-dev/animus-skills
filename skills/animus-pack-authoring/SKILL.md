@@ -13,7 +13,7 @@ Do not read the full pack manual before starting. Open only the reference that m
 
 - Read [references/manifest.md](references/manifest.md) for `pack.toml` structure and field definitions.
 - Read [references/runtime-and-workflows.md](references/runtime-and-workflows.md) for workflow exports, overlays, decision contracts, or MCP server descriptors.
-- Read [references/operations.md](references/operations.md) only for install, pin, registry, first-party pack, or schedule questions.
+- Read [references/operations.md](references/operations.md) only for install, uninstall, dependency resolution, pin, registry/publish, first-party pack, or schedule questions.
 
 ## Minimal pack shape
 
@@ -35,6 +35,7 @@ my-pack/
 3. Export one working workflow before adding more variants.
 4. Add runtime overlays only for the agents and phases the pack actually needs.
 5. Declare permissions and secrets early so activation failures are explicit.
+6. Declare `[[dependencies]]` (other packs) and `[[requires_plugins]]` (Animus plugins) so `animus pack install` resolves them automatically (v0.5.14+).
 
 ## Rules
 
@@ -42,6 +43,6 @@ my-pack/
 2. Keep agents narrow and role-specific.
 3. Use workflow references to compose with installed packs instead of duplicating logic.
 4. Use decision contracts on review-style phases that should gate progress.
-5. Test with `animus pack inspect` before installing or publishing.
+5. Test with `animus pack info --path ./my-pack` before installing or publishing (the `pack inspect` alias was retired in v0.5.14), and preview dependency/plugin resolution with `animus pack install --path ./my-pack --dry-run`.
 
 If the task shifts from manifest work to runtime overlays or registry operations, open the corresponding reference file instead of broad-reading every pack detail.
