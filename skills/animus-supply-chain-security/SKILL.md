@@ -49,8 +49,8 @@ must match the publisher's `identity_regex` — for `launchapp-dev`, the
 standardized `release.yml` workflow under a `v*` tag), and the OIDC
 issuer (`https://token.actions.githubusercontent.com`). Verification
 shells out to the `cosign` binary; it must be on `$PATH` for `strict`.
-The workflow-runner default pin v0.4.3 is the first cosign-signed runner
-release — `animus plugin install` verifies it like any other.
+The workflow-runner default pin (the hardcoded fallback in animus-cli v0.5.14)
+is v0.4.1, and `animus plugin install` verifies it like any other signed plugin.
 
 Policy modes via `--signature-policy <MODE>`:
 

@@ -150,7 +150,7 @@ animus cost workflow wf-... --by phase
 animus cost workflow wf-... --by model
 
 # 4. Resume (clears the annotation) or raise the cap in YAML first
-animus workflow resume wf-...
+animus workflow resume --id wf-...
 ```
 
 ## MCP

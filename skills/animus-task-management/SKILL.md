@@ -9,7 +9,8 @@ auto_invoke: true
 
 Current Animus routes tasks through the unified subject surface. The old
 `animus task ...` CLI tree and `animus.task.*` MCP tools were removed; use
-`animus subject --kind task ...` and `animus.subject.*` with `kind: "task"`.
+`animus subject <subcommand> --kind task ...` and `animus.subject.*` with
+`kind: "task"`.
 
 Task operations require a subject backend plugin. The default local task
 backend (`animus-subject-default`) is part of the flavor's required set, so:

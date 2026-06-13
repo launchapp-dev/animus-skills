@@ -122,9 +122,9 @@ or when `--select` is given), `--allow`/`--deny` (exactly one, approvals),
 `human`). All subcommands support `--json` (`animus.cli.v1` envelope).
 
 If a suspended workflow's resume spawn fails, the answer still succeeds and
-the output carries a `workflow_resume.guidance` field with the exact
-`animus workflow resume <id>` command. Two racing answers: first commit wins,
-the second errors `already answered`.
+the output carries a `workflow_resume.guidance` field. If you need to resume
+manually, current CLI syntax is `animus workflow resume --id <id>`. Two racing
+answers: first commit wins, the second errors `already answered`.
 
 ## Management-gated MCP tools and identity pins
 
@@ -175,9 +175,9 @@ animus daemon events                    # interaction_created records
 ```
 
 Answering the interaction auto-resumes the workflow when the daemon is up;
-with no daemon the answer prints the `animus workflow resume <id>` command to
-run. If the agent process died while blocked, the record stays pending and
-answering warns it is a no-op.
+with no daemon the answer prints resume guidance. Run
+`animus workflow resume --id <id>` manually if needed. If the agent process
+died while blocked, the record stays pending and answering warns it is a no-op.
 
 ## Not the same as `animus approval`
 

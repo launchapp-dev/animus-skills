@@ -15,8 +15,8 @@ The legacy `animus task ...`, `animus requirements ...`, `animus.task.*`, and
 `animus.requirements.*` surfaces are removed. Use:
 
 ```bash
-animus subject <command> --kind task
-animus subject <command> --kind requirement
+animus subject list --kind task
+animus subject list --kind requirement
 ```
 
 ## Requirements
