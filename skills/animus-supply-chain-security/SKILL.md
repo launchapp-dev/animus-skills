@@ -3,6 +3,7 @@ name: animus-supply-chain-security
 description: Animus plugin supply-chain security — sha256 checksums, cosign keyless signature verification, signature policy (strict/warn/disabled), trusted-signers allowlists, audited TOFU org trust with revocation, plugin lockfiles and fail-closed semantics, lock verify tamper detection, and CI verification gates. Use for questions about plugin security, lockfile integrity, signature verification, trusting or revoking orgs, or detecting tampered plugin binaries.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Supply-Chain Security

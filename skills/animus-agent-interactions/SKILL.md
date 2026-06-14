@@ -3,6 +3,7 @@ name: animus-agent-interactions
 description: Deep reference for Animus human-in-the-loop (HITL) agent interactions — agent questions and approval requests, the pending-interaction inbox, paused workflows waiting for an answer, permission prompts, approval_policy routing, and suspend/resume mechanics. Use when an agent is parked on a pending interaction, a workflow is paused awaiting a human decision, an approval or permission prompt needs answering, or when configuring approvals for agents.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Agent Interactions (Human-in-the-Loop)
