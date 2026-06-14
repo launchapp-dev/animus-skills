@@ -142,17 +142,19 @@ Supported trigger types are:
   failure.
 - `webhook` / `github_webhook` — HTTP ingress is provided by an installed
   transport plugin honoring `config.secret_env` and
-  `config.max_triggers_per_minute`. You must write an explicit `config:`
-  block (even an empty `config: {}`) — omitting it entirely fails validation
-  with `max_triggers_per_minute must be greater than zero`.
+  `config.max_triggers_per_minute`. `config:` is optional — when omitted it
+  defaults to no signing secret and `max_triggers_per_minute: 10`; validation
+  only rejects an explicit `max_triggers_per_minute: 0`.
 - `plugin` — an external `trigger_backend` plugin emits events. The
   per-trigger `config:` map is currently NOT forwarded to the plugin
   (plugins source their own config); `ANIMUS_DAEMON_DISABLE_TRIGGERS=1`
   suppresses plugin triggers only.
 
-Test any trigger locally with
+Test a `webhook` / `github_webhook` trigger locally with
 `animus trigger fire <trigger_id> --payload <json>`, which appends a
 synthetic event to the same pending-events queue the daemon drains.
+(`trigger fire` is webhook-only — `file_watcher` and `plugin` triggers must be
+exercised by producing their real underlying event.)
 
 ## Daemon config
 
@@ -164,9 +166,10 @@ daemon:
   auto_run_ready: true          # auto-dispatch Ready subjects
   active_hours: "00:00-06:00"   # local-time window gating schedule + trigger dispatch
   phase_routing:                # per-phase model/tool routing at daemon spawn time
-    implementation:
-      tool: claude
-      model: claude-sonnet-4-6
+    per_phase:                  # per-phase overrides MUST nest under per_phase:
+      implementation:
+        tool: claude
+        model: claude-sonnet-4-6
   mcp: {}                       # daemon-side MCP runtime config
 ```
 

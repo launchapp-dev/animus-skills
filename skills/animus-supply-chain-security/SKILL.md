@@ -49,8 +49,8 @@ must match the publisher's `identity_regex` — for `launchapp-dev`, the
 standardized `release.yml` workflow under a `v*` tag), and the OIDC
 issuer (`https://token.actions.githubusercontent.com`). Verification
 shells out to the `cosign` binary; it must be on `$PATH` for `strict`.
-The workflow-runner default pin (the hardcoded fallback in animus-cli v0.5.14)
-is v0.4.1, and `animus plugin install` verifies it like any other signed plugin.
+The workflow-runner default pin v0.4.3 is the first cosign-signed runner
+release — `animus plugin install` verifies it like any other.
 
 Policy modes via `--signature-policy <MODE>`:
 
@@ -69,9 +69,10 @@ animus plugin install --signature-policy strict launchapp-dev/animus-provider-cl
 
 Every install records `signature_status` in the plugin registry
 (`~/.animus/plugins.yaml`): `verified`, `unsigned`, `invalid`,
-`untrusted_signer`, or `skipped`. `animus plugin list` shows it in the
-`SIG` column — audit it periodically; anything other than `verified` or
-an intentional `skipped` deserves investigation.
+`untrusted_signer`, or `skipped`. Inspect it directly in `plugins.yaml` (it is
+also in the `animus plugin info --name <NAME>` output); `animus plugin list`
+does not render a signature column. Audit it periodically; anything other than
+`verified` or an intentional `skipped` deserves investigation.
 
 ### trusted-signers.yaml
 
