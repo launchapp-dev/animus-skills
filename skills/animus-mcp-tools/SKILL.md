@@ -46,3 +46,9 @@ translate it to `animus.subject.*` before acting. The `animus.runner.*` family
 was removed in v0.5.13: runner health is covered by `animus.daemon.health`
 (`provider_plugins_healthy`) and orphan detection/cleanup moved to the CLI
 (`animus doctor --fix`).
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- The MCP tool surface grew in v0.5.15: `animus.cost.decisions`, `animus.workflow.phase.reject`, and `animus.daemon.observe` are registered on v0.5.15 but **not** on installed v0.5.14; the total is 86 tools (84 default) on v0.5.15 vs 83 (81 default) on v0.5.14.

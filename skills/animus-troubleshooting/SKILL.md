@@ -480,3 +480,9 @@ Mitigations:
 1. Use a rebase-and-retry workflow if the project defines one.
 2. Reduce `pool_size` to 1 for conflict-heavy repos.
 3. Split broad tasks into smaller subjects that touch fewer shared files.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- Budget-pause annotation enrichment, the `daemon health` budget block, and the `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch are v0.5.15+. On v0.5.14 the pause annotation is the plain `paused by workflow <id>`; inspect breaches with `animus cost decisions`.

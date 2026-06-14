@@ -215,3 +215,9 @@ Typical flow:
    enqueues drain even when `daemon.auto_run_ready` is false).
 3. Run a workflow explicitly with `animus workflow run <workflow-ref> --task-id TASK-XXX`, or let the daemon pick it up.
 4. Inspect execution with `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output read`, and `animus output phase-outputs`.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus subject batch-create` / `batch-update` CLI subcommands are v0.5.15+; on v0.5.14 batch operations are MCP-only (`animus.subject.batch-create`/`batch-update`).

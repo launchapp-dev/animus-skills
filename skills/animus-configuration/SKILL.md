@@ -408,3 +408,9 @@ Skill resolution:
 2. User `~/.animus/skills/`
 3. Installed registry or pack skills, including `animus.core-skills`
 4. Agent-host probes such as `.claude/skills` or `.codex/skills` as prompt-text-only
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- The `budget-enforcement.v1.json` state file and the `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch are v0.5.15+; neither exists on v0.5.14.

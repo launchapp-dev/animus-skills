@@ -230,3 +230,9 @@ on the next scheduler pass.
 `subject`, `cost`, `events`, and `plugin` commands use typed exit codes:
 invalid input exits 2, not-found 3, unavailable (missing plugin / network) 5.
 Scripts matching on exit 1 for these cases must update.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus.daemon.observe` MCP tool and the `daemon health` budget block are v0.5.15+; not present on v0.5.14 (the `daemon observe` CLI exists on both).
