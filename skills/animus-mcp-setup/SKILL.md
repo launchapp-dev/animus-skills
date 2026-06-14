@@ -3,6 +3,7 @@ name: animus-mcp-setup
 description: Set up .mcp.json, Claude Code permissions, and connect AI tools to Animus's MCP server
 user_invocable: true
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # MCP Server Setup

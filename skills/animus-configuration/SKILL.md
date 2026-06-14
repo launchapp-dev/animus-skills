@@ -3,6 +3,7 @@ name: animus-configuration
 description: Animus project config, daemon config, plugin config, agent runtime, environment variables, and state layout
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Configuration

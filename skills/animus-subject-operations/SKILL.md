@@ -3,6 +3,7 @@ name: animus-subject-operations
 description: Work with Animus subjects and subject_backend plugins, including task, requirement, Linear, SQLite, Markdown, and custom subject kinds, default_subject_kind, wire ids, and status routing.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Subject Operations

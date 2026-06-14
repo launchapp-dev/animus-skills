@@ -3,6 +3,7 @@ name: animus-mcp-tools
 description: Animus MCP tool surface - agent, daemon, cost, subject, workflow, queue, output, skill, memory, plugin, logs, and tool-discovery tools, including pagination, batch behavior, and error remediation. Use when an Animus task needs exact MCP tool names, key parameters, or tool-selection guidance.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # MCP Tools

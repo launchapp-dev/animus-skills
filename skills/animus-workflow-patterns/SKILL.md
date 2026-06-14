@@ -3,6 +3,7 @@ name: animus-workflow-patterns
 description: Battle-tested pipeline patterns — QA gates, command phases, conflict resolution, CI checks, stale PR handling, budget guardrails, human approval gates
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Workflow Patterns — Production-Ready Pipelines

@@ -3,6 +3,7 @@ name: animus-troubleshooting
 description: Common Animus issues and fixes — daemon crashes, plugin preflight, workflow failures, queue problems, merge conflicts
 user_invocable: true
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Troubleshooting Animus
