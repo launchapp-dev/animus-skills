@@ -3,6 +3,7 @@ name: animus-model-operations
 description: Choose models and verify provider readiness in Animus — provider plugin health, API-key and CLI-tool diagnostics, model/tool routing in workflow YAML, and per-model cost attribution. Use when selecting a model for a phase or agent, or when diagnosing why a provider or model fails to dispatch.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Model Selection and Provider Health

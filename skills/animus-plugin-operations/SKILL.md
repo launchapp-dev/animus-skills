@@ -3,6 +3,7 @@ name: animus-plugin-operations
 description: Install, inspect, update, lock, sign, scaffold, and troubleshoot Animus STDIO plugins — global and project-scoped installs, flavor-driven defaults, TOFU org trust auditing — covering provider, subject_backend, trigger, transport/web, workflow_runner, queue, and log-storage plugins.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Plugin Operations

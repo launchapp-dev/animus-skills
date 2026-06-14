@@ -3,6 +3,7 @@ name: animus-queue-management
 description: Dispatch queue operations — enqueue, hold, release, drop, reorder, and queue patterns
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Queue Management

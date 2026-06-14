@@ -3,6 +3,7 @@ name: animus-mcp-servers-for-agents
 description: Connect agents to Context7, package-version, sequential-thinking, memory, GitHub MCP servers
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # MCP Servers for Animus Agents

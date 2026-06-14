@@ -3,6 +3,7 @@ name: animus-bootstrap
 description: Guide a project from idea to autonomous engineering setup — interview the user, write VISION.md, AGENT_PRINCIPLES.md, registry, agents/workflows/phases/schedules YAML, scripts, and a first runnable task. Use when standing up Animus in a new project beyond the minimal /animus-setup scaffold.
 user_invocable: true
 auto_invoke: false
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Animus Bootstrap — Idea → Autonomous Engineering Team

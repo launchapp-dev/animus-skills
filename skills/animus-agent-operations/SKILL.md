@@ -3,6 +3,7 @@ name: animus-agent-operations
 description: Run and inspect Animus agent executions, direct provider runs, agent control, status, project-scoped agent memory, agent message channels, and human-in-the-loop interactions.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Agent Operations

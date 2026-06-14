@@ -3,6 +3,7 @@ name: animus-daemon-operations
 description: Start, stop, restart, monitor the Animus daemon — plugin preflight, health verdict, observe front-door, events, logs, metrics, pool sizing, common issues
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Daemon Operations

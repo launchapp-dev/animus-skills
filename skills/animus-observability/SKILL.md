@@ -3,6 +3,7 @@ name: animus-observability
 description: Inspect Animus status, daemon observe/health/metrics, structured streams, logs, run output, decision logs, artifacts, budget breaches, plugin status, web UI transports, and trigger events.
 user_invocable: false
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Observability

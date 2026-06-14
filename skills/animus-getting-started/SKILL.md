@@ -3,6 +3,7 @@ name: animus-getting-started
 description: Install Animus, initialize a project, create first task subject, run first workflow — core concepts and project structure
 user_invocable: true
 auto_invoke: true
+animus_version: "0.5.15"   # animus CLI surface this skill targets
 ---
 
 # Getting Started with Animus
