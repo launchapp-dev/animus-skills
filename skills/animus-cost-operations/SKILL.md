@@ -164,3 +164,11 @@ lists recorded budget-cap breaches; works offline.
 - **animus-observability** — status/health dashboards, the forensic chain, notifier events.
 - **animus-workflow-authoring** — full workflow YAML reference beyond the `budget:` block.
 - **animus-daemon-operations** — daemon lifecycle, heartbeat config, kill-switches generally.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus cost top --by provider` — added in v0.5.15; on v0.5.14 `cost top --by` accepts only `tokens|cost|model` (use `cost summary --by provider` there).
+- Budget-breach observability is v0.5.15+: on v0.5.14 a budget pause leaves the plain `paused by workflow <id>` annotation (no `— budget exceeded (...)` enrichment), and there is no `budget-enforcement` status file, no `daemon health` budget block, and no `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch. Enforcement itself (pause/fail/warn) works on both.
+- `animus.cost.decisions` MCP tool is v0.5.15+; on v0.5.14 use the `animus cost decisions` CLI.
