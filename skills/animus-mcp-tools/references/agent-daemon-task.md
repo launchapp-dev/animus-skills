@@ -1,13 +1,8 @@
-# Agent, Daemon, And Subject Tools
+# Agent, Daemon, Cost, And Subject Tools
 
-<<<<<<< HEAD
-Use this reference when the Animus operation is primarily about agent control, daemon runtime control, or subject (task/requirement) lifecycle changes.
-
-The `animus.task.*` and `animus.requirements.*` tool families were removed in v0.4.4; subject ops go through `animus.subject.*` with `kind=task` or `kind=requirement`.
-=======
 Use this reference when the Animus operation is primarily about agent control,
-daemon runtime control, or task/requirement lifecycle changes.
->>>>>>> origin/main
+daemon runtime control, cost/budget visibility, or task/requirement lifecycle
+changes.
 
 ## Agent control
 
@@ -15,64 +10,86 @@ daemon runtime control, or task/requirement lifecycle changes.
 |------|----------------|
 | `animus.agent.list` | `project_root` |
 | `animus.agent.get` | `id`, `project_root` |
-<<<<<<< HEAD
 | `animus.agent.run` | `tool`, `model`, `prompt`, `cwd`, `timeout_secs`, `context_json`, `runtime_contract_json`, `detach`, `run_id`, `project_root` |
 | `animus.agent.control` | `run_id`, `action` (`pause`, `resume`, `terminate`) |
 | `animus.agent.status` | `run_id` |
-=======
-| `animus.agent.run` | `tool`, `model`, `prompt`, `cwd`, `timeout_secs`, `context_json`, `runtime_contract_json`, `detach`, `run_id`, `runner_scope`, `project_root` |
-| `animus.agent.control` | `run_id`, `action` (`pause`, `resume`, `terminate`), `runner_scope` |
-| `animus.agent.status` | `run_id`, `runner_scope` |
->>>>>>> origin/main
 | `animus.agent.memory.get` | `agent`, `project_root` |
 | `animus.agent.memory.append` | `agent`, `text`, `source`, `project_root` |
 | `animus.agent.memory.clear` | `agent`, `project_root` |
 | `animus.agent.message.send` | `channel`, `from`, `to`, `text`, `workflow_id`, `phase_id`, `project_root` |
 | `animus.agent.message.list` | `channel`, `agent`, `limit`, `project_root` |
-<<<<<<< HEAD
-| `animus.agent.ask` | `agent_id`, `question`, `options[]`, `timeout_secs`, `workflow_id`, `task_id`, `wait` (`block` \| `suspend`) — no `project_root` override |
-| `animus.agent.request_approval` | `agent_id`, `action`, `tool_name`, `arguments`, `timeout_secs`, `workflow_id`, `task_id`, `wait` (`block` \| `suspend`) — no `project_root` override |
-
-The two blocking escalation tools (`ask`, `request_approval`) park until a
-human answers via `animus agent interactions answer` (or the
-`animus.interactions.*` tools on a `--management` server). Approvals deny
-fail-closed on timeout.
-=======
 
 ## Agent interactions and escalation
 
-`animus.agent.ask` and `animus.agent.request_approval` are blocking
-escalation calls: they park the agent until a human answers or the timeout
-elapses (default 600s, max 3600). `ask` times out with an instruction to
-proceed on best judgment; `request_approval` times out as `deny` (fail
-closed), and an agent profile `approval_policy` can auto-allow or auto-deny
-without escalating. Both operate on the server's own project scope and do not
-take `project_root`.
+`animus.agent.ask` and `animus.agent.request_approval` are human-in-the-loop
+escalation calls with two wait modes (`wait`: `block` | `suspend`):
 
-The `animus.interactions.*` pair is the human-side inbox. It is only
+- **Block** (default on unpinned servers): the call parks the agent until a
+  human answers or the timeout elapses (default 600s, max 3600). `ask` times
+  out with a structured error telling the agent to proceed on best judgment;
+  `request_approval` times out as `deny` (fail closed).
+- **Suspend** (default when the server is pinned to a workflow via
+  `animus mcp serve --workflow-id <ID>` or `ANIMUS_MCP_WORKFLOW_ID`): the tool
+  records the pending interaction, pauses the workflow, and returns
+  immediately with `{ status: "pending", interaction_id, instruction }`.
+  Answering the interaction resumes the workflow with the decision as
+  feedback.
+
+An agent profile's `approval_policy` can auto-allow or auto-deny without
+escalating. Both tools operate on the server's own project scope and take no
+`project_root`. The agent identity can be pinned with
+`animus mcp serve --agent-id <ID>` (or `ANIMUS_MCP_AGENT_ID`), making the
+payload `agent_id` ignored so an agent cannot claim a sibling profile.
+
+`animus.agent.request_approval` also conforms to the Claude Agent SDK
+permission-prompt-tool contract: the claude transport wires it as
+`--permission-prompt-tool`, the CLI invokes it with
+`{ tool_name, input, tool_use_id }` (`action` is derived from `tool_name`
+when omitted), and the result's text block carries the SDK payload —
+`{ "behavior": "allow", "updatedInput": ..., "updatedPermissions"? }` or
+`{ "behavior": "deny", "message" }` — with the legacy
+`{ tool, result: { decision, source, ... } }` envelope kept alongside. Native
+`AskUserQuestion` calls become structured Question records (bypassing the
+approval policy) answered via `animus agent interactions answer --select
+"<question|header|index>=<label[,label...]>"` (plus `--text` for freeform;
+allowed approvals also take `--remember` and `--updated-input <json>`).
+In suspend mode, voluntary calls get the pending payload, but native
+prompt-tool calls get `behavior: "deny"` with an end-your-turn instruction
+(the CLI cannot park on a pending payload); the workflow pauses and the
+session resumes with the answer threaded in as feedback.
+
+The `animus.interactions.*` pair is the human-side inbox over the
+pending-interaction store (`~/.animus/<repo-scope>/interactions/`). It is only
 registered when the server runs with `animus mcp serve --management`, so an
-agent cannot answer its own question or approve its own request.
+agent cannot answer its own question or approve its own request. The CLI
+equivalent is `animus agent interactions {list, show, answer}`.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.agent.ask` | `agent_id`, `question`, `options[]`, `timeout_secs`, `workflow_id`, `task_id` |
-| `animus.agent.request_approval` | `agent_id`, `action`, `tool_name`, `arguments`, `timeout_secs`, `workflow_id`, `task_id` |
+| `animus.agent.ask` | `agent_id`, `question`, `options[]`, `timeout_secs`, `workflow_id`, `task_id`, `wait` (`block` \| `suspend`) |
+| `animus.agent.request_approval` | `agent_id`, `action` (derived from `tool_name` when omitted), `tool_name`, `input` \| `arguments`, `tool_use_id`, `suggestions`, `timeout_secs`, `workflow_id`, `task_id`, `wait` (`block` \| `suspend`) |
 | `animus.interactions.list` | `all`, `agent_id`, `limit`, `project_root` |
-| `animus.interactions.answer` | `id`, `text` (questions), `decision` + `message` (approvals), `answered_by`, `project_root` |
->>>>>>> origin/main
+| `animus.interactions.answer` | `id`, `text` (questions), `decision` + `message` (approvals), `answers` + `response` (structured AskUserQuestion records), `updated_input`, `updated_permissions`, `remember` (allowed approvals), `answered_by`, `project_root` |
+
+When `animus.interactions.answer` resolves a suspend-mode record, it triggers
+the workflow resume with the decision as feedback; a resume failure never
+fails the answer and the response carries a `workflow_resume.guidance`
+command instead.
 
 ## Daemon management
 
 The MCP daemon tools cover runtime state. CLI-only startup helpers such as
-`animus daemon preflight`, `--auto-install`, and `--skip-preflight` are not
-separate MCP tools.
+`animus daemon preflight`, `--auto-install`, and `--skip-preflight` are
+exposed on `animus.daemon.start` as `auto_install` / `skip_preflight`
+parameters. The daemon always starts detached; `autonomous` is a deprecated
+no-op.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.daemon.start` | `pool_size` (alias `max_agents`), `interval_secs`, `auto_run_ready`, `startup_cleanup`, `resume_interrupted`, `reconcile_stale`, `stale_threshold_hours`, `max_tasks_per_tick`, `phase_timeout_secs`, `skip_runner`, `autonomous`, `auto_install`, `skip_preflight`, `project_root` |
+| `animus.daemon.start` | `pool_size` (alias `max_agents`), `interval_secs`, `auto_run_ready`, `startup_cleanup`, `resume_interrupted`, `reconcile_stale`, `stale_threshold_hours`, `max_tasks_per_tick`, `phase_timeout_secs`, `skip_runner`, `autonomous` (deprecated no-op), `auto_install`, `skip_preflight`, `project_root` |
 | `animus.daemon.stop` | `project_root` |
 | `animus.daemon.status` | `project_root` |
-| `animus.daemon.health` | `project_root` |
+| `animus.daemon.health` | `project_root` — payload carries a `healthy` boolean verdict and `provider_plugins_healthy` |
 | `animus.daemon.pause` | `project_root` |
 | `animus.daemon.resume` | `project_root` |
 | `animus.daemon.events` | `limit`, `project_root` |
@@ -80,28 +97,21 @@ separate MCP tools.
 | `animus.daemon.logs` | `limit`, `search`, `project_root` |
 | `animus.daemon.config` | `project_root` |
 | `animus.daemon.config-set` | `auto_run_ready`, `pool_size` (alias `max_agents`), `interval_secs`, `max_tasks_per_tick`, `stale_threshold_hours`, `phase_timeout_secs`, `notification_config_json`, `notification_config_file`, `clear_notification_config`, `project_root` |
+| `animus.daemon.observe` | `since`, `source` (`logs`/`events`/`stream`/`workflow`), `workflow_id`, `limit`, `project_root` |
 
-<<<<<<< HEAD
-The daemon git/merge policy fields (`auto_merge`, `auto_pr`,
-`auto_commit_before_merge`, `auto_prune_worktrees`) and `idle_timeout_secs`
-were removed in v0.5.x — merge/PR policy lives in workflow
-`post_success.merge`. `interval_secs` is the fallback heartbeat for
-housekeeping, not the dispatch latency: dispatch is event-driven
-(`daemon/nudge` on subject/queue mutations, plus precise cron deadlines).
+`animus.daemon.observe` is the observability front-door: it returns the
+merged, chronological window of daemon events + logs (or routes to a single
+`source`). It is non-streaming and works offline — the daemon need not be
+running.
 
-## Subject tools
-
-Set `kind` to `task`, `requirement`, or any kind claimed by an installed `subject_backend` plugin. Subject ids are wire ids (`<kind>:<native_id>`, e.g. `task:TASK-001`).
+## Cost and budget
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.subject.list` | `kind`, `status`, `limit`, `project_root` |
-| `animus.subject.get` | `kind`, `id`, `project_root` |
-| `animus.subject.create` | `kind`, `title`, `priority`, `status`, `labels[]`, `body`, `project_root` |
-| `animus.subject.update` | `kind`, `id`, `priority`, `status`, `labels[]`, `project_root` |
-| `animus.subject.next` | `kind`, `project_root` |
-| `animus.subject.status` | `kind`, `id`, `status`, `project_root` |
-=======
+| `animus.cost.decisions` | `since`, `project_root` |
+
+Lists recorded budget-cap breaches from the scoped breach log. Works offline.
+
 ## Subject tools
 
 The subject surface replaces the removed `animus.task.*` and
@@ -111,13 +121,20 @@ installed `subject_backend` plugin.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.subject.list` | `kind`, `status`, `priority`, `limit`, `offset`, `max_tokens` |
-| `animus.subject.get` | `kind`, `id` |
-| `animus.subject.create` | `kind`, `title`, `description`, `priority`, `status`, `labels[]`, `input_json` |
-| `animus.subject.update` | `kind`, `id`, `title`, `description`, `priority`, `status`, `labels[]`, `input_json` |
+| `animus.subject.list` | `kind`, `status`, `limit` |
+| `animus.subject.get` | `kind`, `id` (wire id `<kind>:<native_id>`) |
+| `animus.subject.create` | `kind`, `title`, `priority`, `status`, `labels[]`, `body` |
+| `animus.subject.update` | `kind`, `id`, `priority`, `status`, `labels[]` |
 | `animus.subject.next` | `kind` |
 | `animus.subject.status` | `kind`, `id`, `status` |
->>>>>>> origin/main
+| `animus.subject.batch-create` | `kind`, `items[]` (`title`, `status`, `priority`, `labels[]`, `body`), `on_error` |
+| `animus.subject.batch-update` | `kind`, `items[]` (`id`, `status`, `priority`, `labels[]`), `on_error` |
+
+The batch tools dispatch up to 100 items per call through the same code paths
+as the single-item tools; `on_error` is `"stop"` (default) or `"continue"`.
+CLI mirrors exist: `animus subject batch-create` / `batch-update` take the
+items array via `--file <json>` and honor `--on-error stop|continue`.
+See the conventions reference for batch envelope and remediation details.
 
 ## Practical patterns
 
@@ -125,20 +142,11 @@ installed `subject_backend` plugin.
 
 1. `animus.daemon.health`
 2. `animus.queue.stats`
-<<<<<<< HEAD
-3. `animus.plugin.list` (provider/subject plugin health)
-
-### Create and dispatch a task
-
-1. `animus.subject.create` (`kind: "task"`)
-2. `animus.queue.enqueue`
-=======
 3. `animus.subject.list` with `kind: "task"` and a small `limit`
 
 ### Create and dispatch a task
 
 1. `animus.subject.create` with `kind: "task"` and `status: "ready"`
 2. `animus.queue.enqueue` with the returned task id as `task_id`
->>>>>>> origin/main
 3. `animus.daemon.health`
 4. `animus.workflow.list`

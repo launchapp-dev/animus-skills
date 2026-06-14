@@ -17,11 +17,7 @@ schedules:
 1. Project overrides in `.animus/plugins/<pack-id>/`
 2. Installed packs in `~/.animus/packs/<pack-id>/<version>/`
 
-<<<<<<< HEAD
-Packs are no longer bundled in the Animus binary — the former bundled packs live as standalone repos (`launchapp-dev/animus-pack-{core-skills,task,requirement,review}`) and install via `animus init --install-packs` or `animus pack install`.
-=======
 Animus no longer ships bundled packs in the binary. Pinning a pack to the `bundled` source fails; install from an external repository and pin as `installed` or `project_override`.
->>>>>>> origin/main
 
 ## CLI commands
 
@@ -31,7 +27,18 @@ Animus no longer ships bundled packs in the binary. Pinning a pack to the `bundl
 animus pack install --path ./my-pack
 animus pack install --name my-pack --registry my-registry
 animus pack install --path ./my-pack --force --activate
+animus pack install --path ./my-pack --dry-run          # print dependency closure + plugin requirements, install nothing
+animus pack install --path ./my-pack --no-deps          # skip declared pack dependencies
+animus pack install --path ./my-pack --install-plugins  # install missing [[requires_plugins]] without prompting
 ```
+
+As of v0.5.14, `install` also resolves the pack's non-optional
+`[[dependencies]]` after the parent (semver-aware skip of already-installed,
+depth cap 5 with cycle detection; a failing dependency never aborts the parent
+and prints the manual command), and checks `[[requires_plugins]]` against the
+installed-plugin registry (interactive prompt default-yes; non-interactive runs
+print exact `animus plugin install <repo>@<tag>` commands unless
+`--install-plugins` is passed).
 
 ### List and inspect packs
 
@@ -43,7 +50,20 @@ animus pack info --pack-id my-org.my-pack
 animus pack info --path ./my-pack
 ```
 
-`info` is the canonical detail verb; `animus pack inspect` keeps working as an alias.
+`pack info` reports pack dependencies and required plugins with
+installed/missing status. The `pack inspect` alias was retired in v0.5.14.
+
+### Uninstall a pack
+
+```bash
+animus pack uninstall my-org.my-pack --dry-run
+animus pack uninstall my-org.my-pack            # all versions + project selection entry
+animus pack uninstall my-org.my-pack --version 0.1.0
+animus pack uninstall my-org.my-pack --force    # even when project workflow YAML still references it
+```
+
+Uninstall applies immediately (no `--yes`); use `--dry-run` to preview. It
+refuses while project workflow YAML references the pack unless `--force`.
 
 ### Pin or disable a pack
 
@@ -53,21 +73,8 @@ animus pack pin --pack-id animus.task --source installed
 animus pack pin --pack-id my-org.my-pack --disable
 ```
 
-<<<<<<< HEAD
-Pack selections are stored in `~/.animus/<repo-scope>/state/pack-selection.v1.json`.
-
-### Uninstall a pack
-
-```bash
-animus pack uninstall --pack-id my-org.my-pack --dry-run
-animus pack uninstall --pack-id my-org.my-pack
-animus pack uninstall --pack-id my-org.my-pack --version 0.1.0
-```
-
-Uninstall removes the installed pack (all versions unless `--version` is given) plus its project selection entry. It refuses while project workflow YAML still references the pack unless `--force`.
-=======
-Pack selections are stored in `.animus/state/pack-selection.v1.json`.
->>>>>>> origin/main
+Pack selections are stored in `~/.animus/<repo-scope>/state/pack-selection.v1.json`
+(pack content installs machine-wide; activation is per-project).
 
 ### Marketplace
 
@@ -79,15 +86,28 @@ animus pack registry list
 animus pack registry remove --id community
 ```
 
-<<<<<<< HEAD
-## Recommended packs
+### Publish a pack
 
-The recommended pack set (installed via `animus init --install-packs`):
-=======
+```bash
+animus pack publish --path ./my-pack --registry community \
+  --url https://github.com/my-org/my-pack --category devops
+```
+
+`publish` validates the manifest, registers the pack in the locally cached
+registry clone, and prints git commit/push instructions — it does not push
+automatically. `--path` defaults to the current directory; the registry must
+already exist via `animus pack registry add`.
+
 ## First-party packs
 
-These are not bundled in the binary; install them from their external repos with `animus pack install`.
->>>>>>> origin/main
+These are not bundled in the binary. `animus init` installs and activates them
+from their pinned GitHub release tags in `default-install.json` (interactive
+walkthrough offers it default-yes; pass `--install-packs` for non-interactive
+runs, `--no-packs` to skip the prompt entirely). Per-pack failures never abort
+init — each pack reports `installed` / `already_installed` / `failed` with a
+manual recovery command. `ANIMUS_INIT_PACK_SOURCE_DIR` overrides the GitHub
+clone with a local `<dir>/<pack-id>` source for offline installs. You can also
+install them individually with `animus pack install`.
 
 | Pack | Exports | Purpose |
 |------|---------|---------|

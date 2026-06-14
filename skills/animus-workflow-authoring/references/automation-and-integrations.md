@@ -24,6 +24,19 @@ phase_mcp_bindings:
 
 Every referenced server must exist under `mcp_servers:`.
 
+`mcp_servers:` entries accept `command`, `args`, `transport` (default
+`stdio`), `url` (required for `transport: http`), `env`, `tools` (allowed
+tool-name prefixes), `config`, and an `oauth:` block (HTTP transport only;
+flows `client_credentials` / `refresh_token` / `manual_bearer` /
+authorization-code via `animus mcp auth`). All credential material is named
+via `*_env` fields, never inlined.
+
+Per-agent MCP pass-down is real on every run path: the resolved server set
+rides the provider RPC as `extras.mcp_servers` on all four providers (the
+workflow path needs workflow-runner v0.4.3+). Secret-bearing servers (all
+OAuth flows) are rewritten to `animus-mcp-proxy` stdio entries, so tokens
+never reach CLI configs or argv.
+
 ## Tool registry
 
 Use `tools:` to register tool metadata Animus can reason about.
@@ -72,7 +85,8 @@ schedules:
     enabled: true
 ```
 
-Cron expressions use 5 fields: `minute hour day-of-month month day-of-week`.
+Cron expressions use 5 fields (`minute hour day-of-month month day-of-week`)
+and are evaluated in UTC.
 
 Common patterns:
 
@@ -82,6 +96,15 @@ Common patterns:
 - `37 */2 * * *` for every 2 hours at `:37`.
 - `0 */3 * * *` for every 3 hours.
 - `0 9 * * 1` for Monday at 9am.
+
+Runtime semantics (event-driven scheduler, v0.5.13+): the daemon computes the
+earliest upcoming occurrence across all schedules and wakes at exactly that
+instant — cron fires on time, not on the next polling tick, and schedule
+edits take effect immediately via config hot-reload. A 10-minute catch-up
+horizon recovers at most the single most recent occurrence missed while the
+daemon was busy; occurrences missed for longer (daemon down, `active_hours`
+window closed) are skipped, never replayed. `interval_secs` is only a
+fallback heartbeat, not the dispatch latency.
 
 ## Triggers
 
@@ -105,7 +128,7 @@ triggers:
     workflow_ref: respond-to-webhook
     enabled: true
     config:
-      secret_env: MY_WEBHOOK_SECRET
+      secret_env: ANIMUS_WEBHOOK_SECRET
       max_triggers_per_minute: 10
     input:
       source: webhook
@@ -113,26 +136,63 @@ triggers:
 
 Supported trigger types are:
 
-- `file_watcher`
-- `webhook`
-- `github_webhook`
+- `file_watcher` — built-in glob watcher; requires `config.paths`
+  (`debounce_secs` default 5, `ignore` globs optional). Watcher events
+  survive failed spawns — the baseline no longer advances on a dispatch
+  failure.
+- `webhook` / `github_webhook` — HTTP ingress is provided by an installed
+  transport plugin honoring `config.secret_env` and
+  `config.max_triggers_per_minute`. `config:` is optional — when omitted it
+  defaults to no signing secret and `max_triggers_per_minute: 10`; validation
+  only rejects an explicit `max_triggers_per_minute: 0`.
+- `plugin` — an external `trigger_backend` plugin emits events. The
+  per-trigger `config:` map is currently NOT forwarded to the plugin
+  (plugins source their own config); `ANIMUS_DAEMON_DISABLE_TRIGGERS=1`
+  suppresses plugin triggers only.
 
-`file_watcher` requires `config.paths`. Webhook-style triggers use `config.secret_env` and `config.max_triggers_per_minute`. Store the secret value itself in the OS keychain with `animus secret set MY_WEBHOOK_SECRET` rather than in the daemon's environment.
+Test a `webhook` / `github_webhook` trigger locally with
+`animus trigger fire <trigger_id> --payload <json>`, which appends a
+synthetic event to the same pending-events queue the daemon drains.
+(`trigger fire` is webhook-only — `file_watcher` and `plugin` triggers must be
+exercised by producing their real underlying event.)
 
 ## Daemon config
 
-Use `daemon:` for project-local runtime behavior. The daemon honours exactly four fields from this block: `auto_run_ready`, `active_hours`, `phase_routing`, and `mcp`.
+Use `daemon:` for project-local runtime behavior. Only four fields are read
+from workflow YAML:
 
 ```yaml
 daemon:
-  auto_run_ready: true
-  active_hours: "00:00-06:00"
-  phase_routing:
-    implementation:
-      tool: claude
-      model: claude-sonnet-4-6
+  auto_run_ready: true          # auto-dispatch Ready subjects
+  active_hours: "00:00-06:00"   # local-time window gating schedule + trigger dispatch
+  phase_routing:                # per-phase model/tool routing at daemon spawn time
+    per_phase:                  # per-phase overrides MUST nest under per_phase:
+      implementation:
+        tool: claude
+        model: claude-sonnet-4-6
+  mcp: {}                       # daemon-side MCP runtime config
 ```
 
-Other `DaemonConfig` fields (`pool_size`, `interval_secs`, `max_task_retries`, `retry_cooldown_secs`) round-trip through compilation but are not read from YAML — set `pool_size` and `interval_secs` via `animus daemon config --pool-size <n> --interval-secs <n>` (persisted to `~/.animus/<repo-scope>/daemon/pm-config.json`) or the equivalent `animus daemon start` / `run` flags. `max_agents` is accepted as an alias for `pool_size`.
+Everything else is set elsewhere or gone:
 
-The daemon git/merge policy keys (`auto_merge`, `auto_pr`, `auto_commit_before_merge`, `auto_prune_worktrees`) were removed in v0.5.x; declaring them still compiles but emits a removed-key warning. Configure merge/PR behavior per workflow with `post_success.merge` instead.
+- `interval_secs` and `pool_size` (alias `max_agents`) round-trip in YAML
+  but the daemon ignores them there — set them via
+  `animus daemon config --interval-secs <n> --pool-size <n>` (persisted,
+  hot-reloaded) or flags on `animus daemon run` / `animus daemon start`.
+- `max_task_retries` / `retry_cooldown_secs` have no runtime sink at all.
+- The daemon git policy keys (`auto_merge`, `auto_pr`,
+  `auto_commit_before_merge`, `auto_prune_worktrees`) were **removed** in
+  v0.5.13, along with their CLI flags. Merge/PR behavior lives per workflow
+  in `post_success.merge` (executed by the workflow runner plugin). Old
+  pm-config.json files still load.
+
+Declaring any of these unenforced/removed keys compiles fine but emits a
+warning on compile stderr and in the `warnings` array of
+`animus workflow config validate` / `compile`.
+
+Outside `active_hours`, both schedules and triggers are suppressed; missed
+cron fires are not replayed when the window reopens, while webhook/plugin
+events stay queued and drain when it opens. `schedules:` and `triggers:`
+entries merge by `id` across `.animus/workflows/*.yaml` files; the `daemon:`
+block field-merges (note: `auto_run_ready` is a plain boolean, so a later
+overlay cannot reset an earlier `true` back to `false`).

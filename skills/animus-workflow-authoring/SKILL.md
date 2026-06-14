@@ -47,31 +47,34 @@ workflows:
 3. Keep deterministic operations in command phases and judgment calls in agent phases.
 4. Prefer `cwd_mode: task_root` for git, build, and test commands.
 5. Add schedules, triggers, and daemon tuning only after the base workflow works manually.
-6. Validate against current `animus-cli` behavior when docs and examples disagree.
+6. For autonomous workflows, declare a `budget:` cap (`max_cost_usd` / `max_tokens`) — the daemon enforces it on its housekeeping sweep and pauses the workflow on breach.
+7. Validate against current `animus-cli` behavior when docs and examples disagree.
 
 ## Rules
 
 1. Use agent phases for decisions and command phases for deterministic execution.
 2. Do not add rework loops to command phases.
 3. Stagger cron offsets instead of starting every schedule on the same minute.
-4. Restart the daemon after changing workflow YAML.
-5. Configure merge and PR behavior per workflow via `post_success.merge` — the daemon-level `auto_merge` / `auto_pr` / `auto_commit_before_merge` / `auto_prune_worktrees` keys were removed in v0.5.x and now only emit a removed-key warning.
+4. A running daemon hot-reloads `.animus/workflows.yaml` and `.animus/workflows/*.yaml` edits via a filesystem watcher; `animus workflow config reload` is the manual fallback. A malformed edit keeps the prior config active.
+5. Put merge/PR automation in the workflow's `post_success.merge` block. The daemon-level git policy keys (`auto_merge`, `auto_pr`, `auto_commit_before_merge`, `auto_prune_worktrees`) were removed in v0.5.13 — declaring them under `daemon:` only emits a removed-key warning.
 6. Use `default_workflow_ref` when the repo should have a stable implicit default.
 7. Prefer pack refs like `animus.task/standard` over copying bundled behavior into project YAML.
-<<<<<<< HEAD
-8. Keep credentials out of YAML: use `${VAR}` env interpolation for non-secret config and `animus secret set <KEY>` (OS keychain) for secrets.
-=======
->>>>>>> origin/main
 
 ## Validation
 
-Validate and inspect the effective config before restarting the daemon:
+Validate and inspect the effective config:
 
 ```bash
 animus workflow config validate
 animus workflow config compile
 animus workflow definitions list
 animus workflow phases list
+animus workflow prompt render   # preview a phase's effective (skill-injected) prompt
 ```
+
+`validate` and `compile` emit a `warnings` array (also on stderr) for
+declared-but-unenforced fields (e.g. `daemon.pool_size`, removed git policy
+keys, phase `evals:`) and for explicit `skills:` names that do not resolve
+against the project's skill sources. Warnings never fail the compile.
 
 If the workflow is still unclear after that, open the specific reference file that covers the missing section instead of broad-reading the whole skill set.

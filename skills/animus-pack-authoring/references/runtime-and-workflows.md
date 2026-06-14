@@ -99,11 +99,14 @@ phases:
 | `role` | string | Semantic role |
 | `mcp_servers` | list | MCP servers this agent can access |
 | `tool_policy` | object | Allow and deny glob patterns |
+| `approval_policy` | object | Routing for `animus.agent.request_approval`: `auto_allow` / `auto_deny` glob lists (deny wins) plus `default: ask\|allow\|deny` (v0.5.13+) |
 | `skills` | list | Skill identifiers to activate |
 | `capabilities` | object | Boolean capability flags |
 | `tool` | string | CLI tool |
 | `model` | string | LLM model ID |
 | `fallback_models` | list | Fallback models |
+| `reasoning_effort` | string | `low`, `medium`, or `high`; mapped per provider |
+| `permission_mode` | string | Provider permission/approval mode, forwarded verbatim (claude `--permission-mode`, codex `approval_policy`, gemini approval mode) |
 | `timeout_secs` | int | Agent timeout |
 | `max_attempts` | int | Retry attempts |
 | `max_continuations` | int | Max continuations per phase |
@@ -123,6 +126,23 @@ phases:
 | `skills` | list | Additional skills to activate |
 | `command` | object | Command definition for `mode: command` |
 | `manual` | object | Manual approval config for `mode: manual` |
+
+### Phase-level skills are applied at runtime
+
+Phase `skills:` are no longer prompt-only hints: resolved skill definitions
+ride the dispatch payload to the workflow runner and are actually injected
+(prompt fragments, tool policy, MCP servers, args/env, capabilities). This
+requires `animus-workflow-runner-default` >= v0.4.2 — older runners silently
+ignore phase skills, and `animus daemon preflight` warns (non-fatally) when the
+installed runner is below that floor. Verify with
+`animus output phase-outputs --workflow-id <id>` (requested vs applied vs
+missing skills per phase).
+
+Explicit skill names in workflow YAML (`phases.<id>.skills`,
+`agents.<id>.skills`) that do not resolve against the project's skill sources
+WARN (never error) at compile time and in `animus workflow config validate`.
+Implicit builtin agent-profile defaults are exempt — pack-provided skill names
+are legitimately absent until the pack installs.
 
 ## Decision contract
 

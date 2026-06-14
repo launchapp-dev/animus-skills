@@ -1,6 +1,21 @@
 # CLI And Registry
 
-Use this reference only when the task involves discovering, installing, publishing, or updating Animus skills.
+Use this reference only when the task involves authoring via CLI, discovering, installing, uninstalling, publishing, or updating Animus skills.
+
+## Create a skill (two scopes)
+
+```bash
+animus skill create --name pr-reviewer --description "Reviews PRs" --prompt "You review pull requests."
+animus skill create --name rust-tips --description "Rust guidance" --prompt-file tips.md --user
+animus skill create --name pr-reviewer --description "v2" --prompt "..." --force
+```
+
+- `--project` (default) writes `.animus/config/skill_definitions/<name>.yaml`; `--user` writes `~/.animus/config/skill_definitions/<name>.yaml` (shared across projects). Project shadows user on a name collision. The flags are mutually exclusive.
+- `--name` must be a slug: lowercase ASCII letters/digits plus `-`/`_`, no path separators.
+- `--prompt` (stored as `prompt.system`) and `--prompt-file` are mutually exclusive. Optional `--category` and `--tags` (comma-separated or repeated).
+- The file is round-tripped through the skill parser before landing on disk, so a malformed skill is never left behind. Without `--force` the command refuses to overwrite an existing definition at the same scope.
+
+MCP equivalents: `animus.skill.create` / `animus.skill.update` take `scope: "project" | "user"` (default `"project"`; `update` requires an explicit `scope` only when the name exists at both scopes). Results carry the same non-fatal `warnings` array as `animus.skill.get` when the definition contains inert tool-id declarations.
 
 ## Search skills
 
@@ -20,32 +35,50 @@ animus skill install --path .animus/skills/
 ```
 
 `--path` accepts a Markdown skill file, a single skill folder, or a directory of
-skill folders. `--name` is optional when installing from `--path`.
+skill folders. `--name` is optional when installing from `--path`. Installing an
+agent-host `SKILL.md` (e.g. from `~/.claude/skills/`) promotes it to the
+high-trust Installed tier with an integrity snapshot.
 
 ## List skills
 
 ```bash
 animus skill list
-animus skill list --source project
+animus skill list --source project    # built-in | user | project | installed
 ```
 
-## Inspect, update, or uninstall a skill
+Definition rows carry a non-fatal `warnings` array when inert `activation.tools`
+or `adapters` tool-id declarations are detected (typos or aliases that never
+match a canonical tool id).
+
+## Inspect or update a skill
 
 ```bash
 animus skill info --name code-review
 animus skill update --name code-review --version "^2.0"
-<<<<<<< HEAD
-animus skill uninstall --name code-review --dry-run
-animus skill uninstall --name code-review
-```
-
-`info` is the canonical detail verb (`show` remains as an alias). `uninstall` removes an installed skill's materialized files plus its registry/lock entries; it supports `--source` and `--dry-run`.
-=======
 animus skill update
 ```
 
+`skill info` includes the same non-fatal `warnings` array as `skill list`.
 Omitting `--name` on `update` re-resolves every installed skill.
->>>>>>> origin/main
+The old `skill show` verb is gone: it became an alias for `skill info` in
+v0.5.13 and the alias was removed in v0.5.14.
+
+## Uninstall a skill
+
+```bash
+animus skill uninstall code-review --dry-run
+animus skill uninstall code-review
+animus skill uninstall code-review --source github
+```
+
+The skill name is positional. Removes the installed entry's materialized files
+plus its registry and lock entries (`--json` works as usual). `--source` limits
+removal to one source; a filter that matches nothing errors instead of
+cascading into file deletion, and when another source's snapshot remains the
+materialized definition is rewritten from it. `--dry-run` prints what would be
+removed without modifying anything. Unlike Animus's dry-run-by-default
+destructive verbs, `skill uninstall` applies immediately — `--dry-run` is the
+opt-in preview. Unknown skills exit with a not-found error.
 
 ## Publish a skill
 
@@ -61,3 +94,14 @@ animus skill registry add --id community --url https://github.com/animus-skills/
 animus skill registry list
 animus skill registry remove --id community
 ```
+
+## Registry state and pinning
+
+Installed-skill state is per-project-scope:
+
+- `~/.animus/<repo-scope>/state/skills-registry.v1.json` — catalog of installed skill versions (written by `skill install` / `skill publish`).
+- `~/.animus/<repo-scope>/state/skills-lock.v1.json` — integrity lock for the installed set.
+
+Known limitation: there is no per-skill `animus skill pin` verb (unlike
+`animus pack pin`); the lock pins the whole resolved set on `install` /
+`update`, so pinning a single skill independently is not yet supported.

@@ -79,14 +79,7 @@ Non-goals are as important as goals — they keep the conductor from drifting in
 
 For fleets and multi-repo projects only. Skip for single-repo.
 
-<<<<<<< HEAD
-```yaml
-# .animus/registry.yaml — what surfaces this project owns
-ship_mode: parallel        # parallel | sequential | flagship-first
-ship_readiness_target: 70
-=======
 Write `REGISTRY.md` at project root. This is a **convention document, not CLI-parsed config** — Animus never reads it; the conductor does, because Phase 5's prompt tells it to (same mechanism as AGENT_PRINCIPLES.md). One row per surface the project owns:
->>>>>>> origin/main
 
 ```markdown
 # Surface Registry
@@ -159,6 +152,13 @@ agents:
 ```
 
 See `../animus-agent-personas/SKILL.md` for the full conductor prompt skeleton.
+
+Two optional per-agent fields worth wiring to Phase 1's risk tolerance:
+`approval_policy:` (`auto_allow`/`auto_deny` globs + `default: ask|allow|deny`)
+routes `animus.agent.request_approval` calls — `ask` escalates to the human
+inbox (`animus agent interactions`), and `permission_mode:` sets the provider
+CLI's approval posture (claude: `default`/`acceptEdits`/`bypassPermissions`/`plan`).
+For "no auto-anything" users, leave both at their defaults.
 
 ## Phase 6 — phases.yaml
 
@@ -253,6 +253,12 @@ workflows:
 ```
 
 For richer patterns (scan-type, chained creative pipelines, multi-surface deploy, review-then-rework as separate phase) see `../animus-workflow-patterns/SKILL.md`.
+
+Workflows (and rich phase entries) can declare a `budget:` block
+(`max_tokens` / `max_cost_usd`, `on_exceed: pause|fail|warn`) — the daemon
+now enforces these caps on its housekeeping sweep. Worth adding to expensive
+workflows like `implement` on aggressive cadences; breaches surface in
+`animus daemon health` and `animus status`.
 
 ## Phase 8 — schedules.yaml
 
@@ -373,17 +379,12 @@ animus workflow config validate
 animus workflow definitions list
 animus daemon preflight
 
-# 2. Start the daemon
-animus daemon start --autonomous --auto-run-ready true --pool-size 3 --interval-secs 10
+# 2. Start the daemon (always detaches; prints pid + log path; idempotent)
+animus daemon start --auto-run-ready true --pool-size 3
 animus daemon health
 
-<<<<<<< HEAD
-# 3. Create one real task that exercises the implement workflow
-animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --priority high \
-=======
 # 3. Create one real task subject that exercises the implement workflow
 animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --priority p1 --status ready \
->>>>>>> origin/main
   --body "Add a NOTES.md file at repo root with one sentence about the project. Verify worktree, commit, PR flow."
 
 # 4. Enqueue and watch
@@ -397,6 +398,10 @@ Confirm in the stream:
 - A `phase` event for `qa-changes` returning `approve`
 - A PR opened (`runner` or `phase` event with the PR URL)
 
+If a workflow pauses mid-run, check `animus agent interactions list` — an
+agent may be parked on a pending question or approval (human-in-the-loop);
+answering with `animus agent interactions answer <ID>` resumes the workflow.
+
 If the conductor schedule is firing but produces no dispatch within 60s of fire, drop into:
 ```bash
 animus daemon stream --workflow conductor-loop --pretty
@@ -409,7 +414,7 @@ Tell the user, in this order:
 1. The artifacts that landed (file list, with one-line each).
 2. How to watch the daemon (`animus daemon stream --pretty`).
 3. How to tune principles without restarting (edit `.animus/workflows/AGENT_PRINCIPLES.md`).
-4. How to add a new specialist (edit `.animus/workflows/agents.yaml`, add a workflow that uses it, restart daemon).
+4. How to add a new specialist (edit `.animus/workflows/agents.yaml`, add a workflow that uses it, `animus daemon restart`).
 5. The first real task they should queue (something concrete from VISION.md's 90-day success criteria).
 
 Do **not** offer to "tune the conductor" or "add more workflows" as a follow-up — let them run the smoke test, see autonomous work happen, and come back with their own asks.
@@ -420,5 +425,5 @@ Do **not** offer to "tune the conductor" or "add more workflows" as a follow-up 
 2. **Skipping AGENT_PRINCIPLES.md "because the conductor's prompt is enough."** The whole point of separating them is restart-free policy iteration — burying ship targets in `system_prompt:` defeats it.
 3. **Wiring every MCP server "just in case."** Each one in `mcp_servers:` adds tokens to every agent invocation. Wire only what Phase 5's agents reference.
 4. **Cron storms.** Every schedule on `0 * * * *` causes minute-rollover storms. Stagger by 5–15 min offsets (see `../animus-agent-personas/SKILL.md` "Recommended Cron Schedule").
-5. **Auto-merge on a fresh setup.** Even if the user wants it, default each workflow's `post_success.merge.auto_merge` to `false` for the first week. (The old daemon-level `auto_merge` key was removed in v0.5.x — merge policy lives per workflow now.) Let them watch the conductor work, then flip.
+5. **Auto-merge on a fresh setup.** Even if the user wants it, default to `post_success.merge.auto_merge: false` (per workflow — the old daemon-level `auto_merge`/`auto_pr` keys were removed) for the first week. Let them watch the conductor work, then flip.
 6. **Bootstrapping without a real task.** A daemon with no work is unobservable. Phase 13's smoke test is non-optional — without it you cannot verify the wiring.

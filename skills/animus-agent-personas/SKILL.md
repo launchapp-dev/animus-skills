@@ -9,7 +9,11 @@ auto_invoke: true
 
 Animus agents can do more than write code. This skill covers persona agents that manage the full product lifecycle: planning, reviewing, auditing, documenting, and improving.
 
-## Core Delivery Agents (built-in)
+## Core Delivery Agents (from the `animus.task` pack)
+
+Nothing ships built into the kernel — delivery workflows and their agents come
+from installable packs (`animus pack install`; `animus init` surfaces the
+recommended set). The standard delivery roles:
 
 | Agent | Role |
 |-------|------|
@@ -31,13 +35,8 @@ product-owner:
   system_prompt: |
     You are the Product Owner. Your job:
     1. Run pnpm install + pnpm build (health check first)
-<<<<<<< HEAD
-    2. Review animus.subject.list (kind=task) for blocked/duplicate tasks
-    3. Check animus.subject.list (kind=requirement) — create tasks for unmet criteria
-=======
     2. Review animus.subject.list with kind=task for blocked/duplicate tasks
     3. Check animus.subject.list with kind=requirement — create task subjects for unmet criteria
->>>>>>> origin/main
     4. Evaluate feature set against what users actually need
     5. Create tasks with acceptance criteria, proper priority
     6. Enqueue critical/high tasks immediately
@@ -138,17 +137,52 @@ researcher:
 
 **Cron:** Every 1-2 hours during active development.
 
+## Persona Guardrails (v0.5.13+)
+
+Persona profiles can now declare runtime guardrails that actually apply:
+
+```yaml
+devops:
+  model: claude-sonnet-4-6
+  tool: claude
+  permission_mode: acceptEdits     # transport-level posture, forwarded to the
+                                   # provider CLI (claude --permission-mode;
+                                   # codex -c approval_policy; gemini approval mode)
+  approval_policy:                 # kernel inbox layer — its presence routes
+    auto_allow: ["cargo *", "git.commit"]   # escalations through
+    auto_deny: ["git.push*"]                # animus.agent.request_approval
+    default: ask                   # ask (human inbox) | allow | deny
+  skills: ["deploy-checklist"]     # skills now actually apply to phases run by
+                                   # this agent (prompt fragments, tool policy,
+                                   # MCP servers, launch args/env)
+  memory:
+    enabled: true                  # recent entries injected into phase prompts
+    max_entries: 200               # FIFO cap, oldest trimmed on append
+  capabilities: { memory: true }   # injects the animus.memory.* MCP tools
+```
+
+- `permission_mode` and `approval_policy` compose: the first governs whether
+  the provider asks at all, the second governs what happens to asks that reach
+  the kernel (`auto_deny` wins on overlap; `default: ask` parks a pending
+  interaction answered via `animus agent interactions answer <id>`).
+- Phase `runtime: { permission_mode: ... }` overrides the profile's value.
+- Phase-level and agent-level `skills:` union at dispatch; unresolvable names
+  warn loudly (compile-time in `animus workflow config validate` warnings, and
+  at dispatch) but never hard-fail. Verify application after a run with
+  `animus output phase-outputs --workflow-id <id>` (requested vs applied vs
+  missing).
+- A persona that hits ambiguity mid-run can escalate to a human with the
+  blocking `animus.agent.ask` / `animus.agent.request_approval` MCP tools;
+  inside workflow phases the call suspends the workflow and the human answer
+  resumes it. Coach this in the system prompt for judgment-heavy personas
+  (PO, conductor): "when two interpretations differ materially, ask via
+  animus.agent.ask instead of guessing."
+
 ## Persona Rules
 
-<<<<<<< HEAD
-1. **All personas create tasks but do NOT enqueue** (except PO for critical/high). The planner handles dispatch.
-2. **All check animus.subject.list (kind=task) first** — NEVER create duplicates.
-3. **Set status to "ready"** after creating tasks.
-=======
 1. **All personas create task subjects but do NOT enqueue** (except PO for critical/high). The planner handles dispatch.
 2. **All check `animus.subject.list` with `kind=task` first** — NEVER create duplicates.
 3. **Set status to `ready`** after creating task subjects.
->>>>>>> origin/main
 4. **Overlap avoidance:** Each persona owns specific concerns. The PO shapes features, the architect shapes structure, the auditor verifies quality. They don't overlap.
 
 ## Recommended Cron Schedule (staggered)

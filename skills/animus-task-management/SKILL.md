@@ -1,40 +1,27 @@
 ---
 name: animus-task-management
-<<<<<<< HEAD
-description: Full task lifecycle on the unified subject surface — create, list, update, block/unblock, dispatch via CLI and MCP
-=======
 description: Task lifecycle through the unified subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
->>>>>>> origin/main
 user_invocable: false
 auto_invoke: true
 ---
 
 # Task Management
 
-<<<<<<< HEAD
-Tasks and requirements live exclusively on the unified `animus subject` surface
-(`--kind task` / `--kind requirement`). The legacy `animus task ...` and
-`animus requirements ...` command trees and the `animus.task.*` /
-`animus.requirements.*` MCP tool families were removed in v0.4.4. Subject
-operations route through installed `subject_backend` plugins
-(`animus plugin install-defaults --include-subjects` keeps `kind=task` and
-`kind=requirement` routable).
-
-IDs on this surface are backend-qualified wire ids: `<kind>:<native_id>`,
-e.g. `task:TASK-001`. Statuses are normalized kebab-case buckets.
-=======
 Current Animus routes tasks through the unified subject surface. The old
 `animus task ...` CLI tree and `animus.task.*` MCP tools were removed; use
 `animus subject --kind task ...` and `animus.subject.*` with `kind: "task"`.
 
-Task operations require a subject backend plugin. For the default local task
-backend, run:
+Task operations require a subject backend plugin. The default local task
+backend (`animus-subject-default`) is part of the flavor's required set, so:
 
 ```bash
-animus plugin install-defaults --include-subjects
+animus plugin install-defaults
 animus daemon preflight
 ```
->>>>>>> origin/main
+
+`animus subject` commands use typed exit codes: invalid input `2`,
+not-found `3`, unavailable (missing backend plugin / daemon unreachable)
+`5`. Scripts matching exit `1` for these cases must update.
 
 ## Task Lifecycle
 
@@ -45,40 +32,16 @@ ready -> in-progress -> done
       -> blocked -> ready
       -> cancelled
 ```
-<<<<<<< HEAD
-backlog → ready → in-progress → done
-            ↘ blocked → ready
-            ↘ on-hold → ready
-backlog/ready/in-progress → cancelled
-```
-=======
 
 Backends may support additional raw states, but the CLI forwards normalized
 status buckets. The canonical display form is hyphenated (`in-progress`), but
 the parser accepts `in_progress` on input too.
->>>>>>> origin/main
-
-Normalized statuses: `backlog` (alias `todo`), `ready`, `in-progress`,
-`blocked`, `on-hold`, `done`, `cancelled`. Snake_case spellings
-(`in_progress`) parse as aliases.
 
 ## CLI Commands
 
 ### Create
 
 ```bash
-<<<<<<< HEAD
-animus subject create --kind task --title "Fix login bug" --priority p0
-animus subject create --kind task --title "Add dark mode" --priority p2 --body "Support system theme preference"
-```
-
-Options:
-- `--priority`: priority bucket — `p0` (highest), `p1`, `p2`, `p3`
-- `--body`: free-form description
-- `--labels`: comma-separated labels (`--labels bugfix,auth`)
-- `--status`: normalized status to set on creation
-- `--kind`: defaults to `default_subject_kind` in `.animus/config.json` (`task` when unset)
-=======
 animus subject create --kind task --title "Fix login bug" --priority p1 --status ready
 animus subject create --kind task --title "Add dark mode" --body "Support system theme preference" --priority p2 --labels feature,frontend
 ```
@@ -91,22 +54,31 @@ Supported fields:
 - `--status`: normalized status such as `ready`, `blocked`, `in-progress`, `done`
 - `--priority`: backend priority bucket, commonly `p0`, `p1`, `p2`, `p3`
 - `--labels`: comma-separated labels
->>>>>>> origin/main
+
+### Batch Create / Update
+
+```bash
+animus subject batch-create --kind task --file items.json
+animus subject batch-update --kind task --file patches.json --on-error continue
+```
+
+`--file` takes a JSON items array (bare array or `{"items": [...]}`
+wrapper), max 100 items. Create items: `{"title", "status"?, "priority"?,
+"labels"?, "body"?}`; update items: `{"id", "status"?, "priority"?,
+"labels"?}` with at least one patch field. `--on-error stop` (default)
+skips remaining items after the first failure; `continue` runs every item.
+Emits an `animus.cli.batch.result.v1` envelope with per-item results; if
+any item failed the command exits non-zero with the payload under
+`/error/details`. MCP equivalents: `animus.subject.batch-create` /
+`animus.subject.batch-update`.
 
 ### List and Filter
 
 ```bash
-<<<<<<< HEAD
-animus subject list --kind task                      # all tasks
-animus subject list --kind task --status ready       # ready tasks only
-animus subject list --kind task --status blocked     # blocked tasks
-animus subject list --kind task --limit 20           # cap result count
-=======
 animus subject list --kind task
 animus subject list --kind task --status ready
 animus subject list --kind task --status blocked --limit 50
 animus subject next --kind task
->>>>>>> origin/main
 ```
 
 Use `animus queue stats` and `animus workflow list` for runtime metrics; the old
@@ -115,77 +87,37 @@ task-specific `stats` and `prioritized` commands are gone.
 ### Get Details
 
 ```bash
-<<<<<<< HEAD
-animus subject get --kind task --id task:TASK-001
-```
-
-### Next Ready Task
-```bash
-animus subject next --kind task    # highest-priority Ready subject (JSON null when none)
-=======
 animus subject get --kind task --id TASK-001
->>>>>>> origin/main
 ```
 
 Prefer copying the exact id returned by `subject list` or `subject create`,
 especially when using non-default backends that return wire ids like
 `linear:ENG-123`.
 
+`subject get` also explains stalls: a task bound to a paused workflow
+carries a `paused by workflow <id>` annotation in `blocked_reason`
+(informational only — status and the `paused` flag are untouched). Budget
+breaches enrich the marker, e.g. `paused by workflow wf-... — budget
+exceeded ($7.50 > $5.00 max_cost_usd)`.
+
 ### Update Status
 
 ```bash
-<<<<<<< HEAD
-animus subject status --kind task --id task:TASK-001 --status ready
-animus subject status --kind task --id task:TASK-001 --status in-progress
-animus subject status --kind task --id task:TASK-001 --status done
-animus subject status --kind task --id task:TASK-001 --status blocked
-animus subject status --kind task --id task:TASK-001 --status on-hold
-animus subject status --kind task --id task:TASK-001 --status cancelled
-```
-
-Setting `ready` clears blocked/paused bookkeeping on the default task backend
-(`paused`, `blocked_at`, `blocked_reason`, `blocked_by`).
-
-### Update Priority / Labels
-```bash
-animus subject update --kind task --id task:TASK-001 --priority p0
-animus subject update --kind task --id task:TASK-001 --labels auth,backend   # replaces labels
-```
-
-### Delete
-```bash
-animus subject delete --kind task --id task:TASK-001          # dry-run preview, exits 0
-animus subject delete --kind task --id task:TASK-001 --yes    # actually delete
-```
-
-Backends that don't support delete return an `Unsupported` error.
-
-### Removed verbs
-The old per-task verbs (`pause`, `resume`, `cancel`, `reopen`, `set-priority`,
-`set-deadline`, `checklist-add`, `checklist-update`, `dependency-add`,
-`stats`, `prioritized`, bulk ops) went away with the v0.4.4 task tree. Use
-`subject status` for lifecycle moves (`on-hold` ≈ pause, `cancelled` ≈ cancel),
-`subject update` for priority/labels, and `subject next` for prioritized pickup.
-Checklist and dependency detail belongs in the task `--body` or your external
-tracker's subject backend.
-
-## MCP Tools
-
-| Tool | Purpose | Key parameters |
-|------|---------|----------------|
-| `animus.subject.list` | List subjects for a kind | `kind`, `status`, `limit`, `project_root` |
-| `animus.subject.get` | Fetch a subject by wire id | `kind`, `id`, `project_root` |
-| `animus.subject.create` | Create a subject | `kind`, `title`, `priority`, `status`, `labels[]`, `body`, `project_root` |
-| `animus.subject.update` | Update priority/status/labels | `kind`, `id`, `priority`, `status`, `labels[]`, `project_root` |
-| `animus.subject.next` | Highest-priority Ready subject | `kind`, `project_root` |
-| `animus.subject.status` | Set subject status | `kind`, `id`, `status`, `project_root` |
-=======
 animus subject status --kind task --id TASK-001 --status ready
 animus subject status --kind task --id TASK-001 --status in-progress
 animus subject status --kind task --id TASK-001 --status done
 animus subject status --kind task --id TASK-001 --status blocked
 animus subject status --kind task --id TASK-001 --status cancelled
 ```
+
+Setting `--status ready` prints an `unstuck: cleared ...` line (stderr,
+human output) naming any `paused` / `blocked_*` flags the transition
+cleared, so unsticking a stuck task is visible.
+
+Status changes (and creates/updates/enqueues) send a fire-and-forget
+`daemon/nudge`, so the daemon reacts effectively immediately — there is no
+need to wait for the next scheduler tick; `--interval-secs` is only a
+fallback heartbeat.
 
 ### Update Fields
 
@@ -219,24 +151,12 @@ unsupported error. There is no MCP delete tool, so deletion is CLI-only.
 | `animus.subject.update` | Patch task subject fields |
 | `animus.subject.next` | Get the next ready task subject |
 | `animus.subject.status` | Set normalized task status |
->>>>>>> origin/main
+| `animus.subject.batch-create` | Create up to 100 task subjects (`items[]`, `on_error`) |
+| `animus.subject.batch-update` | Patch up to 100 task subjects (`items[]`, `on_error`) |
 
 ### MCP Examples
 
 ```json
-<<<<<<< HEAD
-// Create a task
-{ "kind": "task", "title": "Add rate limiting", "priority": "p1" }
-
-// List ready tasks
-{ "kind": "task", "status": "ready" }
-
-// Update status
-{ "kind": "task", "id": "task:TASK-042", "status": "done" }
-
-// Get the next task to work on
-{ "kind": "task" }
-=======
 { "kind": "task", "title": "Add rate limiting", "priority": "p1", "status": "ready" }
 ```
 
@@ -246,7 +166,6 @@ unsupported error. There is no MCP delete tool, so deletion is CLI-only.
 
 ```json
 { "kind": "task", "id": "TASK-042", "status": "done" }
->>>>>>> origin/main
 ```
 
 ## Patterns
@@ -256,23 +175,6 @@ unsupported error. There is no MCP delete tool, so deletion is CLI-only.
 Tasks are dispatchable when the subject backend reports `ready`:
 
 ```bash
-<<<<<<< HEAD
-animus subject status --kind task --id task:TASK-005 --status ready
-```
-
-### Blocking and Unblocking
-When a task can't proceed:
-```bash
-animus subject status --kind task --id task:TASK-005 --status blocked
-# Later, when the blocker is resolved:
-animus subject status --kind task --id task:TASK-005 --status ready
-```
-
-### Scripting
-Exit codes are typed and stable: `0` success, `2` invalid input, `3` not found,
-`5` daemon/backend unavailable. Pair with `--json` (the `animus.cli.v1`
-envelope) for machine consumption.
-=======
 animus subject status --kind task --id TASK-005 --status ready
 ```
 
@@ -282,24 +184,33 @@ animus subject status --kind task --id TASK-005 --status ready
 animus subject status --kind task --id TASK-005 --status blocked
 animus subject status --kind task --id TASK-005 --status ready
 ```
->>>>>>> origin/main
+
+A `task-blocked` notifier event fires once per blocked transition (and
+`workflow-failed` once per workflow failure), so notifiers can react
+without polling.
+
+### Workflow Lifecycle Sync
+
+Workflow controls keep the bound task explainable instead of leaving ghost
+state:
+
+- `animus workflow cancel` syncs the task to `cancelled` (unless already
+  terminal).
+- `animus workflow pause` annotates the task's `blocked_reason` with
+  `paused by workflow <id>` (informational; status untouched);
+  `animus workflow resume` clears exactly that annotation without
+  clobbering genuine failure reasons. Any non-blocked status transition
+  (e.g. `--status ready`) also clears it.
+- Manually-claimed in-progress tasks are no longer re-blocked each tick;
+  in-progress tasks with no workflow self-heal to Ready; a task whose
+  terminal workflow died Cancelled projects Cancelled (not Blocked).
 
 ### Workflow Integration
 
 Typical flow:
-<<<<<<< HEAD
-1. Move the task to `ready`
-2. Enqueue it with `animus queue enqueue --task-id TASK-XXX`
-3. Run a workflow explicitly (`animus workflow run --task-id TASK-XXX`) or let the daemon pick it up
-4. Inspect execution with `animus workflow list`, `animus output read`, and `animus output phase-outputs`
-
-`animus subject create/update/status` and `animus queue enqueue/release` send a
-fire-and-forget `daemon/nudge` to the running daemon, so dispatch is
-event-driven — you don't wait for the next heartbeat tick.
-=======
 
 1. Create or select a `ready` task subject.
-2. Enqueue it with `animus queue enqueue --task-id TASK-XXX`.
+2. Enqueue it with `animus queue enqueue --task-id TASK-XXX` (explicit
+   enqueues drain even when `daemon.auto_run_ready` is false).
 3. Run a workflow explicitly with `animus workflow run <workflow-ref> --task-id TASK-XXX`, or let the daemon pick it up.
-4. Inspect execution with `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output run`, and `animus output phase-outputs`.
->>>>>>> origin/main
+4. Inspect execution with `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output read`, and `animus output phase-outputs`.

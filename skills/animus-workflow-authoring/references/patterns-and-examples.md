@@ -10,6 +10,7 @@ phase_catalog:
 workflows:
 phases:
 agents:
+agent_channels:
 models:
 tools_allowlist:
 mcp_servers:
@@ -19,6 +20,7 @@ integrations:
 schedules:
 triggers:
 daemon:
+secrets:
 ```
 
 ## Tools allowlist
@@ -151,4 +153,23 @@ phases:
       min_confidence: 0.7
       max_risk: medium
       allow_missing_decision: false
+```
+
+Phase `skills:` are resolved daemon-side at dispatch and applied by the
+workflow runner (v0.4.2+). Verify application with
+`animus output phase-outputs --workflow-id <id>` (requested vs applied vs
+missing) or preview with `animus workflow prompt render`. Unresolvable
+explicit skill names warn at compile time in
+`animus workflow config validate` / `compile` — never a hard failure.
+
+## Budget-capped autonomous workflow
+
+```yaml
+workflows:
+  - id: overnight-batch
+    name: Overnight Batch
+    phases: [implementation, build-check, pr-review]
+    budget:
+      max_cost_usd: 5.00
+      on_exceed: pause     # daemon pauses the workflow on breach
 ```

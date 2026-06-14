@@ -49,72 +49,86 @@ If the launch environment strips `PATH`, pin the binary returned by
 }
 ```
 
+### Serve flags
+
+`animus mcp serve` accepts three flags worth knowing:
+
+- `--management` — also exposes the `animus.interactions.*` inbox tools
+  (list/answer pending agent questions and approvals). Off by default so
+  agent-injected servers can never answer their own approvals. Use it for
+  your own assistant's `.mcp.json` if you want to triage the escalation
+  inbox over MCP (the CLI alternative is `animus agent interactions`).
+- `--agent-id <ID>` — pins the identity used by the blocking
+  `animus.agent.ask` / `animus.agent.request_approval` tools (env fallback:
+  `ANIMUS_MCP_AGENT_ID`), so a payload `agent_id` cannot select a looser
+  `approval_policy`.
+- `--workflow-id <ID>` — pins the workflow context and flips the escalation
+  tools' default wait mode from block to suspend (env fallback:
+  `ANIMUS_MCP_WORKFLOW_ID`).
+
+The pins are appended automatically on the agent-injection paths
+(`animus agent run --agent`, workflow phases); set them yourself only when
+hand-wiring a server for a known agent.
+
+Do not put API keys in `.mcp.json` `env` blocks. Store credentials in the OS
+keychain with `animus secret set <KEY>` (preferred, v0.5.8+); workflow YAML
+`${VAR}` interpolation and plugin spawning check keychain entries when the
+env var is unset.
+
 ## Verifying the Connection
 
 Restart the assistant after creating or editing `.mcp.json`, then test:
 
-<<<<<<< HEAD
-1. Ask the assistant to call `animus.daemon.status` — it should return running/stopped
-2. Ask it to call `animus.subject.list` with `kind=task` — it should return the task list
-3. If tools aren't available, check that the `animus` binary path is correct
-=======
 1. Call `animus.daemon.status`.
 2. Call `animus.subject.list` with `{ "kind": "task", "limit": 5 }`.
 3. Call `animus.workflow.config.validate`.
 
-If subject tools fail with a missing backend, install defaults and rerun
-preflight:
+If subject tools fail with a missing backend, the error's `remediation`
+payload carries the exact install command. Typically:
 
 ```bash
-animus plugin install-defaults --include-subjects
+animus plugin install-defaults
 animus daemon preflight
 ```
->>>>>>> origin/main
+
+(Flagless `install-defaults` installs the active flavor's full required set —
+provider, both subject backends, transport, workflow runner, queue — as of
+v0.5.14.)
 
 ## Available Tool Groups
 
+86 built-in tools in management mode; the default server exposes 84 (the two
+`animus.interactions.*` tools are gated behind `--management`).
+
 | Prefix | Tools | Purpose |
 |--------|-------|---------|
-<<<<<<< HEAD
-| `animus.subject.*` | 6 tools | Task and requirement CRUD via `kind=task` / `kind=requirement` (replaced `animus.task.*` / `animus.requirements.*` in v0.4.4) |
-| `animus.queue.*` | 7 tools | Dispatch queue management (enqueue, hold, release, drop, reorder — all support bulk ids) |
-| `animus.daemon.*` | 11 tools | Daemon lifecycle and monitoring |
-| `animus.workflow.*` | 16 tools | Workflow execution, phases, config, checkpoints |
-| `animus.output.*` | 6 tools | Run output, tail, monitor, artifacts |
-| `animus.agent.*` | 12 tools | Agent control, status, memory, messages, ask/approval |
-| `animus.skill.*` | 5 tools | Skill list, get, search, create, update |
-| `animus.memory.*` | 4 tools | Top-level agent memory |
-| `animus.plugin.*` | 9 tools | Plugin control + marketplace |
-| `animus.logs.tail` | 1 tool | Log storage backend tail |
-
-The current server registers 79 built-in tools total; see `docs/reference/mcp-tools.md` in the Animus repo for the authoritative list.
-
-## Claude Code Settings
-
-To auto-approve Animus MCP tools, add to `.claude/settings.local.json`. If your MCP server name is `animus`, Claude Code tool ids look like `mcp__animus__animus_subject_list`.
-=======
-| `animus.agent.*` | 12 | Agent runs, profiles, memory, messages, ask/approval |
-| `animus.interactions.*` | 2 | Answer pending agent questions (`mcp serve --management` only) |
-| `animus.daemon.*` | 11 | Daemon lifecycle and monitoring |
-| `animus.subject.*` | 6 | Task, requirement, and external subject CRUD |
-| `animus.queue.*` | 7 | Dispatch queue management |
-| `animus.workflow.*` | 16 | Workflow execution, phases, config, checkpoints |
+| `animus.agent.*` | 12 | Agent runs, profiles, memory, messages, ask/approval escalation |
+| `animus.interactions.*` | 2 | List/answer pending agent questions and approvals (`mcp serve --management` only) |
+| `animus.daemon.*` | 12 | Daemon lifecycle, monitoring, and the `observe` front-door |
+| `animus.cost.*` | 1 | Budget-cap breach log (`animus.cost.decisions`) |
+| `animus.subject.*` | 8 | Task, requirement, and external subject CRUD plus batch create/update |
+| `animus.queue.*` | 7 | Dispatch queue management (bulk `subject_ids[]` on hold/release/drop) |
+| `animus.workflow.*` | 17 | Workflow execution, phases, gate approve/reject, config, checkpoints |
 | `animus.output.*` | 6 | Run output, JSONL, monitor, artifacts |
-| `animus.runner.*` | 3 | Runner health and orphan cleanup |
 | `animus.logs.*` | 1 | Active log backend tailing |
-| `animus.skill.*` | 5 | Skill list, resolve, search, create, update |
+| `animus.skill.*` | 5 | Skill list, resolve, search, create, update (project or user scope) |
 | `animus.memory.*` | 4 | Project-scoped agent memory |
 | `animus.plugin.*` | 9 | Plugin control and marketplace tools |
+| `animus.tools.*` | 2 | Tool discovery: `search` (ranked intent search) and `list` (grouped catalog) |
 
-`animus.task.*` and `animus.requirements.*` are gone. Use
-`animus.subject.*` with `kind: "task"` or `kind: "requirement"`.
+`animus.task.*` and `animus.requirements.*` are gone — use `animus.subject.*`
+with `kind: "task"` or `kind: "requirement"`. The `animus.runner.*` tools were
+removed in v0.5.13: use `animus.daemon.health` (`provider_plugins_healthy`)
+for runner/provider health and the CLI's `animus doctor --fix` for orphan
+cleanup.
 
 ## Claude Code Settings
 
 To auto-approve selected Animus MCP tools, add entries like these to
 `.claude/settings.local.json`. If your MCP server name is `animus`, Claude
-Code tool ids look like `mcp__animus__animus_subject_list`.
->>>>>>> origin/main
+Code tool ids look like `mcp__animus__animus_subject_list` (dots become
+underscores; hyphens inside a verb are kept, e.g.
+`mcp__animus__animus_daemon_config-set`).
 
 ```json
 {
@@ -126,53 +140,38 @@ Code tool ids look like `mcp__animus__animus_subject_list`.
       "mcp__animus__animus_daemon_stop",
       "mcp__animus__animus_daemon_events",
       "mcp__animus__animus_daemon_logs",
+      "mcp__animus__animus_daemon_observe",
       "mcp__animus__animus_daemon_agents",
       "mcp__animus__animus_daemon_config",
-<<<<<<< HEAD
-      "mcp__animus__animus_daemon_config-set",
-      "mcp__animus__animus_subject_list",
-      "mcp__animus__animus_subject_get",
-      "mcp__animus__animus_subject_create",
-      "mcp__animus__animus_subject_status",
-      "mcp__animus__animus_subject_update",
-=======
-      "mcp__animus__animus_daemon_config_set",
       "mcp__animus__animus_subject_list",
       "mcp__animus__animus_subject_get",
       "mcp__animus__animus_subject_create",
       "mcp__animus__animus_subject_update",
       "mcp__animus__animus_subject_status",
->>>>>>> origin/main
       "mcp__animus__animus_subject_next",
       "mcp__animus__animus_queue_list",
       "mcp__animus__animus_queue_enqueue",
-      "mcp__animus__animus_queue_drop",
       "mcp__animus__animus_workflow_list",
       "mcp__animus__animus_workflow_run",
       "mcp__animus__animus_workflow_get",
       "mcp__animus__animus_output_tail",
       "mcp__animus__animus_output_run",
-<<<<<<< HEAD
       "mcp__animus__animus_output_phase-outputs",
-      "mcp__animus__animus_plugin_list",
-      "mcp__animus__animus_daemon_health"
-=======
-      "mcp__animus__animus_output_phase_outputs",
-      "mcp__animus__animus_runner_health",
-      "mcp__animus__animus_runner_orphans_detect",
+      "mcp__animus__animus_cost_decisions",
       "mcp__animus__animus_logs_tail",
       "mcp__animus__animus_plugin_list",
-      "mcp__animus__animus_skill_search"
->>>>>>> origin/main
+      "mcp__animus__animus_skill_search",
+      "mcp__animus__animus_tools_search",
+      "mcp__animus__animus_tools_list"
     ]
   },
   "enableAllProjectMcpServers": true
 }
 ```
 
-Keep destructive tools such as cancel, pause, queue drop, plugin install, and
-plugin uninstall on manual approval unless the project policy explicitly allows
-them.
+Keep destructive tools such as cancel, pause, queue drop, `daemon config-set`,
+plugin install, and plugin uninstall on manual approval unless the project
+policy explicitly allows them.
 
 ## Multiple Projects
 
@@ -193,12 +192,8 @@ Run separate MCP servers with distinct names:
 }
 ```
 
-<<<<<<< HEAD
-Tool names will be prefixed: `mcp__animus-frontend__animus_subject_list`, `mcp__animus-backend__animus_subject_list`.
-=======
 Tool ids include the server name, for example
 `mcp__animus-frontend__animus_subject_list`.
->>>>>>> origin/main
 
 ## Manual Test
 
@@ -222,9 +217,9 @@ animus mcp auth-status          # show authenticated servers and token expiry
 animus mcp auth-logout <server> # delete stored tokens
 ```
 
-At run time Animus launches the `animus-mcp-proxy` stdio bridge automatically
-for these servers, so agents never see tokens. Details live in
-`docs/reference/mcp-oauth.md` in the animus-cli repo.
+At run time Animus rewrites these servers to the `animus-mcp-proxy` stdio
+bridge automatically, so tokens never reach CLI configs, `.mcp.json`, or
+argv. Details live in `docs/reference/mcp-oauth.md` in the animus-cli repo.
 
 ## Troubleshooting
 
@@ -235,23 +230,21 @@ for these servers, so agents never see tokens. Details live in
 
 ### Tools not appearing
 
-<<<<<<< HEAD
-### "project_root" errors
-- Ensure `--project-root` points to a directory with `.animus/` or a git repo
-- Use absolute paths, not relative
-=======
 - Restart the assistant after changing `.mcp.json`.
 - Check `enableAllProjectMcpServers: true` in Claude settings.
 - Restart again after upgrading `animus`; many clients cache the tool list.
+- `animus.interactions.*` only appear with `--management`.
 
 ### Subject calls fail
 
-- Run `animus plugin install-defaults --include-subjects`.
+- Read the error's `remediation.install_command` — it names the exact fix.
+- Run `animus plugin install-defaults`.
 - Run `animus daemon preflight` and install any reported missing plugins.
->>>>>>> origin/main
 
 ### Tool mismatch or missing methods
 
+- Call `animus.tools.search` with intent keywords, or `animus.tools.list`
+  for the full live catalog — results always reflect the serving binary.
 - Compare against `docs/reference/mcp-tools.md` in the animus-cli repo.
-- Translate stale `animus.task.*` and `animus.requirements.*` calls to
-  `animus.subject.*`.
+- Translate stale `animus.task.*` / `animus.requirements.*` calls to
+  `animus.subject.*`, and drop stale `animus.runner.*` calls (removed).

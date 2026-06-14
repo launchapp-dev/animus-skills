@@ -26,6 +26,28 @@ phases:
       - security-review
 ```
 
+The phase's effective skill set is the union of the phase-level list and the
+executing agent profile's `skills:` (phase entries first). Resolution happens
+daemon-side at dispatch and rides to the runner via `ANIMUS_PHASE_SKILLS_JSON`
+(needs workflow-runner v0.4.2+). A name that does not resolve warns — at
+compile time in `animus workflow config validate` and at dispatch in the
+daemon log — but never fails the run. Verify with:
+
+```bash
+animus output phase-outputs --workflow-id <id>   # Skills: requested / applied / missing
+```
+
+## Use a skill on ad-hoc runs
+
+```bash
+animus agent run --skill code-review --prompt "Review the diff on this branch."
+animus chat send --skill careful-implementer "Refactor the retry loop."
+```
+
+The full skill applies (prompt fragments, launch args/env, model, timeout);
+an unknown `--skill` name is an error on these paths. Explicit flags such as
+`--model` or `--timeout-secs` win over the skill.
+
 ## Complete implementation skill
 
 ```yaml
@@ -65,7 +87,7 @@ skills:
 
     model:
       preferred: claude-sonnet-4-6
-      fallback: claude-opus-4-6
+      fallback: claude-opus-4-8
 
     mcp_servers:
       - animus

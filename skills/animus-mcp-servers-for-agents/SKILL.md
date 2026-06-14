@@ -48,6 +48,8 @@ mcp_servers:
 
 Optional per-server fields: `config:` (arbitrary key-value config passed to the server) and `tools:` (declared tool-name list — schema-validated but not currently enforced as a runtime filter, so don't rely on it to restrict access).
 
+Secrets in `env:` blocks: use `${VAR}` interpolation (`${VAR:-default}`, `${VAR:?error}`) rather than literal values. Resolution checks the process environment first, then OS keychain entries set via `animus secret set <KEY>` (preferred for credentials).
+
 ### 2. Bind servers to agent profiles
 
 ```yaml
@@ -61,6 +63,16 @@ agents:
 ```
 
 Agents only get access to the servers listed in their `mcp_servers` array.
+
+### How servers reach the provider (v0.5.13+)
+
+The resolved server set is passed down to the provider plugins themselves: it
+rides the provider RPC as `extras.mcp_servers` for `animus agent run` and
+`animus chat` on all four providers (claude, codex, gemini, opencode), and on
+the workflow path via workflow-runner v0.4.3+. Secret-bearing servers (all
+OAuth flows) are rewritten to `animus-mcp-proxy` stdio entries before
+pass-down — tokens never reach CLI configs or argv. The name `animus` always
+resolves to the built-in `animus mcp serve` stdio surface.
 
 ### 3. Reference tools in agent prompts
 
@@ -102,9 +114,17 @@ phase_mcp_bindings:
 
 Server names must resolve against the `mcp_servers:` map. See the pack-authoring docs for how packs ship these.
 
+Skills are a third attachment path (v0.5.14): a skill definition can declare `mcp_servers`, and when a workflow phase's `skills:` (or the executing agent profile's `skills:`) resolve and apply, the skill's declared servers join the phase contract the same way `phase_mcp_bindings` do — resolved by name against the `mcp_servers:` map; unknown names warn and are skipped.
+
 ## Per-Run Wiring (CLI)
 
-`animus agent run` and `animus chat` accept `--mcp-server <name>` (repeatable; adds a server by name, `animus` selects the built-in stdio surface) and `--no-animus-mcp` (drops the built-in `animus` server from the resolved set).
+`animus agent run` and `animus chat send` resolve the server set as: the
+`--agent` profile's `mcp_servers` ∪ the `--skill`'s `mcp_servers` ∪
+`--mcp-server <name>` additions (repeatable; the name must exist in the
+project's `mcp_servers` map, or `animus` for the built-in surface), minus the
+built-in `animus` server when `--no-animus-mcp` is passed. When no profile or
+skill names any server, the baseline set is just the built-in `animus` server.
+A tool whose CLI cannot speak MCP receives no MCP wiring.
 
 ## Recommended Servers
 
