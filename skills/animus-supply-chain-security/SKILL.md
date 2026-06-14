@@ -179,3 +179,9 @@ pass `--signature-policy strict` on every CI install.
 
 - animus-plugin-operations — install, update, discovery, flavors, and troubleshooting how-tos.
 - animus-configuration — project vs global plugin install scopes, env vars, and state layout.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- The default workflow-runner pin is `v0.4.3` on v0.5.15; on installed v0.5.14 it is `v0.4.1`.

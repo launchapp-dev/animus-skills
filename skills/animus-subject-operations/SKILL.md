@@ -186,3 +186,9 @@ Delete is CLI-only: there is no `animus.subject.delete` MCP tool.
 - Unexpected state names: distinguish normalized Animus status from native backend status.
 - Missing body/title update support in CLI: use a backend-specific plugin method if exposed.
 - Requirements no longer list: use `animus subject list --kind requirement`, not `animus requirements list`.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus subject batch-create` / `batch-update` CLI subcommands are v0.5.15+; on v0.5.14 batch operations are MCP-only (`animus.subject.batch-create`/`batch-update`).

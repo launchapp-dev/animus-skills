@@ -144,3 +144,9 @@ it exceeds 20% of grouped cost. Archived history rows lack per-phase detail:
   --name <NAME>` and `animus plugin update`.
 - Credential failures: `animus doctor --check api_keys`; prefer
   `animus secret set <KEY>` over daemon-process env vars.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus cost top --by provider` — added in v0.5.15; on v0.5.14 `cost top --by` accepts only `tokens|cost|model` (provider grouping is available via `cost summary`/`cost workflow` on both).

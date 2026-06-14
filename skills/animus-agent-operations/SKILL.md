@@ -217,3 +217,9 @@ receives via the injected sidecar):
 - Run appears stuck: inspect `animus daemon observe` (front-door), `animus daemon stream --run <run-id>`, and `animus output monitor --run-id <run-id>`. Check `animus agent interactions list` — it may be parked on a pending question or approval.
 - Orphaned provider CLI processes: `animus doctor` detects them; `--fix` prunes dead tracker entries (live PIDs get a manual suggestion).
 - Memory tools unavailable inside a workflow phase: the profile needs `capabilities: { memory: true }`; prompt injection additionally needs `memory: { enabled: true }`.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus agent interactions answer --select` / `--remember` / `--updated-input` are v0.5.15+; on v0.5.14 the CLI `answer` takes only `--text`/`--allow`/`--deny`/`--message`/`--by` (structured/remember/updated-input answering is MCP-only there).

@@ -373,3 +373,10 @@ animus doctor --fix          # prunes stale cli-tracker entries for exited proce
 
 Live tracked PIDs get a manual `kill` suggestion instead of automatic cleanup
 (the tracker is global across projects).
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus.daemon.observe` MCP tool is v0.5.15+; on v0.5.14 it is not registered (the `daemon observe` CLI exists on both; over MCP use `animus.daemon.events`/`animus.daemon.logs`).
+- The `daemon health` `budget_enforcement` block and the `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch are v0.5.15+; absent on v0.5.14.

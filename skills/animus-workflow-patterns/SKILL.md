@@ -778,3 +778,10 @@ Production failures that taught these:
 7. **No `AGENT_PRINCIPLES.md`** — the conductor's `system_prompt` becomes a 2000-line tuning surface that triggers a daemon restart on every edit. Extract policy into a sibling file the conductor reads at sweep start.
 
 8. **Per-repo sub-daemons** — feels like isolation; actually fragments state and forces the conductor to coordinate cross-daemon. One daemon, one conductor, daemon-managed worktrees per task.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus agent interactions answer --select` (structured answers) is v0.5.15+; on v0.5.14 the CLI takes only `--text`/`--allow`/`--deny` (structured/remember answering is MCP-only there).
+- Budget-pause annotation enrichment is v0.5.15+; on v0.5.14 the annotation is the plain `paused by workflow <id>`.

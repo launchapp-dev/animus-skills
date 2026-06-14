@@ -195,3 +195,9 @@ answered with `animus agent interactions answer`, not `animus approval respond`.
 - animus-agent-operations — running ad-hoc agents (`--approvals`, `--permission-mode` flags).
 - animus-workflow-authoring — full agent-profile YAML, phase `runtime:` blocks.
 - animus-mcp-tools — the rest of the `animus.*` MCP tool surface.
+
+## Differences on installed v0.5.14
+
+This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
+
+- `animus agent interactions answer --select` / `--remember` / `--updated-input` are v0.5.15+; on v0.5.14 the CLI `answer` takes only `--text`/`--allow`/`--deny`/`--message`/`--by`, and structured-question / remember / updated-input answering is MCP-only (`animus.interactions.answer`).
