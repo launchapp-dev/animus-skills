@@ -56,11 +56,7 @@ animus queue enqueue --title "Run nightly build" --description "Verify the relea
 ```
 
 ### Hold / Release
-<<<<<<< HEAD
 Temporarily prevent queued subjects from being dispatched. `hold`, `release`, and `drop` all take one or more subject ids as positional arguments, or `--all`:
-=======
-Temporarily prevent a queued subject from being dispatched:
->>>>>>> origin/main
 ```bash
 animus queue hold TASK-001 TASK-002 TASK-003
 animus queue release TASK-001

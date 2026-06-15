@@ -79,14 +79,10 @@ Non-goals are as important as goals — they keep the conductor from drifting in
 
 For fleets and multi-repo projects only. Skip for single-repo.
 
-<<<<<<< HEAD
 ```yaml
 # .animus/registry.yaml — what surfaces this project owns
 ship_mode: parallel        # parallel | sequential | flagship-first
 ship_readiness_target: 70
-=======
-Write `REGISTRY.md` at project root. This is a **convention document, not CLI-parsed config** — Animus never reads it; the conductor does, because Phase 5's prompt tells it to (same mechanism as AGENT_PRINCIPLES.md). One row per surface the project owns:
->>>>>>> origin/main
 
 ```markdown
 # Surface Registry
@@ -377,13 +373,8 @@ animus daemon preflight
 animus daemon start --autonomous --auto-run-ready true --pool-size 3 --interval-secs 10
 animus daemon health
 
-<<<<<<< HEAD
 # 3. Create one real task that exercises the implement workflow
 animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --priority high \
-=======
-# 3. Create one real task subject that exercises the implement workflow
-animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --priority p1 --status ready \
->>>>>>> origin/main
   --body "Add a NOTES.md file at repo root with one sentence about the project. Verify worktree, commit, PR flow."
 
 # 4. Enqueue and watch

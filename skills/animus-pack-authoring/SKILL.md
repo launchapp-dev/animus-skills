@@ -13,11 +13,7 @@ Do not read the full pack manual before starting. Open only the reference that m
 
 - Read [references/manifest.md](references/manifest.md) for `pack.toml` structure and field definitions.
 - Read [references/runtime-and-workflows.md](references/runtime-and-workflows.md) for workflow exports, overlays, decision contracts, or MCP server descriptors.
-<<<<<<< HEAD
 - Read [references/operations.md](references/operations.md) only for install, pin, uninstall, registry, recommended pack, or schedule questions.
-=======
-- Read [references/operations.md](references/operations.md) only for install, pin, registry, first-party pack, or schedule questions.
->>>>>>> origin/main
 
 ## Minimal pack shape
 
@@ -44,11 +40,7 @@ my-pack/
 
 1. Pack-qualify workflow IDs to avoid collisions.
 2. Keep agents narrow and role-specific.
-<<<<<<< HEAD
 3. Use workflow references to compose with installed packs (e.g. `animus.task/standard`) instead of duplicating logic.
-=======
-3. Use workflow references to compose with installed packs instead of duplicating logic.
->>>>>>> origin/main
 4. Use decision contracts on review-style phases that should gate progress.
 5. Test with `animus pack info --path ./my-pack` before installing or publishing (`inspect` remains as an alias). Use `animus pack uninstall` to cleanly remove a pack you are iterating on.
 

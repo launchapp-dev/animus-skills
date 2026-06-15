@@ -19,24 +19,11 @@ targeted reads:
 
 ## Setup flow
 
-<<<<<<< HEAD
 1. Run `animus init --walkthrough` in the project root to initialize `.animus/`, detect AI CLIs, and install default plugins. Add `--install-packs` to also install the recommended workflow packs and reach a runnable state immediately. (`animus setup` was removed in v0.4.4 — use `animus init`.)
 2. Create `.mcp.json` pointing to the `animus` binary.
 3. Create a minimal workflow file (or keep the bundled hello-world template the walkthrough copies into `.animus/workflows/`).
 4. Start the daemon with conservative defaults.
 5. Create one small test task and verify end-to-end execution.
-=======
-1. Run `animus init --walkthrough` in the project root to initialize `.animus/`.
-2. Install required plugins with `animus plugin install-defaults --include-subjects`.
-3. Run `animus daemon preflight` and resolve missing providers or subject backends.
-4. Create or verify `.mcp.json` pointing to the `animus` binary.
-5. Create or validate a minimal workflow file.
-6. Start the daemon with conservative defaults.
-7. Create one small task subject, enqueue it, and verify end-to-end execution.
-
-Use `animus init --walkthrough --non-interactive --no-install` when automation
-should avoid prompts and plugin installs are already handled elsewhere.
->>>>>>> origin/main
 
 ## Minimal workflow
 
@@ -85,13 +72,8 @@ plugins.
 ## Verification
 
 - Run `animus daemon status` or the MCP equivalent.
-<<<<<<< HEAD
 - Create a small task with `animus subject create --kind task --title "..."`.
 - Enqueue it with `animus queue enqueue`.
-=======
-- Create a small task subject with `animus subject create --kind task --title "Verify setup"`.
-- Enqueue it with `animus queue enqueue --task-id <id>`.
->>>>>>> origin/main
 - Confirm the daemon picks it up before adding more workflows or schedules.
 
 If something fails, read only the skill that matches the blocker instead of

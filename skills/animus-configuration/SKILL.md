@@ -7,7 +7,6 @@ auto_invoke: true
 
 # Configuration
 
-<<<<<<< HEAD
 Animus has three main configuration layers: project-local `.animus/`, repo-scoped runtime state under `~/.animus/<repo-scope>/`, and global machine config (`~/.animus/config.json`, override the root with `ANIMUS_CONFIG_DIR`).
 
 ## Project-Local `.animus/`
@@ -19,30 +18,13 @@ Common files:
 - `.animus/workflows.yaml` and `.animus/workflows/*.yaml` — hand-edited workflow YAML overlays
 - `.animus/plugins/` — project-local plugin binaries and pack overrides
 - `.animus/plugins.lock` — plugin integrity lockfile
-=======
-Animus resolves behavior from project-local `.animus/`, installed packs,
-repo-scoped runtime state under `~/.animus/<repo-scope>/`, global machine
-config, environment variables, and installed STDIO plugins.
-
-## Project-local sources
-
-### `.animus/config.json`
-
-Repository-local Animus config created by `animus init`. This is authored
-project config, not daemon runtime state.
->>>>>>> origin/main
 
 Common fields include project defaults such as `default_subject_kind`.
 
-<<<<<<< HEAD
 Persisted at `~/.animus/<repo-scope>/daemon/pm-config.json`, written only via CLI/MCP. Do not hand-edit generated JSON.
-=======
-### `.animus/workflows.yaml` and `.animus/workflows/*.yaml`
->>>>>>> origin/main
 
 Hand-authored workflow sources. Typical uses:
 
-<<<<<<< HEAD
 ### Update Config
 ```bash
 animus daemon config --pool-size 3 --auto-run-ready true
@@ -77,22 +59,6 @@ Source locations:
 - `.animus/workflows/*.yaml`
 
 Useful commands:
-=======
-- Define repo-specific workflow ids.
-- Set the default workflow.
-- Declare project MCP servers, agents, variables, phases, and workflows.
-- Configure agent memory and communication channels.
-- Declare top-level `schedules:` (cron dispatch, UTC) and `triggers:`
-  (event dispatch from watchers, webhooks, or trigger plugins).
-- Set `worktree:` mode (`auto` default / `required` / `skip`) per
-  workflow or phase.
-- Map logical secret names to env vars in `secrets:`, referenced as
-  `${secret.<name>}` and resolved at compile time (env first, then the
-  `animus secret` keychain store).
-
-Use:
-
->>>>>>> origin/main
 ```bash
 animus workflow config get
 animus workflow config validate
@@ -100,7 +66,6 @@ animus workflow config compile
 animus workflow config reload    # manual hot-reload trigger
 ```
 
-<<<<<<< HEAD
 A running daemon hot-reloads workflow YAML edits automatically via a
 filesystem watcher; a malformed edit keeps the prior config active.
 
@@ -144,35 +109,9 @@ All env vars are `ANIMUS_*` as of v0.4.0 — the legacy `AO_*` names are not rea
 | `ANIMUS_WORKFLOW_CONCURRENCY_MAX` | Cap on parallel workflow runners (also upper-bounds `pool_size`) |
 
 See `docs/reference/configuration.md#environment-variables` in the Animus repo for the full table.
-=======
-A running daemon hot-reloads these files via a filesystem watcher
-(500 ms debounce). A malformed edit keeps the prior config active and
-broadcasts `config_reload_failed` instead of crashing. Manual trigger:
-`animus workflow config reload`. Daemon transport settings still require
-a restart.
-
-### `.animus/skills/<name>/SKILL.md`
-
-Project-scoped Markdown skills. These have highest priority in Animus skill
-resolution. Agent-host skills from `.claude/skills` and `.codex/skills` are
-lower-trust prompt-text-only probes.
-
-### `.animus/plugins/<pack-id>/`
-
-Project-local pack override root. Use this only when a repository needs to
-override installed pack content without changing global machine state.
-
-### `.animus/plugin-scope.yaml`
-
-Limits which globally installed plugins this project loads. `mode:` is
-`all` (default), `flavor-only` (plugins declared by the active flavor),
-or `allowlist` (names under `allow:`); `extras:` layers additions on
-top. Manage with `animus plugin scope`.
->>>>>>> origin/main
 
 ### `.animus/plugins.lock`
 
-<<<<<<< HEAD
 ```
 .animus/                          # project-local, authored
 ├── config.json                   # auto_update + repo-local settings
@@ -195,32 +134,6 @@ top. Manage with `animus plugin scope`.
 ├── logs/
 ├── interactions/                 # pending agent questions/approvals
 └── cache/
-=======
-Project-local plugin integrity lockfile (versions, sha256 digests,
-installed/native kinds) used when plugin installs are scoped to the
-repository instead of the global `~/.animus/plugins.lock`. Changes
-require a daemon restart.
-
-## Repo-scoped runtime state
-
-Mutable project runtime state lives outside the repo:
-
-```text
-~/.animus/<repo-scope>/
-├── core-state.json
-├── cost-state.v1.json
-├── resume-config.json
-├── workflow.db
-├── config/
-│   └── state-machines.v1.json
-├── daemon/
-│   └── pm-config.json
-├── mcp-oauth-cache/
-│   └── <server>.json
-├── state/
-│   └── pack-selection.v1.json
-└── worktrees/
->>>>>>> origin/main
 ```
 
 Key files:
@@ -389,25 +302,9 @@ Authenticate with `animus mcp auth <server>`; check `animus mcp auth-status`.
 
 Workflow resolution:
 
-<<<<<<< HEAD
 For configuration in general:
 1. CLI flags
 2. Supported environment variables
 3. Project-local pack overrides in `.animus/plugins/<pack-id>/`
 4. Project YAML in `.animus/workflows.yaml` and `.animus/workflows/*.yaml`
 5. Installed packs in `~/.animus/packs/`
-=======
-1. CLI flags and `--input-json` / `--var` overrides
-2. Supported environment variables
-3. Project pack overrides in `.animus/plugins/`
-4. Project YAML in `.animus/workflows.yaml` and `.animus/workflows/*.yaml`
-5. Installed packs in `~/.animus/packs/`
-
-Skill resolution:
-
-1. Project `.animus/skills/`
-2. User `~/.animus/skills/`
-3. Installed registry or pack skills, including `animus.core-skills`
-4. Built-in fallback skills
-5. Agent-host probes such as `.claude/skills` or `.codex/skills` as prompt-text-only
->>>>>>> origin/main
