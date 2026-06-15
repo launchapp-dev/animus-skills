@@ -34,18 +34,11 @@ animus skill list --source project
 ```bash
 animus skill info --name code-review
 animus skill update --name code-review --version "^2.0"
-<<<<<<< HEAD
 animus skill uninstall --name code-review --dry-run
 animus skill uninstall --name code-review
 ```
 
 `info` is the canonical detail verb (`show` remains as an alias). `uninstall` removes an installed skill's materialized files plus its registry/lock entries; it supports `--source` and `--dry-run`.
-=======
-animus skill update
-```
-
-Omitting `--name` on `update` re-resolves every installed skill.
->>>>>>> origin/main
 
 ## Publish a skill
 

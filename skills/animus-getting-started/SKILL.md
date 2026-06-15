@@ -52,7 +52,6 @@ Add `--include-transports` if you want `animus web serve` / `animus web open`.
 
 ```bash
 cd /path/to/your/project
-<<<<<<< HEAD
 animus init --walkthrough --install-packs
 ```
 
@@ -74,38 +73,6 @@ animus subject create --kind task --title "Add user authentication" --priority h
 animus subject list --kind task --status ready
 animus subject status --kind task --id task:TASK-001 --status in-progress
 animus subject next --kind task
-=======
-animus init --walkthrough
-```
-
-For non-interactive automation:
-
-```bash
-animus init --walkthrough --non-interactive --no-install
-```
-
-This creates or updates project-local `.animus/` files such as:
-
-- `.animus/config.json` — repository-local Animus config
-- `.animus/workflows.yaml` or `.animus/workflows/*.yaml` — authored workflow sources
-- `.animus/skills/<name>/SKILL.md` — optional project-scoped skills
-- `.animus/plugins/<pack-id>/` — optional project pack overrides
-
-Daemon settings and mutable runtime state are stored outside the repo under
-`~/.animus/<repo-scope>/`.
-
-## Core Concepts
-
-### Subjects
-
-Subjects are units of work. Tasks and requirements are subject kinds backed by
-plugins. Use `kind=task` for local task work:
-
-```bash
-animus subject create --kind task --title "Add user authentication" --priority p1 --status ready
-animus subject list --kind task --status ready
-animus subject status --kind task --id TASK-001 --status in_progress
->>>>>>> origin/main
 ```
 
 The removed `animus task ...` and `animus requirements ...` command trees are
@@ -148,13 +115,8 @@ animus queue stats
 ## First Workflow
 
 ```bash
-<<<<<<< HEAD
 # Create a task
 animus subject create --kind task --title "Add health check endpoint" --priority high
-=======
-# Create a ready task subject
-animus subject create --kind task --title "Add health check endpoint" --priority p1 --status ready
->>>>>>> origin/main
 
 # Enqueue it
 animus queue enqueue --task-id TASK-001
@@ -172,7 +134,6 @@ animus daemon stream --pretty
 
 Animus exposes operations as MCP tools:
 
-<<<<<<< HEAD
 ```
 animus.subject.create — create tasks (kind=task)
 animus.subject.list   — list tasks by status (kind=task)
@@ -180,16 +141,6 @@ animus.queue.enqueue  — add work to the dispatch queue
 animus.daemon.health  — check daemon status
 animus.workflow.run   — trigger a workflow manually
 animus.output.tail    — read agent output
-=======
-```text
-animus.subject.create   create task/requirement/external subjects
-animus.subject.list     list subjects by kind/status
-animus.queue.enqueue    add work to the dispatch queue
-animus.daemon.health    check daemon status
-animus.workflow.run     trigger a workflow
-animus.output.tail      read recent agent output
-animus.logs.tail        read active log backend entries
->>>>>>> origin/main
 ```
 
 For live CLI-side observability outside MCP:
@@ -207,7 +158,6 @@ your-project/
 ├── .animus/
 │   ├── config.json
 │   ├── workflows.yaml
-<<<<<<< HEAD
 │   └── workflows/
 │       └── custom.yaml
 └── ~/.animus/<repo-scope>/      # Repo-scoped runtime state
@@ -217,30 +167,4 @@ your-project/
     ├── daemon/                  # daemon.log + pm-config.json
     ├── runs/
     └── artifacts/
-=======
-│   ├── workflows/
-│   │   └── custom.yaml
-│   ├── skills/
-│   │   └── <skill-name>/SKILL.md
-│   └── plugins/
-│       └── <pack-id>/
-└── ~/.animus/<repo-scope>/
-    ├── core-state.json
-    ├── resume-config.json
-    ├── cost-state.v1.json
-    ├── workflow.db
-    ├── config/
-    │   ├── state-machines.v1.json
-    │   ├── workflow-config.v2.json
-    │   └── agent-runtime-config.v2.json
-    ├── daemon/
-    │   └── pm-config.json
-    ├── docs/
-    ├── logs/
-    ├── mcp-oauth-cache/
-    ├── runner/
-    ├── runs/
-    ├── state/
-    └── worktrees/
->>>>>>> origin/main
 ```

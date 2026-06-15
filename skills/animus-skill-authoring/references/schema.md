@@ -159,7 +159,6 @@ Leave both empty for universal activation.
 
 ## Skill sources and priority
 
-<<<<<<< HEAD
 Resolution priority is project > user > installed/pack (highest wins on name collisions). Current builds no longer emit builtin skill rows — the former bundled skills moved into the `animus.core-skills` pack.
 
 | Priority | Source | Location |
@@ -167,20 +166,3 @@ Resolution priority is project > user > installed/pack (highest wins on name col
 | 1 (highest) | Project | `.animus/config/skill_definitions/*.yaml` (or `.animus/skills/<name>/SKILL.md`) |
 | 2 | User | `~/.animus/config/skill_definitions/*.yaml` |
 | 3 | Installed | `~/.animus/<repo-scope>/state/skills-registry.v1.json` |
-=======
-Five trust tiers, lowest to highest. When two sources define the same skill name, the higher tier wins.
-
-| Priority | Source | Location |
-|:--------:|--------|----------|
-| 1 (lowest) | Agent-host global | `~/.claude/skills/`, `~/.codex/skills/`, etc. (`SKILL.md`) |
-| 2 | Agent-host project | `.claude/skills/`, `.codex/skills/`, etc. within the project |
-| 3 | Installed | Pack `[skills]` manifests + `animus skill install` snapshots in `~/.animus/<repo-scope>/state/skills-registry.v1.json` |
-| 4 | User | `~/.animus/config/skill_definitions/*.yaml` + `~/.animus/skills/` (`SKILL.md`) |
-| 5 (highest) | Project | `.animus/config/skill_definitions/*.yaml` + `.animus/skills/` (`SKILL.md`) |
-
-There is no builtin tier embedded in the binary — bundled skills were extracted to packs (e.g. `animus.core-skills`) and load through the Installed tier.
-
-Agent-host skills (tiers 1–2) are **prompt-text-only**: the loader strips `tool_policy`, `extra_args`, `env`, `mcp_servers`, `adapters`, and `codex_config_overrides` at parse time, regardless of what the frontmatter declares. To use those structural fields, promote the skill with `animus skill install --path <dir>`, which converts it to the Installed tier with an integrity snapshot.
-
-Within a single scope: files load in lexicographic path order, manifest (`skills:` map) entries apply first, standalone `<name>.yaml` files shadow manifest entries of the same name, and YAML definitions shadow markdown `SKILL.md` skills of the same name.
->>>>>>> origin/main

@@ -1,13 +1,6 @@
-<<<<<<< HEAD
 # Output And Conventions
 
 Use this reference when reading Animus execution output or deciding how to shape list and batch requests.
-=======
-# Output, Runner, Plugin, Skill, Memory, And Conventions
-
-Use this reference for run output, logs, runner health, plugin inspection,
-skill discovery, memory, pagination, and batch behavior.
->>>>>>> origin/main
 
 ## Output and monitoring
 
@@ -20,7 +13,6 @@ skill discovery, memory, pagination, and batch behavior.
 | `animus.output.artifacts` | `execution_id` |
 | `animus.output.phase-outputs` | `workflow_id`, `phase_id`, `project_root` |
 
-<<<<<<< HEAD
 ## Provider health and orphan cleanup
 
 The `animus.runner.*` tool family was removed in v0.5.13. Use instead:
@@ -28,35 +20,13 @@ The `animus.runner.*` tool family was removed in v0.5.13. Use instead:
 - Provider plugin health: `animus.plugin.list` / CLI `animus plugin status` (includes per-provider state and the aggregate `provider_plugins_healthy` flag)
 - Daemon-level health: `animus.daemon.health`
 - Orphaned CLI processes: CLI `animus doctor --check orphan_cli_processes` (`--fix` prunes dead tracker entries; live PIDs get a manual kill suggestion)
-=======
-## Logs
-
-| Tool | Key parameters |
-|------|----------------|
-| `animus.logs.tail` | `plugin`, `level`, `since`, `limit`, `project_root` |
-
-Use `animus.logs.tail` for the active log storage backend. It reads the
-in-tree `events.jsonl` fallback when no log storage plugin is active.
-
-## Runner
-
-| Tool | Key parameters |
-|------|----------------|
-| `animus.runner.health` | `project_root` |
-| `animus.runner.orphans-detect` | `project_root` |
-| `animus.runner.orphans-cleanup` | `run_id`, `project_root` |
->>>>>>> origin/main
 
 Restart statistics are CLI-only (`animus runner restart-stats`); there is no
 matching MCP tool.
 
-<<<<<<< HEAD
 Most project-scoped MCP tools accept optional `project_root` (the blocking
 `animus.agent.ask` / `animus.agent.request_approval` tools deliberately do
 not).
-=======
-## Skills
->>>>>>> origin/main
 
 | Tool | Key parameters |
 |------|----------------|
@@ -119,11 +89,7 @@ List responses use the `animus.mcp.list.result.v1` envelope.
 
 ## Batch behavior
 
-<<<<<<< HEAD
 The batch tool `animus.workflow.run-multiple` accepts `on_error` (the `animus.task.bulk-*` tools were removed in v0.4.4).
-=======
-`animus.workflow.run-multiple` accepts `on_error`.
->>>>>>> origin/main
 
 | Value | Behavior |
 |-------|----------|
