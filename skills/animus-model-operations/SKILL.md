@@ -133,6 +133,42 @@ it exceeds 20% of grouped cost. Archived history rows lack per-phase detail:
 4. `animus workflow agent-runtime validate` then dispatch.
 5. After runs, compare candidates with `animus cost top --by model`.
 
+## Backing-CLI Config Errors
+
+A provider CLI can be installed and runnable yet still fail **at dispatch**
+because its *own* config file is invalid — a failure mode that `plugin status`,
+`daemon preflight`, and `doctor --check cli_tools|api_keys` all miss, because the
+plugin is healthy and the binary launches; it's the vendor's config parse that
+rejects the run. Symptom: a phase exits code 1 almost immediately with a parse
+error naming the vendor config, e.g.:
+
+```
+phase code-review exited with code Some(1); diagnostics:
+Error loading config.toml: unknown variant `priority`, expected `fast` or `flex` | in `service_tier`
+```
+
+Diagnose and fix:
+
+1. Read the raw phase diagnostics — they name the failing file and field:
+   `animus workflow get --id <RUN_ID>` (look at the failed phase's
+   `error_message`). The vendor checks here come back clean, so trust the phase
+   diagnostic over the health surfaces.
+2. Validate the vendor config directly. The file lives outside Animus's
+   control surface:
+   - codex → `~/.codex/config.toml`. Valid `service_tier` is **`fast`** or
+     **`flex`** only. `priority` is the model-catalog tier id (display name
+     "Fast") that the **Codex desktop app may write** when you pick that tier —
+     it is NOT a valid CLI-config value, so headless `codex` (what the
+     `provider-codex` plugin spawns per phase) rejects it. Remove the line to use
+     the default, or set `fast`/`flex`.
+   - claude → backing config under the claude CLI's home; gemini → its CLI config.
+3. Re-run. Note the interactive vendor app can tolerate the bad value while
+   headless invocations fail, and claude-backed phases are unaffected — so a
+   pipeline can pass `builder` (claude) and die on the first codex phase.
+
+Keywords: `unknown variant`, `Error loading config.toml`, `service_tier`,
+present-but-unparseable, exit code 1, headless vendor CLI.
+
 ## Troubleshooting
 
 - No provider can dispatch: `animus daemon preflight`, then
@@ -140,6 +176,10 @@ it exceeds 20% of grouped cost. Archived history rows lack per-phase detail:
 - Plugin stuck or flapping: `animus plugin status <NAME>` — check
   `disabled_by_supervisor` / `cooldown_until`; fix the underlying error, then
   restart the daemon.
+- Phase exits code 1 immediately with a vendor config-parse error (e.g.
+  `unknown variant ... in service_tier`): the provider CLI's own config is
+  invalid — see **Backing-CLI Config Errors** above. Health/preflight checks
+  will look clean.
 - Model works in the vendor CLI but not in Animus: `animus plugin info
   --name <NAME>` and `animus plugin update`.
 - Credential failures: `animus doctor --check api_keys`; prefer
