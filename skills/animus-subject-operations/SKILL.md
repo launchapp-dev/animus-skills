@@ -136,9 +136,19 @@ through the backend plugin when the normalized status is not enough.
 
 ## Queue and Workflow Use
 
+Enqueue is the default way to run a subject — it hands the work to the daemon,
+which dispatches it (the daemon is queue-only):
+
 ```bash
 animus queue enqueue --task-id TASK-001 --workflow-ref animus.task/standard
 animus queue enqueue --requirement-id REQ-001 --workflow-ref animus.requirement/standard
+```
+
+`animus workflow run` is the ad-hoc / foreground-debug alternative — it runs
+one workflow directly, bypassing the queue and daemon. Use it only for one-off
+manual runs or debugging, not as the default execution path:
+
+```bash
 animus workflow run animus.task/standard --task-id TASK-001
 ```
 
