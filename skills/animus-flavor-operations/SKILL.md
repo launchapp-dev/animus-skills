@@ -65,8 +65,10 @@ animus plugin install-defaults --flavor <name> --yes  # another manifest
 
 The manifest named by `--flavor` (default `default`) is the source of truth.
 Everything marked `required` installs — for the default flavor that covers
-all five daemon-preflight roles (`at_least_one_provider`,
-`subject_kind:task`, `subject_kind:requirement`, `workflow_runner`, `queue`),
+all four daemon-preflight roles (`at_least_one_provider`,
+`at_least_one_subject_backend`, `workflow_runner`, `queue`; as of v0.5.20
+the subject role is satisfied by any `subject_backend` plugin rather than
+hard-coded `task`/`requirement` kinds),
 so `animus flavor install` followed by `animus daemon start` needs no second
 command. Unknown flavor names error instead of silently falling back.
 Legacy `--include-subjects` / `--include-transports` still work: they add
@@ -113,7 +115,7 @@ Manifest sections are `providers`, `subjects`, `transports`, `ui`,
 `packs` — each with optional `required` / `recommended` slug arrays — plus a
 free-form `[defaults]` block (`model_routing`, `cost_ceiling_daily_usd`,
 `execution`, `cloud`; hints only, not load-bearing for install in v0.5).
-Required slugs must cover all five preflight roles or `daemon start` will
+Required slugs must cover all four preflight roles or `daemon start` will
 refuse after install. Minimal `flavors/myflavor.toml`:
 
 ```toml

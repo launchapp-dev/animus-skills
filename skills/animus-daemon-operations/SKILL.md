@@ -15,8 +15,10 @@ workflow_runner, queue, transport, trigger, and log-storage plugins.
 ## Preflight
 
 The daemon runs plugin preflight on every startup and refuses to start when a
-required role is unsatisfied: at least one provider, `subject_kind:task`,
-`subject_kind:requirement`, `workflow_runner`, and `queue`.
+required role is unsatisfied: at least one provider,
+`at_least_one_subject_backend` (any installed `subject_backend` plugin — as
+of v0.5.20 specific kinds are no longer hard-coded), `workflow_runner`, and
+`queue`.
 
 ```bash
 animus daemon preflight

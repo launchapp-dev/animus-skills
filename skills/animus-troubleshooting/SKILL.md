@@ -36,8 +36,9 @@ required role is missing and `1` on transient discovery failure.
 ### Missing required plugins (preflight)
 
 The daemon refuses to start when any required role is unsatisfied:
-at least one provider, `subject_kind:task`, `subject_kind:requirement`,
-`workflow_runner`, and `queue`. The error prints the exact
+at least one provider, `at_least_one_subject_backend` (any installed
+`subject_backend` plugin — as of v0.5.20 specific kinds are no longer
+hard-coded), `workflow_runner`, and `queue`. The error prints the exact
 `animus plugin install ...` fix per role, plus one composed fix when several
 roles are missing.
 

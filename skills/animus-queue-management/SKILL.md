@@ -63,7 +63,11 @@ animus queue enqueue --title "Run nightly build" --description "Verify the relea
 
 The daemon picks up pending entries and assigns them to agents.
 `--task-id` still exists on queue and workflow commands even though the old
-`animus task ...` CRUD tree was removed.
+`animus task ...` CRUD tree was removed. It also accepts a backend-qualified
+`<kind>:<native>` id for plugin-backed custom subject kinds (e.g.
+`--task-id song:SONG-001`): as of v0.5.21 control-routed enqueue derives the
+kind from the prefix and resolves the subject via that kind's backend instead
+of forcing it through `task/get`. A bare id with no prefix defaults to `task`.
 
 Explicit enqueue entries are operator commands: they drain into free pool
 headroom even when `daemon.auto_run_ready` is `false`. That flag now gates

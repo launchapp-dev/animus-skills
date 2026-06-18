@@ -143,7 +143,13 @@ animus workflow run animus.task/standard --task-id TASK-001
 ```
 
 Queue and workflow command flags still use `--task-id` and `--requirement-id`
-for compatibility, but the backing data comes from subjects.
+for compatibility, but the backing data comes from subjects. To enqueue a
+plugin-backed custom-kind subject, pass its backend-qualified id to
+`--task-id` (e.g. `--task-id song:SONG-001`): as of v0.5.21 control-routed
+`queue enqueue` derives the kind from the `<kind>:<native>` prefix and
+resolves it via that kind's backend instead of forcing it through `task/get`
+(which the owning backend would reject). A bare id with no prefix still
+defaults to `task`.
 
 Dispatch is event-driven: `subject create/update/status` and
 `queue enqueue/release` (CLI and MCP) send a fire-and-forget `daemon/nudge`,

@@ -10,9 +10,11 @@ animus_version: "0.5.15"   # animus CLI surface this skill targets
 
 Current Animus depends on STDIO plugins for provider execution, subject
 storage, workflow running, queueing, transports, web UI, triggers, and
-optional log storage. Daemon preflight requires five roles:
-`at_least_one_provider`, `subject_kind:task`, `subject_kind:requirement`,
-`workflow_runner`, and `queue`.
+optional log storage. Daemon preflight requires four roles:
+`at_least_one_provider`, `at_least_one_subject_backend`,
+`workflow_runner`, and `queue`. (`at_least_one_subject_backend` is
+satisfied by any installed `subject_backend` plugin — as of v0.5.20 the
+daemon no longer hard-codes the `task`/`requirement` kinds.)
 
 Plugin commands use typed exit codes: invalid input = 2, not found = 3,
 unavailable (missing plugin / network) = 5.
@@ -71,7 +73,7 @@ The flavor manifest (`flavors/<name>.toml`; binary-bundled fallback for
 names error instead of silently falling back.
 
 ```bash
-# Default flavor's required set (all five preflight roles)
+# Default flavor's required set (all four preflight roles)
 animus plugin install-defaults
 
 # Required + recommended (extra providers, more subjects, graphql, web UI)
@@ -182,7 +184,7 @@ the plugin's manifest-declared `env_required` vars are unset.
 
 ## Diagnostics, Cache, and Scope
 
-- `animus plugin doctor` — per-role view of installed plugins (installed_kind + native_kind) with duplicate/collision detection across all five preflight roles.
+- `animus plugin doctor` — per-role view of installed plugins (installed_kind + native_kind) with duplicate/collision detection across all four preflight roles.
 - `animus plugin status [NAME]` — per-plugin runtime status (pid, state, last RPC, restart count, supervisor `disabled_by_supervisor` / `cooldown_until`); also reports aggregate provider health (absorbed from the removed `animus runner health`): a `providers` array plus a rolled-up `provider_plugins_healthy` boolean. Only provider runtimes report live fields; other kinds show `discovered`.
 - `animus plugin rename <NAME> --to <KIND>` — change an installed plugin's `installed_kind` in the lockfile; the binary and manifest `native_kind` are untouched.
 - `animus plugin cache clear|list` — inspect or wipe the manifest cache under `~/.animus/cache/manifests/`; clear after a manual binary swap. `ANIMUS_DISABLE_MANIFEST_CACHE=1` (also accepts `true`/`yes`) is the kill switch.
@@ -267,7 +269,7 @@ CLI-first surfaces in the current reference.
 
 ## Troubleshooting
 
-- Daemon preflight fails: run `animus plugin install-defaults` (covers all five required roles), then rerun preflight. The error message includes the exact per-role install commands.
+- Daemon preflight fails: run `animus plugin install-defaults` (covers all four required roles), then rerun preflight. The error message includes the exact per-role install commands.
 - Plugin installed but not discovered: check the project tier (`.animus/plugins/`, `.animus/plugins.yaml`), `~/.animus/plugins.yaml`, the global install dir, `ANIMUS_PLUGIN_DIR`, and `ANIMUS_PLUGIN_PATH`; add `--include-system-path` only when needed. Also check `.animus/plugin-scope.yaml` — a `flavor-only` or `allowlist` scope can filter the plugin out of discovery.
 - Project install not taking effect: confirm it shadows the global one in `animus plugin list` (`shadowed` note) and that the scope file admits it.
 - Bad provider plugin: uninstall it or move its binary out of discovery. `ANIMUS_PROVIDER_DISABLE_PLUGIN` was removed and has no effect.
