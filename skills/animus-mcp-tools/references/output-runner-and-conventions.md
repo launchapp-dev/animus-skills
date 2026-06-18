@@ -37,7 +37,9 @@ The `animus.runner.*` MCP tools (`health`, `orphans-detect`,
 `animus runner` CLI group. Runner/provider health is reported by
 `animus.daemon.health` (`provider_plugins_healthy`) and the CLI's
 `animus plugin status`; orphaned-CLI-process detection and cleanup moved to
-`animus doctor` / `animus doctor --fix` (CLI only).
+`animus doctor` / `animus doctor --fix` (CLI only). The scoped invocation is
+`animus doctor --check orphan_cli_processes` (`--fix` prunes dead tracker
+entries; live PIDs get a manual-kill suggestion).
 
 ## Skills
 

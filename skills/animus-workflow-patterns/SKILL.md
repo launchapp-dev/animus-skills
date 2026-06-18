@@ -557,6 +557,9 @@ animus subject create --kind task --title "launchapp-react-router:design-improve
 animus queue enqueue --task-id <created-task-id> --workflow-ref design-improve
 ```
 
+The workflow ref is bound at dispatch time (queue enqueue or workflow run), not on the task itself.
+```
+
 This convention lets you grep `animus queue list` for all in-flight work on a single repo, and lets the conductor write rules like "skip queueing the same `<repo-id>:<action>` 3+ times in a week — that loop is broken."
 
 ## Per-Model Implementation Routing

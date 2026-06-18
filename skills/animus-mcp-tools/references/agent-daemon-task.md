@@ -113,9 +113,10 @@ Lists recorded budget-cap breaches from the scoped breach log. Works offline.
 ## Subject tools
 
 The subject surface replaces the removed `animus.task.*` and
-`animus.requirements.*` tool families. Use `kind: "task"` for local tasks,
-`kind: "requirement"` for requirements, or another kind claimed by an
-installed `subject_backend` plugin.
+`animus.requirements.*` tool families (removed in v0.4.4). Use `kind: "task"`
+for local tasks, `kind: "requirement"` for requirements, or another kind
+claimed by an installed `subject_backend` plugin. Every subject tool also
+accepts an optional `project_root` parameter.
 
 | Tool | Key parameters |
 |------|----------------|

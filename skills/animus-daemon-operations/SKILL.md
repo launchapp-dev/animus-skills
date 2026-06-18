@@ -96,6 +96,8 @@ animus daemon restart --shutdown-timeout-secs 120 --pool-size 5
 Gracefully stops the running daemon, then starts it again detached. If the
 daemon is not running, it just starts. Accepts every `daemon start` flag —
 flags come from the restart invocation, not the previous run.
+`--shutdown-timeout-secs` (max seconds to wait for in-flight agents before
+force-stopping the old daemon) defaults to **60**.
 
 ### Foreground mode (dev/debug)
 
@@ -150,6 +152,17 @@ animus daemon observe --json
 `daemon observe` is a router over the existing `events` / `logs` / `stream`
 surfaces — start here when you don't know which surface to reach for.
 `--follow` cannot be combined with `--since` or a non-stream `--source`.
+
+### Status
+
+```bash
+animus daemon status
+animus daemon status --json
+```
+
+`daemon status` shows daemon runtime status (running/stopped, pool, queue
+depth). The `--json` output includes `runtime_paused` / `paused_at` while the
+daemon is reachable, so a paused runtime is distinguishable from a stuck one.
 
 ### Health
 
@@ -289,6 +302,10 @@ knobs: `--max-daily-usd` (rolling-24h fleet cost cap; pass `0` to clear) and
 `--silent-threshold-mins` (default 20). There is no `--auto-run-ready`; the
 old `--auto-merge` / `--auto-pr` knobs were removed.
 
+The daemon's persistent config lives at
+`~/.animus/<repo-scope>/daemon/pm-config.json` and is hot-reloaded once per
+tick.
+
 MCP names:
 
 | Tool | Purpose |
@@ -366,6 +383,16 @@ Common causes:
 - Disk full from accumulated worktrees or logs.
 - Lock file contention.
 
+### Stale Lock
+
+If the daemon won't start ("daemon already running") but no daemon is actually
+running, a stale pid/lock file is blocking it:
+
+```bash
+animus daemon status         # confirm whether one is really running
+animus doctor --fix          # cleans stale daemon pid/lock files
+```
+
 ### Stuck plugins / process leaks
 
 The `animus runner` group was removed. Provider health lives in
@@ -378,6 +405,8 @@ The `animus runner` group was removed. Provider health lives in
 animus plugin status
 animus doctor
 animus doctor --fix          # prunes stale cli-tracker entries for exited processes
+animus doctor --check orphan_cli_processes        # scoped: just the orphan check
+animus doctor --check orphan_cli_processes --fix  # scoped detect + prune
 ```
 
 Live tracked PIDs get a manual `kill` suggestion instead of automatic cleanup

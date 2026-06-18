@@ -101,6 +101,7 @@ Mutable project runtime state lives outside the repo:
 ├── resume-config.json
 ├── workflow.db
 ├── config/
+│   ├── workflow-config.v2.json
 │   ├── state-machines.v1.json
 │   └── agent-runtime-config.v2.json
 ├── daemon/
@@ -128,6 +129,10 @@ Key files:
   budget-breach decisions append to `decisions.jsonl`;
   `budget-enforcement.v1.json` records the enforcement sweep's
   `{enabled, last_sweep_at}` status surfaced by `animus daemon health`.
+- `config/agent-runtime-config.v2.json` is the compiled agent runtime config
+  (which AI model/tool each agent profile uses) and `config/workflow-config.v2.json`
+  the compiled workflow config; inspect/validate/replace the agent runtime via
+  `animus workflow agent-runtime get|validate|set` rather than editing the file.
 - `interactions/` stores pending agent questions/approvals
   (`animus agent interactions`).
 - `mcp-oauth-cache/<server>.json` caches resolved OAuth tokens for

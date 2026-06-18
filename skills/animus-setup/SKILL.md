@@ -21,6 +21,7 @@ targeted reads:
 ## Setup flow
 
 1. Run `animus init --walkthrough` in the project root to initialize `.animus/`.
+   (`animus setup` was removed in v0.4.4 — use `animus init`.)
    The interactive walkthrough also installs the recommended workflow packs
    (default yes), offers a flavor picker when multiple flavors are
    discoverable, and suggests migrating env-var API keys to the keychain

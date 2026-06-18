@@ -242,6 +242,11 @@ argv. Details live in `docs/reference/mcp-oauth.md` in the animus-cli repo.
 - Run `animus plugin install-defaults`.
 - Run `animus daemon preflight` and install any reported missing plugins.
 
+### "project_root" errors
+
+- Ensure `--project-root` points to a directory containing `.animus/` or a git repo.
+- Use absolute paths, not relative.
+
 ### Tool mismatch or missing methods
 
 - Call `animus.tools.search` with intent keywords, or `animus.tools.list`

@@ -13,6 +13,7 @@ Use this skill as a router, not as a wall of tables.
 ## Current surface rules
 
 - Prefer the MCP tool that performs the mutation directly instead of shelling out to `animus`.
+- Treat destructive tools as explicit actions and pass the required confirmation fields when calling them.
 - Every tool accepts optional `project_root` unless noted otherwise.
 - Tasks and requirements use `animus.subject.*`; the old `animus.task.*` and `animus.requirements.*` families were removed.
 - For task operations, pass `kind: "task"`. For requirement operations, pass `kind: "requirement"`.

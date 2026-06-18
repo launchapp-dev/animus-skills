@@ -147,7 +147,9 @@ Supported trigger types are:
   transport plugin honoring `config.secret_env` and
   `config.max_triggers_per_minute`. `config:` is optional — when omitted it
   defaults to no signing secret and `max_triggers_per_minute: 10`; validation
-  only rejects an explicit `max_triggers_per_minute: 0`.
+  only rejects an explicit `max_triggers_per_minute: 0`. Store the secret value
+  itself in the OS keychain with `animus secret set MY_WEBHOOK_SECRET` rather
+  than in the daemon's environment.
 - `plugin` — an external `trigger_backend` plugin emits events. The
   per-trigger `config:` map is currently NOT forwarded to the plugin
   (plugins source their own config); `ANIMUS_DAEMON_DISABLE_TRIGGERS=1`

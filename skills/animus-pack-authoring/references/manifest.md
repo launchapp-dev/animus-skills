@@ -103,7 +103,7 @@ optional = []
 | top-level | `title` | Yes | Human-readable name |
 | top-level | `description` | No | Free text description |
 | `ownership` | `mode` | Yes | `bundled`, `installed`, or `project` |
-| `compatibility` | `animus_core` | No | Semver range. `ao_core` is accepted as an alias. |
+| `compatibility` | `animus_core` | No | Semver range (legacy key `ao_core` still parses) |
 | `compatibility` | `workflow_schema` | No | Usually `v2` |
 | `compatibility` | `subject_schema` | No | Usually `v2` |
 | `subjects` | `kinds` | No | Required if `subjects` block exists |

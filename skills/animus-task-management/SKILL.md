@@ -113,7 +113,9 @@ animus subject status --kind task --id TASK-001 --status cancelled
 
 Setting `--status ready` prints an `unstuck: cleared ...` line (stderr,
 human output) naming any `paused` / `blocked_*` flags the transition
-cleared, so unsticking a stuck task is visible.
+cleared, so unsticking a stuck task is visible. On the default task backend
+this clears the `paused`, `blocked_at`, `blocked_reason`, and `blocked_by`
+bookkeeping fields.
 
 Status changes (and creates/updates/enqueues) send a fire-and-forget
 `daemon/nudge`, so the daemon reacts effectively immediately — there is no
@@ -144,16 +146,16 @@ unsupported error. There is no MCP delete tool, so deletion is CLI-only.
 
 ## MCP Tools
 
-| Tool | Purpose |
-|------|---------|
-| `animus.subject.list` | List task subjects with `kind: "task"` |
-| `animus.subject.get` | Fetch one task subject |
-| `animus.subject.create` | Create a task subject |
-| `animus.subject.update` | Patch task subject fields |
-| `animus.subject.next` | Get the next ready task subject |
-| `animus.subject.status` | Set normalized task status |
-| `animus.subject.batch-create` | Create up to 100 task subjects (`items[]`, `on_error`) |
-| `animus.subject.batch-update` | Patch up to 100 task subjects (`items[]`, `on_error`) |
+| Tool | Purpose | Key parameters |
+|------|---------|----------------|
+| `animus.subject.list` | List task subjects with `kind: "task"` | `kind`, `status`, `limit`, `project_root` |
+| `animus.subject.get` | Fetch one task subject | `kind`, `id`, `project_root` |
+| `animus.subject.create` | Create a task subject | `kind`, `title`, `priority`, `status`, `labels[]`, `body`, `project_root` |
+| `animus.subject.update` | Patch task subject fields | `kind`, `id`, `priority`, `status`, `labels[]`, `project_root` |
+| `animus.subject.next` | Get the next ready task subject | `kind`, `project_root` |
+| `animus.subject.status` | Set normalized task status | `kind`, `id`, `status`, `project_root` |
+| `animus.subject.batch-create` | Create up to 100 task subjects (`items[]`, `on_error`) | `kind`, `items[]`, `on_error`, `project_root` |
+| `animus.subject.batch-update` | Patch up to 100 task subjects (`items[]`, `on_error`) | `kind`, `items[]`, `on_error`, `project_root` |
 
 ### MCP Examples
 
@@ -191,6 +193,12 @@ animus subject status --kind task --id TASK-005 --status ready
 A `task-blocked` notifier event fires once per blocked transition (and
 `workflow-failed` once per workflow failure), so notifiers can react
 without polling.
+
+### Scripting
+
+`animus subject` returns typed, stable exit codes: `0` success, `2` invalid
+input, `3` not found, `5` daemon/backend unavailable. Pair with `--json` (the
+`animus.cli.v1` envelope) for machine consumption.
 
 ### Workflow Lifecycle Sync
 

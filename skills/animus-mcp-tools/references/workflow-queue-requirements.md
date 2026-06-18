@@ -21,6 +21,9 @@ workflow definitions, queue dispatch, or requirement state.
 `animus.workflow.phase.reject` is the decline-path mirror of `phase.approve`;
 both require a pending gate phase.
 
+Pruning terminal runs (`animus workflow prune`) and `animus workflow delete
+--run-id` are CLI-only — there is no matching MCP tool.
+
 ## Decisions and checkpoints
 
 | Tool | Key parameters |

@@ -131,6 +131,9 @@ Changes apply on the next tick without a restart.
 
 ### Provider plugin problems
 
+There is no agent-runner sidecar anymore (deleted in v0.5.3) — provider plugins
+run the CLIs end to end.
+
 ```bash
 animus plugin status                 # per-plugin pid, state, restarts, supervisor cooldown
 animus plugin ping --name animus-provider-claude
@@ -473,10 +476,13 @@ workflow repeatedly fails with the same phase verdict.
 Fixes:
 
 1. Inspect `animus workflow get --id WF-XXX`.
-2. Inspect run output with `animus output read --run-id <run-id>`.
+2. Inspect run output with `animus output read --run-id <run-id>`, or use the
+   `animus.output.tail` MCP tool with `task_id: "TASK-XXX"` to find the actual
+   error when you only have the task id.
 3. Check the worktree: `git -C <worktree_path> log --oneline -3`.
 4. If the task is fundamentally stuck, cancel or mark it blocked and create a clearer replacement.
-5. Add a consecutive-failure skip rule to the planner prompt.
+5. Add a consecutive-failure skip rule to the planner prompt (e.g. skip on
+   `consecutive_dispatch_failures > 3`).
 
 ## Parallel Agents Cause Merge Conflicts
 

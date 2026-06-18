@@ -107,7 +107,10 @@ plugins. Use `kind=task` for local task work:
 ```bash
 animus subject create --kind task --title "Add user authentication" --priority p1 --status ready
 animus subject list --kind task --status ready
+animus subject next --kind task
 animus subject status --kind task --id TASK-001 --status in-progress
+# --id also accepts the backend-qualified <kind>:<native> form:
+animus subject status --kind task --id task:TASK-001 --status in-progress
 ```
 
 The removed `animus task ...` and `animus requirements ...` command trees are
