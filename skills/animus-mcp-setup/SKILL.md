@@ -3,7 +3,7 @@ name: animus-mcp-setup
 description: Set up .mcp.json, Claude Code permissions, and connect AI tools to Animus's MCP server
 user_invocable: true
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # MCP Server Setup
@@ -249,9 +249,3 @@ argv. Details live in `docs/reference/mcp-oauth.md` in the animus-cli repo.
 - Compare against `docs/reference/mcp-tools.md` in the animus-cli repo.
 - Translate stale `animus.task.*` / `animus.requirements.*` calls to
   `animus.subject.*`, and drop stale `animus.runner.*` calls (removed).
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- The tool-count table reflects v0.5.15 (86 / 84). On v0.5.14 it is 83 / 81, and `animus.cost.decisions`, `animus.workflow.phase.reject`, and `animus.daemon.observe` are not registered.

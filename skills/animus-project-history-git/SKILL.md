@@ -3,7 +3,7 @@ name: animus-project-history-git
 description: Inspect Animus execution history, Git repo and worktree state, and approval records — history search and cleanup, worktree listing and pruning, repo-scope resolution, and the approval gate for destructive operations. Use for post-run forensics, worktree housekeeping, or approval round-trips.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # History, Git Inspection, and Approvals
@@ -15,8 +15,9 @@ the daemon routes purely via git root + repo-scope. `animus git` was
 **trimmed to inspection-only**: mutation verbs (`repo get/init/clone`,
 `branches`, `status`, `commit`, `push`, `pull`, and `worktree
 create/get/remove/pull/push/sync/sync-status`) are gone. Agent-driven
-merge/PR/commit lives in the workflow runner plugin via
-`post_success.merge` in workflow YAML.
+merge/PR/commit is expressed as `command:` phases running `git`/`gh` in
+workflow YAML (the `post_success.merge` block was removed and now hard-fails
+to parse).
 
 ## Repo Scope (replaces the project registry)
 
@@ -84,14 +85,16 @@ record exists and its id is passed via `--confirmation-id`:
 
 ```bash
 animus approval request --operation-type prune_worktrees --repo-name billing-api
-animus approval respond --request-id <id> --approved --comment "OK to prune"
+animus approval respond --request-id <id> --approve --comment "OK to prune"
 animus git worktree prune --repo billing-api --confirmation-id <id>
 animus approval outcome --request-id <id> --success --message "pruned"
 ```
 
-- `--approved` and `--success` are flags: omit them to reject / record
-  failure. `request` takes optional `--context-json`; `respond` takes
-  optional `--user-id`; `outcome` takes optional `--metadata-json`.
+- `respond` requires exactly one of `--approve` / `--reject` (omitting both
+  errors "provide exactly one of --approve or --reject"); pass `--reject` to
+  decline. For `outcome`, `--success` is a flag: omit it to record failure.
+  `request` takes optional `--context-json`; `respond` takes optional
+  `--user-id`; `outcome` takes optional `--metadata-json`.
 - The record schema still accepts the legacy operation types
   (`force_push`, `remove_worktree`, `remove_repo`, `hard_reset`,
   `clean_untracked`) for plugins that perform their own git mutations.

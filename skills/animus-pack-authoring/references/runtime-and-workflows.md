@@ -64,7 +64,7 @@ agents:
         - output.*
       deny:
         - queue.drop
-        - project.remove
+        - git.worktree-prune
     skills:
       - code-review
     capabilities:

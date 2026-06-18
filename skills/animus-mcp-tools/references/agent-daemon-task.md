@@ -79,14 +79,12 @@ command instead.
 ## Daemon management
 
 The MCP daemon tools cover runtime state. CLI-only startup helpers such as
-`animus daemon preflight`, `--auto-install`, and `--skip-preflight` are
-exposed on `animus.daemon.start` as `auto_install` / `skip_preflight`
-parameters. The daemon always starts detached; `autonomous` is a deprecated
-no-op.
+`animus daemon preflight`, `--auto-install`, and `--skip-preflight` are not
+exposed on `animus.daemon.start`.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.daemon.start` | `pool_size` (alias `max_agents`), `interval_secs`, `auto_run_ready`, `startup_cleanup`, `resume_interrupted`, `reconcile_stale`, `stale_threshold_hours`, `max_tasks_per_tick`, `phase_timeout_secs`, `skip_runner`, `autonomous` (deprecated no-op), `auto_install`, `skip_preflight`, `project_root` |
+| `animus.daemon.start` | `pool_size` (alias `max_agents`), `interval_secs`, `stale_threshold_hours`, `max_tasks_per_tick`, `phase_timeout_secs`, `startup_cleanup`, `resume_interrupted`, `reconcile_stale`, `project_root` |
 | `animus.daemon.stop` | `project_root` |
 | `animus.daemon.status` | `project_root` |
 | `animus.daemon.health` | `project_root` — payload carries a `healthy` boolean verdict and `provider_plugins_healthy` |
@@ -96,7 +94,7 @@ no-op.
 | `animus.daemon.agents` | `project_root` |
 | `animus.daemon.logs` | `limit`, `search`, `project_root` |
 | `animus.daemon.config` | `project_root` |
-| `animus.daemon.config-set` | `auto_run_ready`, `pool_size` (alias `max_agents`), `interval_secs`, `max_tasks_per_tick`, `stale_threshold_hours`, `phase_timeout_secs`, `notification_config_json`, `notification_config_file`, `clear_notification_config`, `project_root` |
+| `animus.daemon.config-set` | `pool_size` (alias `max_agents`), `interval_secs`, `max_tasks_per_tick`, `stale_threshold_hours`, `phase_timeout_secs`, `notification_config_json`, `notification_config_file`, `clear_notification_config`, `project_root` |
 | `animus.daemon.observe` | `since`, `source` (`logs`/`events`/`stream`/`workflow`), `workflow_id`, `limit`, `project_root` |
 
 `animus.daemon.observe` is the observability front-door: it returns the

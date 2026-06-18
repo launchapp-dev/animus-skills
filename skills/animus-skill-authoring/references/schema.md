@@ -128,6 +128,11 @@ capabilities:
 ```
 
 Aliases are supported: `write_files`, `file_write`, and `can_write` all map to `writes_files`.
+This is a representative subset, not exhaustive — the source accepts more, including
+`file_writes` (→`writes_files`), `state_mutation` / `managed_state_mutation`
+(→`mutates_state`), `require_commit` (→`requires_commit`), `product_changes`
+(→`enforce_product_changes`), and the role flags `research`, `review`, `testing`,
+`requirements`, and `ui_ux` / `ui-ux`.
 
 Treat capabilities as **feature flags**, not permissions the skill requests and
 the host grants: on workflow phases the flags merge deterministically into the

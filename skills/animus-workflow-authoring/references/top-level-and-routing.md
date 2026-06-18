@@ -176,6 +176,12 @@ phase in flight can overshoot by up to one sweep, and enforcement requires a
 running daemon. Kill-switch: `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT=1`
 (daemon restart required).
 
+A separate `daemon.budget` sub-block (under `daemon:`) caps total fleet spend
+across all workflows — `max_cost_usd_per_day` with `on_exceed` — distinct from
+the per-workflow/per-phase `budget:` field shown above. There is no top-level
+`budget:` key: it exists only as `daemon.budget` and as the per-workflow /
+per-phase `budget:` field.
+
 ## Worktree control
 
 A `worktree:` block on a workflow definition sets the default; a phase-level
@@ -185,25 +191,33 @@ adds `cleanup` (default true) and `base_ref`; `worktree: skip` is accepted as
 a short-form scalar. Enforcement is owned by the workflow runner plugin
 (v0.4.0+); older runners treat everything as `auto`.
 
-## Post-success hooks
+## Git automation = command phases
 
-Use `post_success.merge` to control merge and PR behavior after all phases
-succeed. This is the only merge/PR automation surface — the daemon-level git
-policy keys were removed in v0.5.13.
+Animus no longer performs git operations as runner automation. `post_success.merge`
+and the daemon-level git policy keys were removed in v0.5.x and now fail to parse.
+Express commit/push/PR/merge as `command:` phases — a phase with a `command:`
+block running `git`/`gh`:
 
 ```yaml
+phases:
+  push-branch:
+    mode: command
+    command:
+      program: git
+      args: ["push", "-u", "origin", "HEAD"]
+      cwd_mode: task_root
+  create-pr:
+    mode: command
+    command:
+      program: gh
+      args: ["pr", "create", "--fill", "--base", "main"]
+      cwd_mode: task_root
+
 workflows:
   - id: standard
     name: Standard
     phases:
       - workflow_ref: animus.task/standard
-    post_success:
-      merge:
-        strategy: merge
-        target_branch: main
-        create_pr: true
-        auto_merge: false
-        cleanup_worktree: true
+      - push-branch
+      - create-pr
 ```
-
-Supported merge strategies are `squash`, `merge`, and `rebase`.

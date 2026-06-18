@@ -3,7 +3,7 @@ name: animus-troubleshooting
 description: Common Animus issues and fixes — daemon crashes, plugin preflight, workflow failures, queue problems, merge conflicts
 user_invocable: true
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Troubleshooting Animus
@@ -231,11 +231,13 @@ animus queue drop TASK-XXX            # positional ids; --all --yes for everythi
 ### Queue not filling
 
 1. Check the runtime is not paused: `animus daemon health` (`runtime: paused`
-   means someone ran `animus daemon pause` — fix with `animus daemon resume`).
+   means someone ran `animus daemon pause` — fix with `animus daemon resume`;
+   the JSON/wire field for this is named `runtime_paused`).
 2. Check ready task subjects: `animus subject list --kind task --status ready`.
-3. Enqueue one manually: `animus queue enqueue --task-id TASK-XXX` — explicit
-   enqueues drain even when `auto_run_ready` is false (that flag gates only
-   ready-task auto-dispatch).
+   A `ready` subject is *eligible to enqueue*, not auto-run — it will not
+   dispatch until it is enqueued.
+3. Enqueue one manually: `animus queue enqueue --task-id TASK-XXX` — enqueued
+   entries dispatch as pool slots free.
 4. Inspect recent workflows: `animus workflow list --limit 5`.
 5. Follow scheduler activity: `animus daemon stream --cat schedule --pretty`.
 
@@ -293,9 +295,11 @@ scripted `daemon events --limit N` now exits; pass `--follow` to stream.
 
 ### PRs not getting merged
 
-Merge/PR behavior is defined per workflow in `post_success.merge` (executed
-by the workflow runner plugin) — the old daemon-level `auto_merge`/`auto_pr`
-knobs were removed in v0.5.13.
+Merge/PR/commit is expressed per workflow as `command:` phases that run
+`git`/`gh` — there is no declarative merge knob. The old daemon-level
+`auto_merge`/`auto_pr` knobs were removed in v0.5.13, and `post_success.merge`
+has since also been removed (it now triggers a hard parse error, so don't use
+it as the live mechanism).
 
 ```bash
 animus workflow list --limit 5
@@ -481,9 +485,3 @@ Mitigations:
 1. Use a rebase-and-retry workflow if the project defines one.
 2. Reduce `pool_size` to 1 for conflict-heavy repos.
 3. Split broad tasks into smaller subjects that touch fewer shared files.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- Budget-pause annotation enrichment, the `daemon health` budget block, and the `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch are v0.5.15+. On v0.5.14 the pause annotation is the plain `paused by workflow <id>`; inspect breaches with `animus cost decisions`.

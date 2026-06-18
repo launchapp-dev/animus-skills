@@ -3,7 +3,7 @@ name: animus-agent-interactions
 description: Deep reference for Animus human-in-the-loop (HITL) agent interactions — agent questions and approval requests, the pending-interaction inbox, paused workflows waiting for an answer, permission prompts, approval_policy routing, and suspend/resume mechanics. Use when an agent is parked on a pending interaction, a workflow is paused awaiting a human decision, an approval or permission prompt needs answering, or when configuring approvals for agents.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Agent Interactions (Human-in-the-Loop)
@@ -12,7 +12,8 @@ Animus agents escalate to humans through two blocking MCP tools on the
 kernel's `animus mcp serve` server:
 
 - `animus.agent.ask` — a clarifying **question** (`agent_id`, `question`,
-  `options[]`, `timeout_secs`, `workflow_id`, `task_id`, `wait`).
+  `options[]`, `questions[]` — array of question objects to ask several at
+  once (see below) — `timeout_secs`, `workflow_id`, `task_id`, `wait`).
 - `animus.agent.request_approval` — an **approval** for a sensitive action
   (`agent_id`, `action` — derived as `use tool <tool_name>` when omitted —
   `tool_name`, `input`/`arguments`, `tool_use_id`, `suggestions`,
@@ -195,9 +196,3 @@ answered with `animus agent interactions answer`, not `animus approval respond`.
 - animus-agent-operations — running ad-hoc agents (`--approvals`, `--permission-mode` flags).
 - animus-workflow-authoring — full agent-profile YAML, phase `runtime:` blocks.
 - animus-mcp-tools — the rest of the `animus.*` MCP tool surface.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus agent interactions answer --select` / `--remember` / `--updated-input` are v0.5.15+; on v0.5.14 the CLI `answer` takes only `--text`/`--allow`/`--deny`/`--message`/`--by`, and structured-question / remember / updated-input answering is MCP-only (`animus.interactions.answer`).

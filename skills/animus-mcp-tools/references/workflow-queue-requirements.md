@@ -44,7 +44,7 @@ both require a pending gate phase.
 |------|----------------|
 | `animus.queue.list` | `project_root` |
 | `animus.queue.stats` | `project_root` |
-| `animus.queue.enqueue` | `task_id`, `requirement_id`, `title`, `description`, `workflow_ref`, `input_json` |
+| `animus.queue.enqueue` | `task_id`, `requirement_id`, `title`, `description`, `workflow_ref`, `input_json`, `run_at`, `expire_after` (requires `run_at`), `project_root` |
 | `animus.queue.reorder` | `subject_ids[]` |
 | `animus.queue.hold` | `subject_id`, `subject_ids[]` |
 | `animus.queue.release` | `subject_id`, `subject_ids[]` |

@@ -3,7 +3,7 @@ name: animus-configuration
 description: Animus project config, daemon config, plugin config, agent runtime, environment variables, and state layout
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Configuration
@@ -150,10 +150,15 @@ MCP: `animus.daemon.config`
 Update runtime settings (written to `daemon/pm-config.json`):
 
 ```bash
-animus daemon config --pool-size 3 --auto-run-ready true
+animus daemon config --pool-size 3
 animus daemon config --max-tasks-per-tick 2 --stale-threshold-hours 12
 animus daemon config --phase-timeout-secs 3600
+animus daemon config --max-daily-usd 50 --silent-threshold-mins 20
 ```
+
+Fleet knobs: `--max-daily-usd` is a rolling-24h fleet cost cap (pass `0` to
+clear); `--silent-threshold-mins` (default 20) bounds how long a run may go
+without output before it is flagged. There is no `--auto-run-ready` knob.
 
 MCP: `animus.daemon.config-set`
 
@@ -164,8 +169,10 @@ reaches the live process manager after a restart).
 Removed knobs: the daemon git/merge policy (`auto_merge`, `auto_pr`,
 `auto_commit_before_merge`, `auto_prune_worktrees`) and the no-op
 `idle_timeout_secs` were deleted in v0.5.13 — old `pm-config.json` files
-still load; merge/PR behavior lives in workflow `post_success.merge`,
-executed by the workflow runner plugin.
+still load. Git automation (commit / push / PR / merge) is now expressed as
+`command:` phases running `git` / `gh` in the workflow; the
+`post_success.merge` and `integrations.git.auto_merge` keys were removed and
+now fail to parse.
 
 ### Daemon lifecycle
 
@@ -177,8 +184,9 @@ animus daemon run                      # foreground dev/debug; --once = single t
 animus daemon restart                  # graceful stop, then detached start
 ```
 
-`--autonomous` is a hidden, deprecated no-op — detached is the only
-`daemon start` behavior. Starting while already running is idempotent.
+`--autonomous` was removed — `daemon start` now errors on it as an unknown
+argument; detached is the only `daemon start` behavior. Starting while
+already running is idempotent.
 
 ### Scheduler wake model
 
@@ -389,7 +397,7 @@ sweep once per heartbeat: a newly crossed cap triggers the declared
 `on_exceed` action (`pause` / `fail` / `warn`), a breach record, and one
 `workflow-budget-breach` notifier event. Inspect spend with
 `animus cost {summary,workflow,top,trends,conversation,decisions}`
-(`--by provider|model` grouping). With no daemon running, `animus cost`
+(`--by provider|model|task` grouping). With no daemon running, `animus cost`
 records breaches but never pauses anything.
 
 ## Precedence
@@ -408,9 +416,3 @@ Skill resolution:
 2. User `~/.animus/skills/`
 3. Installed registry or pack skills, including `animus.core-skills`
 4. Agent-host probes such as `.claude/skills` or `.codex/skills` as prompt-text-only
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- The `budget-enforcement.v1.json` state file and the `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch are v0.5.15+; neither exists on v0.5.14.

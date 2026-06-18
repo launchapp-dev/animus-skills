@@ -3,7 +3,7 @@ name: animus-getting-started
 description: Install Animus, initialize a project, create first task subject, run first workflow — core concepts and project structure
 user_invocable: true
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Getting Started with Animus
@@ -130,7 +130,7 @@ is event-driven: subject and queue writes wake the daemon immediately, so
 there is no tick interval to wait for.
 
 ```bash
-animus daemon start --auto-run-ready true --pool-size 3
+animus daemon start --pool-size 3
 animus daemon health
 animus daemon stream --pretty
 animus daemon restart
@@ -140,7 +140,8 @@ animus daemon stop
 `animus daemon start` always detaches: it backgrounds the daemon, prints the
 pid and log path, and is idempotent if a daemon is already running. Use
 `animus daemon run` for a foreground dev/debug daemon (Ctrl-C to stop). The
-old `--autonomous` flag is a deprecated no-op.
+old `--autonomous` flag was removed — `daemon start` now errors on it; the
+daemon always starts detached.
 
 Startup runs plugin preflight by default. Use `--auto-install` for one-shot dev
 setup or `--skip-preflight` only for intentional local debugging.
@@ -152,9 +153,11 @@ pending items land in the `animus agent interactions` inbox
 ### Queue
 
 Queue entries tell the daemon what subject to dispatch next. An enqueue
-nudges the daemon, so dispatch is effectively immediate. Explicit enqueues
-drain even when `auto_run_ready` is false — that flag only gates auto-dispatch
-of Ready tasks.
+nudges the daemon, so dispatch is effectively immediate. The daemon is
+queue-only: explicit `animus queue enqueue` entries and cron `schedules:`
+are the only dispatch triggers — it never scans the backend for Ready
+subjects. A `ready` status makes a subject eligible to enqueue, not
+something the daemon auto-runs on its own.
 
 ```bash
 animus queue enqueue --task-id TASK-001
@@ -165,14 +168,14 @@ animus queue stats
 ## First Workflow
 
 ```bash
-# Create a ready task subject
+# Create a ready task subject (note the id it returns)
 animus subject create --kind task --title "Add health check endpoint" --priority p1 --status ready
 
-# Enqueue it
-animus queue enqueue --task-id TASK-001
+# Enqueue it (use the id returned by subject create)
+animus queue enqueue --task-id <id>
 
 # Start the daemon (detaches; prints pid + log path)
-animus daemon start --auto-run-ready true --pool-size 2
+animus daemon start --pool-size 2
 
 # Watch it work
 animus daemon health

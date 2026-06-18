@@ -3,7 +3,7 @@ name: animus-workflow-authoring
 description: Write or update Animus workflow YAML in `.animus/workflows.yaml` and `.animus/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
 user_invocable: true
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Workflow Authoring
@@ -57,7 +57,7 @@ workflows:
 2. Do not add rework loops to command phases.
 3. Stagger cron offsets instead of starting every schedule on the same minute.
 4. A running daemon hot-reloads `.animus/workflows.yaml` and `.animus/workflows/*.yaml` edits via a filesystem watcher; `animus workflow config reload` is the manual fallback. A malformed edit keeps the prior config active.
-5. Put merge/PR automation in the workflow's `post_success.merge` block. The daemon-level git policy keys (`auto_merge`, `auto_pr`, `auto_commit_before_merge`, `auto_prune_worktrees`) were removed in v0.5.13 — declaring them under `daemon:` only emits a removed-key warning.
+5. Express merge/PR/commit automation as `command:` phases that run `git`/`gh` (a phase with a `command:` block). Animus no longer performs git operations as runner automation — `post_success.merge` and the daemon-level git policy keys (`integrations.git.auto_merge`, `auto_pr`, `auto_commit_before_merge`, `auto_prune_worktrees`) were removed and now fail to parse.
 6. Use `default_workflow_ref` when the repo should have a stable implicit default.
 7. Prefer pack refs like `animus.task/standard` over copying bundled behavior into project YAML.
 

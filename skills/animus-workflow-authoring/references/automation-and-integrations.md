@@ -63,12 +63,15 @@ integrations:
       scope: org
   git:
     provider: github
-    auto_pr: true
-    auto_merge: false
     base_branch: main
     config:
       organization: acme
 ```
+
+`integrations.git` reads only `provider`, `base_branch`, and `config` — the old
+`auto_pr` / `auto_merge` keys were removed and now fail to parse. Merge/PR/commit
+automation is expressed as `command:` phases running `git`/`gh` (see the workflow
+patterns skill).
 
 ## Schedules
 
@@ -163,7 +166,6 @@ from workflow YAML:
 
 ```yaml
 daemon:
-  auto_run_ready: true          # auto-dispatch Ready subjects
   active_hours: "00:00-06:00"   # local-time window gating schedule + trigger dispatch
   phase_routing:                # per-phase model/tool routing at daemon spawn time
     per_phase:                  # per-phase overrides MUST nest under per_phase:
@@ -171,7 +173,14 @@ daemon:
         tool: claude
         model: claude-sonnet-4-6
   mcp: {}                       # daemon-side MCP runtime config
+  budget:                       # fleet-wide spend cap across all workflows
+    max_cost_usd_per_day: 50.0
+    on_exceed: pause            # pause (default) | fail | warn
 ```
+
+The daemon is queue-only: it dispatches enqueued subjects (`animus queue enqueue`)
+and cron `schedules:` fires — Ready subjects are NEVER auto-dispatched. There is
+no `auto_run_ready` field; declaring it emits a removed-key warning.
 
 Everything else is set elsewhere or gone:
 
@@ -181,10 +190,10 @@ Everything else is set elsewhere or gone:
   hot-reloaded) or flags on `animus daemon run` / `animus daemon start`.
 - `max_task_retries` / `retry_cooldown_secs` have no runtime sink at all.
 - The daemon git policy keys (`auto_merge`, `auto_pr`,
-  `auto_commit_before_merge`, `auto_prune_worktrees`) were **removed** in
-  v0.5.13, along with their CLI flags. Merge/PR behavior lives per workflow
-  in `post_success.merge` (executed by the workflow runner plugin). Old
-  pm-config.json files still load.
+  `auto_commit_before_merge`, `auto_prune_worktrees`) were **removed**, along
+  with their CLI flags and `integrations.git.auto_merge` / `auto_pr`. Animus no
+  longer performs git operations as runner automation: express commit/push/PR/merge
+  as `command:` phases running `git`/`gh`. Old pm-config.json files still load.
 
 Declaring any of these unenforced/removed keys compiles fine but emits a
 warning on compile stderr and in the `warnings` array of
@@ -194,5 +203,4 @@ Outside `active_hours`, both schedules and triggers are suppressed; missed
 cron fires are not replayed when the window reopens, while webhook/plugin
 events stay queued and drain when it opens. `schedules:` and `triggers:`
 entries merge by `id` across `.animus/workflows/*.yaml` files; the `daemon:`
-block field-merges (note: `auto_run_ready` is a plain boolean, so a later
-overlay cannot reset an earlier `true` back to `false`).
+block field-merges across overlays.

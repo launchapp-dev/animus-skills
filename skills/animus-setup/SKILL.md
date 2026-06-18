@@ -3,7 +3,7 @@ name: animus-setup
 description: Set up Animus in the current project - initialize config, connect MCP, install required plugins, create a first workflow, and start the daemon. Use when bootstrapping Animus in a repo or fixing an incomplete Animus setup.
 user_invocable: true
 auto_invoke: false
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 You are setting up Animus in the current project.
@@ -80,15 +80,16 @@ Start with:
 
 ```bash
 animus daemon preflight
-animus daemon start --auto-run-ready true --pool-size 5
+animus daemon start --pool-size 5
 animus daemon health
 ```
 
 `animus daemon start` always detaches (prints pid + log path; idempotent if
 already running). Use `animus daemon run` for a foreground dev/debug daemon
-and `animus daemon restart` to bounce it. The legacy `--autonomous` flag is a
-deprecated no-op. `--interval-secs` is only a fallback heartbeat now —
-dispatch itself is event-driven.
+and `animus daemon restart` to bounce it. The legacy `--autonomous` flag was
+removed — `daemon start` now errors on it (it always detaches).
+`--interval-secs` is only a fallback heartbeat now — dispatch itself is
+event-driven.
 
 If preflight reports missing defaults on a dev machine:
 
@@ -104,8 +105,9 @@ plugins.
 - Run `animus daemon status` or the MCP equivalent.
 - Create a small task subject with `animus subject create --kind task --title "Verify setup"`.
 - Enqueue it with `animus queue enqueue --task-id <id>`. The enqueue nudges
-  the daemon, so pickup is immediate — no tick interval to wait for. Explicit
-  enqueues drain even when `auto_run_ready` is false.
+  the daemon, so pickup is immediate — no tick interval to wait for. The
+  enqueue (or a cron `schedules:` entry) is the dispatch trigger; the daemon
+  is queue-only and never scans the backend for Ready subjects.
 - Confirm the daemon picks it up before adding more workflows or schedules.
 - If a run stalls, check `animus agent interactions list` — agents can park
   mid-run on a pending question or approval; answer with

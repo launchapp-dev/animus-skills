@@ -3,7 +3,7 @@ name: animus-subject-operations
 description: Work with Animus subjects and subject_backend plugins, including task, requirement, Linear, SQLite, Markdown, and custom subject kinds, default_subject_kind, wire ids, and status routing.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Subject Operations
@@ -154,9 +154,9 @@ defaults to `task`.
 Dispatch is event-driven: `subject create/update/status` and
 `queue enqueue/release` (CLI and MCP) send a fire-and-forget `daemon/nudge`,
 so the daemon reacts effectively immediately — `--interval-secs` is only a
-fallback heartbeat, not the dispatch latency. Explicit `queue enqueue`
-entries drain even when `daemon.auto_run_ready` is `false`; that flag gates
-only ready-task auto-dispatch.
+fallback heartbeat, not the dispatch latency. `queue enqueue` (or a cron
+`schedules:` entry) is what dispatches work; a `ready` status alone does not
+cause auto-pickup.
 
 ## Exit Codes
 
@@ -192,9 +192,3 @@ Delete is CLI-only: there is no `animus.subject.delete` MCP tool.
 - Unexpected state names: distinguish normalized Animus status from native backend status.
 - Missing body/title update support in CLI: use a backend-specific plugin method if exposed.
 - Requirements no longer list: use `animus subject list --kind requirement`, not `animus requirements list`.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus subject batch-create` / `batch-update` CLI subcommands are v0.5.15+; on v0.5.14 batch operations are MCP-only (`animus.subject.batch-create`/`batch-update`).

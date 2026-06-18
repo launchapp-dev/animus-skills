@@ -3,7 +3,7 @@ name: animus-model-operations
 description: Choose models and verify provider readiness in Animus — provider plugin health, API-key and CLI-tool diagnostics, model/tool routing in workflow YAML, and per-model cost attribution. Use when selecting a model for a phase or agent, or when diagnosing why a provider or model fails to dispatch.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Model Selection and Provider Health
@@ -181,12 +181,6 @@ present-but-unparseable, exit code 1, headless vendor CLI.
   invalid — see **Backing-CLI Config Errors** above. Health/preflight checks
   will look clean.
 - Model works in the vendor CLI but not in Animus: `animus plugin info
-  --name <NAME>` and `animus plugin update`.
+  <NAME>` and `animus plugin update`.
 - Credential failures: `animus doctor --check api_keys`; prefer
   `animus secret set <KEY>` over daemon-process env vars.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus cost top --by provider` — added in v0.5.15; on v0.5.14 `cost top --by` accepts only `tokens|cost|model` (provider grouping is available via `cost summary`/`cost workflow` on both).

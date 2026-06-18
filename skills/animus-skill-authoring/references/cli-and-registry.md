@@ -90,10 +90,13 @@ animus skill publish --name code-review --version "1.0.0" --source github --regi
 ## Registry commands
 
 ```bash
-animus skill registry add --id community --url https://github.com/animus-skills/registry
+animus skill registry add --id community --url https://github.com/animus-skills/registry --priority 10
 animus skill registry list
 animus skill registry remove --id community
 ```
+
+`--priority <N>` on `registry add` sets the registry's search priority (lower
+value = higher priority).
 
 ## Registry state and pinning
 

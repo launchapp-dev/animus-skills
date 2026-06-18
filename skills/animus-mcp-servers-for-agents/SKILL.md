@@ -3,7 +3,7 @@ name: animus-mcp-servers-for-agents
 description: Connect agents to Context7, package-version, sequential-thinking, memory, GitHub MCP servers
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # MCP Servers for Animus Agents
@@ -207,9 +207,3 @@ tools_allowlist:
   - WebSearch
   - WebFetch
 ```
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- Secret injection via the workflow path needs workflow-runner `v0.4.3+`. On v0.5.14 the default runner pin is `v0.4.1`, so update it (`animus plugin update --name animus-workflow-runner-default`) before relying on that path.

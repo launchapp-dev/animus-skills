@@ -3,7 +3,7 @@ name: animus-supply-chain-security
 description: Animus plugin supply-chain security — sha256 checksums, cosign keyless signature verification, signature policy (strict/warn/disabled), trusted-signers allowlists, audited TOFU org trust with revocation, plugin lockfiles and fail-closed semantics, lock verify tamper detection, and CI verification gates. Use for questions about plugin security, lockfile integrity, signature verification, trusting or revoking orgs, or detecting tampered plugin binaries.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Supply-Chain Security
@@ -50,8 +50,8 @@ must match the publisher's `identity_regex` — for `launchapp-dev`, the
 standardized `release.yml` workflow under a `v*` tag), and the OIDC
 issuer (`https://token.actions.githubusercontent.com`). Verification
 shells out to the `cosign` binary; it must be on `$PATH` for `strict`.
-The workflow-runner default pin v0.4.3 is the first cosign-signed runner
-release — `animus plugin install` verifies it like any other.
+The current workflow-runner default pin (v0.4.5) ships a cosign-signed
+runner release — `animus plugin install` verifies it like any other.
 
 Policy modes via `--signature-policy <MODE>`:
 
@@ -71,7 +71,7 @@ animus plugin install --signature-policy strict launchapp-dev/animus-provider-cl
 Every install records `signature_status` in the plugin registry
 (`~/.animus/plugins.yaml`): `verified`, `unsigned`, `invalid`,
 `untrusted_signer`, or `skipped`. Inspect it directly in `plugins.yaml` (it is
-also in the `animus plugin info --name <NAME>` output); `animus plugin list`
+also in the `animus plugin info <NAME>` output); `animus plugin list`
 does not render a signature column. Audit it periodically; anything other than
 `verified` or an intentional `skipped` deserves investigation.
 
@@ -179,9 +179,3 @@ pass `--signature-policy strict` on every CI install.
 
 - animus-plugin-operations — install, update, discovery, flavors, and troubleshooting how-tos.
 - animus-configuration — project vs global plugin install scopes, env vars, and state layout.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- The default workflow-runner pin is `v0.4.3` on v0.5.15; on installed v0.5.14 it is `v0.4.1`.

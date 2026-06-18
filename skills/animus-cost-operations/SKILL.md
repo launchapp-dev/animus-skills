@@ -3,7 +3,7 @@ name: animus-cost-operations
 description: Inspect Animus token and USD spend, attribute cost to providers/models/phases, and operate workflow budget caps. Use when a question involves cost, spend, tokens, USD, budget caps or `budget:` blocks, budget breaches, paused-for-budget workflows, provider/model cost attribution, cost leaderboards, or `animus cost` commands.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Cost Operations
@@ -19,8 +19,10 @@ scoped fleet log `~/.animus/<repo-scope>/decisions.jsonl`.
 ```bash
 animus cost summary                       # aggregate spend, default --since 24h
 animus cost summary --since 7d --top 10   # window: 30m/12h/7d/2w; top-spender cap (default 5)
+animus cost summary --lifetime            # report each touched run's full lifetime spend, not just the window slice
 animus cost summary --by provider         # in-window spend grouped by tool, with %
 animus cost summary --by model            # grouped by model id
+animus cost summary --by task             # grouped by the subject/task each run was for
 
 animus cost workflow <WORKFLOW_RUN_ID>            # per-phase breakdown for one run
 animus cost workflow <WORKFLOW_RUN_ID> --by provider|model|phase
@@ -59,6 +61,9 @@ views `animus.cost.summary.breakdown.v1`,
 - `cost trends` is intentionally workflow-level only — buckets are built
   from workflow-level totals (including history) and are not split by
   provider/model.
+- Text output marks an estimated cost with a trailing `(est.)` (the USD
+  was derived from token counts and a price table, not a provider-reported
+  figure).
 
 ## Budget caps in workflow YAML
 
@@ -164,11 +169,3 @@ lists recorded budget-cap breaches; works offline.
 - **animus-observability** — status/health dashboards, the forensic chain, notifier events.
 - **animus-workflow-authoring** — full workflow YAML reference beyond the `budget:` block.
 - **animus-daemon-operations** — daemon lifecycle, heartbeat config, kill-switches generally.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus cost top --by provider` — added in v0.5.15; on v0.5.14 `cost top --by` accepts only `tokens|cost|model` (use `cost summary --by provider` there).
-- Budget-breach observability is v0.5.15+: on v0.5.14 a budget pause leaves the plain `paused by workflow <id>` annotation (no `— budget exceeded (...)` enrichment), and there is no `budget-enforcement` status file, no `daemon health` budget block, and no `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch. Enforcement itself (pause/fail/warn) works on both.
-- `animus.cost.decisions` MCP tool is v0.5.15+; on v0.5.14 use the `animus cost decisions` CLI.

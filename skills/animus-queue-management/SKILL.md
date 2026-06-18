@@ -3,7 +3,7 @@ name: animus-queue-management
 description: Dispatch queue operations — enqueue, hold, release, drop, reorder, and queue patterns
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Queue Management
@@ -24,6 +24,7 @@ fallback heartbeat, not the dispatch latency.
 ## Queue Entry States
 
 ```
+deferred → pending (when --at run_at passes)
 pending → assigned → (removed on completion)
 pending → held → pending (released)
 any → dropped (via animus queue drop)
@@ -43,7 +44,9 @@ Shows each entry's `subject_id`, status, and selected metadata.
 animus queue stats
 ```
 
-Returns: total, pending, assigned, held counts.
+Returns: total, pending, assigned, held counts. When any entries are
+scheduled but not yet due it also prints `(N deferred)` — `deferred` is a
+subset of `pending` that is not yet leasable.
 
 ### Enqueue
 `animus queue enqueue` enqueues a subject dispatch for a task, requirement,
@@ -69,9 +72,27 @@ The daemon picks up pending entries and assigns them to agents.
 kind from the prefix and resolves the subject via that kind's backend instead
 of forcing it through `task/get`. A bare id with no prefix defaults to `task`.
 
-Explicit enqueue entries are operator commands: they drain into free pool
-headroom even when `daemon.auto_run_ready` is `false`. That flag now gates
-only ready-task auto-dispatch, not the explicit queue.
+Deferred dispatch flags:
+
+```bash
+# Schedule for later — sets run_at; the entry stays `deferred` until due
+animus queue enqueue --task-id TASK-001 --at "2026-06-18T18:00:00Z"
+
+# Grace window after --at; if still pending past --at + window the entry is
+# dropped instead of dispatched. REQUIRES --at.
+animus queue enqueue --task-id TASK-001 --at "2026-06-18T18:00:00Z" --expire-after 30m
+
+# Attach structured input forwarded to the workflow
+animus queue enqueue --task-id TASK-001 --input-json '{"branch":"main"}'
+```
+
+A not-yet-due `--at` entry sits in the `deferred` queue state until its
+`run_at` passes, then becomes leasable like any other pending entry.
+
+The queue is queue-only: enqueued entries lease into free pool headroom as
+slots free up (bounded by `pool_size`). There is no `auto_run_ready` gate —
+that key was removed; a `ready` subject status never auto-dispatches on its
+own.
 
 ### Hold / Release / Drop (bulk)
 `hold`, `release`, and `drop` take one or more subject ids as positional
@@ -153,7 +174,11 @@ animus queue drop TASK-XXX
 ```
 
 ### Duplicate Prevention
-Treat `animus queue enqueue` as safe to retry, but still verify current queue state with `animus queue list` when debugging duplicate work.
+Enqueue is not deduplicated by core. Re-enqueueing a subject that is already
+queued may surface a `subject dispatch already queued (via queue plugin)`
+message plus a warning from the queue plugin, but it does not hard-block.
+Treat `animus queue enqueue` as safe to retry, but still verify current queue
+state with `animus queue list` when debugging duplicate work.
 
 ### Queue Capacity
 The daemon dispatches from the queue up to its configured `pool_size`. If the queue has more pending work than open slots, the rest stay pending until capacity frees up.

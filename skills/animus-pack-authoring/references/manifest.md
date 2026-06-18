@@ -135,8 +135,8 @@ optional = []
 | `permissions` | `mcp_namespaces` | No | MCP namespaces the pack touches |
 | `secrets` | `required` | No | Required env vars |
 | `secrets` | `optional` | No | Optional env vars |
-| `native_module` | `feature` | No | Advanced feature-gated native module |
-| `native_module` | `module_id` | No | Native module ID |
+| `native_module` | `feature` | Yes | Advanced feature-gated native module; required when `[native_module]` is present |
+| `native_module` | `module_id` | Yes | Native module ID; required when `[native_module]` is present |
 | `native_module` | `optional` | No | Default false |
 
 ## Validation constraints that matter

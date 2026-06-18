@@ -3,7 +3,7 @@ name: animus-workflow-patterns
 description: Battle-tested pipeline patterns — QA gates, command phases, conflict resolution, CI checks, stale PR handling, budget guardrails, human approval gates
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Workflow Patterns — Production-Ready Pipelines
@@ -96,20 +96,11 @@ workflows:
               target: implementation
 ```
 
-For simple flows, `post_success.merge` on the workflow can replace the push/PR phases — the workflow runner plugin merges the task branch after the workflow succeeds. This is the ONLY built-in merge/PR surface: the old daemon `auto_merge`/`auto_pr` config keys are gone, and `animus git` is inspection-only (no `commit`/`push`/`pull` verbs) — anything git-mutating in a pipeline is either `post_success.merge` or a shell `git`/`gh` command phase like the ones above:
-
-```yaml
-workflows:
-  - id: scaffold
-    post_success:
-      merge:
-        strategy: squash         # squash | merge | rebase
-        target_branch: main
-        create_pr: true
-        auto_merge: false
-        cleanup_worktree: true
-    phases: [...]
-```
+Animus no longer performs git operations as runner automation — `post_success.merge`
+and the daemon `auto_merge`/`auto_pr` config keys were removed and now fail to parse,
+and `animus git` is inspection-only (no `commit`/`push`/`pull` verbs). Anything
+git-mutating in a pipeline is a shell `git`/`gh` command phase like the
+`push-branch` / `create-pr` ones above — that is the only path.
 
 ## Critical: cwd_mode for Command Phases
 
@@ -767,7 +758,7 @@ Production failures that taught these:
 
 2. **Conductor that dispatches multiple tasks per sweep** — feels efficient but obscures which dispatch moved the score. Cap at one dispatch per sweep until you have telemetry to know which dispatches help.
 
-3. **Agent that creates AND enqueues** — the planner enqueues. Specialists CREATE tasks (status: ready) and let the planner pick them up. Agents that auto-enqueue race the planner and double-execute. Note the asymmetry that makes the split enforceable: `animus queue enqueue` is an operator command that drains even when `daemon.auto_run_ready: false`, while created-Ready tasks only auto-dispatch when that flag is on.
+3. **Agent that creates AND enqueues** — the planner enqueues. Specialists CREATE tasks (status: ready) and let the planner pick them up. Agents that auto-enqueue race the planner and double-execute. Note what makes the split enforceable: the daemon is queue-only — Ready subjects are NEVER auto-run. Work dispatches only when something calls `animus queue enqueue` or a cron `schedules:` entry fires, so a created-Ready task just sits until the planner enqueues it.
 
 4. **Reading every report every sweep** — the conductor loads `reports/**/*` and burns 50K tokens on stale data. Filter by mtime ≥ "since last sweep" and only read what changed.
 
@@ -778,10 +769,3 @@ Production failures that taught these:
 7. **No `AGENT_PRINCIPLES.md`** — the conductor's `system_prompt` becomes a 2000-line tuning surface that triggers a daemon restart on every edit. Extract policy into a sibling file the conductor reads at sweep start.
 
 8. **Per-repo sub-daemons** — feels like isolation; actually fragments state and forces the conductor to coordinate cross-daemon. One daemon, one conductor, daemon-managed worktrees per task.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus agent interactions answer --select` (structured answers) is v0.5.15+; on v0.5.14 the CLI takes only `--text`/`--allow`/`--deny` (structured/remember answering is MCP-only there).
-- Budget-pause annotation enrichment is v0.5.15+; on v0.5.14 the annotation is the plain `paused by workflow <id>`.

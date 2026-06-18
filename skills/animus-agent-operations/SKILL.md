@@ -3,7 +3,7 @@ name: animus-agent-operations
 description: Run and inspect Animus agent executions, direct provider runs, agent control, status, project-scoped agent memory, agent message channels, and human-in-the-loop interactions.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Agent Operations
@@ -54,7 +54,6 @@ Useful flags:
 - `--stream true|false` controls stdout event streaming.
 - `--save-jsonl true|false` controls persisted run logs.
 - `--jsonl-dir <PATH>` overrides persisted run log location.
-- `--start-runner true|false` controls automatic runner startup.
 
 MCP wiring for a run (the resolved server set reaches the provider itself as
 `extras.mcp_servers` on all four providers, for both `agent run` and `chat`;
@@ -217,9 +216,3 @@ receives via the injected sidecar):
 - Run appears stuck: inspect `animus daemon observe` (front-door), `animus daemon stream --run <run-id>`, and `animus output monitor --run-id <run-id>`. Check `animus agent interactions list` — it may be parked on a pending question or approval.
 - Orphaned provider CLI processes: `animus doctor` detects them; `--fix` prunes dead tracker entries (live PIDs get a manual suggestion).
 - Memory tools unavailable inside a workflow phase: the profile needs `capabilities: { memory: true }`; prompt injection additionally needs `memory: { enabled: true }`.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus agent interactions answer --select` / `--remember` / `--updated-input` are v0.5.15+; on v0.5.14 the CLI `answer` takes only `--text`/`--allow`/`--deny`/`--message`/`--by` (structured/remember/updated-input answering is MCP-only there).

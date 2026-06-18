@@ -3,7 +3,7 @@ name: animus-observability
 description: Inspect Animus status, daemon observe/health/metrics, structured streams, logs, run output, decision logs, artifacts, budget breaches, plugin status, web UI transports, and trigger events.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Observability
@@ -228,11 +228,5 @@ on the next scheduler pass.
 ## Exit Codes
 
 `subject`, `cost`, `events`, and `plugin` commands use typed exit codes:
-invalid input exits 2, not-found 3, unavailable (missing plugin / network) 5.
+invalid input exits 2, not-found 3, conflict 4, unavailable (missing plugin / network) 5.
 Scripts matching on exit 1 for these cases must update.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus.daemon.observe` MCP tool and the `daemon health` budget block are v0.5.15+; not present on v0.5.14 (the `daemon observe` CLI exists on both).

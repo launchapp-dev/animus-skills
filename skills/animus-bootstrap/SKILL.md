@@ -3,7 +3,7 @@ name: animus-bootstrap
 description: Guide a project from idea to autonomous engineering setup — interview the user, write VISION.md, AGENT_PRINCIPLES.md, registry, agents/workflows/phases/schedules YAML, scripts, and a first runnable task. Use when standing up Animus in a new project beyond the minimal /animus-setup scaffold.
 user_invocable: true
 auto_invoke: false
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Animus Bootstrap — Idea → Autonomous Engineering Team
@@ -381,7 +381,7 @@ animus workflow definitions list
 animus daemon preflight
 
 # 2. Start the daemon (always detaches; prints pid + log path; idempotent)
-animus daemon start --auto-run-ready true --pool-size 3
+animus daemon start --pool-size 3
 animus daemon health
 
 # 3. Create one real task subject that exercises the implement workflow
@@ -426,5 +426,5 @@ Do **not** offer to "tune the conductor" or "add more workflows" as a follow-up 
 2. **Skipping AGENT_PRINCIPLES.md "because the conductor's prompt is enough."** The whole point of separating them is restart-free policy iteration — burying ship targets in `system_prompt:` defeats it.
 3. **Wiring every MCP server "just in case."** Each one in `mcp_servers:` adds tokens to every agent invocation. Wire only what Phase 5's agents reference.
 4. **Cron storms.** Every schedule on `0 * * * *` causes minute-rollover storms. Stagger by 5–15 min offsets (see `../animus-agent-personas/SKILL.md` "Recommended Cron Schedule").
-5. **Auto-merge on a fresh setup.** Even if the user wants it, default to `post_success.merge.auto_merge: false` (per workflow — the old daemon-level `auto_merge`/`auto_pr` keys were removed) for the first week. Let them watch the conductor work, then flip.
+5. **Auto-merge on a fresh setup.** Even if the user wants it, hold off on the merge `command:` phase (or have `review-pr` gate it behind human approval) for the first week. Animus does no merge automation of its own — merge/PR is a `command:` phase running `git`/`gh` (Phase 6 already wires `push-branch` / `create-pr`), so leaving the auto-merge step out keeps a human in the loop. Let them watch the conductor work, then flip.
 6. **Bootstrapping without a real task.** A daemon with no work is unobservable. Phase 13's smoke test is non-optional — without it you cannot verify the wiring.

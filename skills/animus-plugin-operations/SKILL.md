@@ -3,7 +3,7 @@ name: animus-plugin-operations
 description: Install, inspect, update, lock, sign, scaffold, and troubleshoot Animus STDIO plugins — global and project-scoped installs, flavor-driven defaults, TOFU org trust auditing — covering provider, subject_backend, trigger, transport/web, workflow_runner, queue, and log-storage plugins.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Plugin Operations
@@ -57,7 +57,7 @@ same-named global install (registry-recorded or bare binary).
 
 ```bash
 animus plugin list --include-system-path
-animus plugin info --name animus-provider-claude --include-system-path
+animus plugin info animus-provider-claude --include-system-path
 ```
 
 `animus plugin list` shows each row's install scope in the `SCOPE` column
@@ -172,7 +172,7 @@ release-source installs surface an `org_trust` block (`org`, `trusted_at`,
 
 ```bash
 animus plugin list
-animus plugin info --name animus-provider-claude
+animus plugin info animus-provider-claude
 animus plugin ping --name animus-provider-claude
 animus plugin call --name animus-provider-claude --method '$/ping'
 animus plugin call --name animus-subject-linear --method 'linear/list' --params '{"limit":5}'
@@ -186,6 +186,7 @@ the plugin's manifest-declared `env_required` vars are unset.
 
 - `animus plugin doctor` — per-role view of installed plugins (installed_kind + native_kind) with duplicate/collision detection across all four preflight roles.
 - `animus plugin status [NAME]` — per-plugin runtime status (pid, state, last RPC, restart count, supervisor `disabled_by_supervisor` / `cooldown_until`); also reports aggregate provider health (absorbed from the removed `animus runner health`): a `providers` array plus a rolled-up `provider_plugins_healthy` boolean. Only provider runtimes report live fields; other kinds show `discovered`.
+- `animus plugin prune [--yes]` — remove stale `plugins.yaml` registry entries whose binary was deleted (the prune remedy named in the `plugin list` stale-entry warning); without `--yes` it previews.
 - `animus plugin rename <NAME> --to <KIND>` — change an installed plugin's `installed_kind` in the lockfile; the binary and manifest `native_kind` are untouched.
 - `animus plugin cache clear|list` — inspect or wipe the manifest cache under `~/.animus/cache/manifests/`; clear after a manual binary swap. `ANIMUS_DISABLE_MANIFEST_CACHE=1` (also accepts `true`/`yes`) is the kill switch.
 - `animus plugin scope show|set|reset` — per-project plugin scoping via `.animus/plugin-scope.yaml` (`mode: all`, `flavor-only`, or `allowlist`) so discovery and preflight only iterate the project's relevant plugins. The same file carries the persisted `active_flavor:`.

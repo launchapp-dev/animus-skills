@@ -3,7 +3,7 @@ name: animus-daemon-operations
 description: Start, stop, restart, monitor the Animus daemon — plugin preflight, health verdict, observe front-door, events, logs, metrics, pool sizing, common issues
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Daemon Operations
@@ -53,18 +53,23 @@ Useful startup flags:
 
 ```bash
 animus daemon start
-animus daemon start --auto-run-ready true --pool-size 5
+animus daemon start --pool-size 5
 ```
 
 `animus daemon start` **always** detaches: it spawns the daemon as a
 background process, prints the daemon pid and the background log path
 (`~/.animus/<repo-scope>/daemon/daemon.log`), and returns. Starting while a
 daemon is already running is idempotent — it reports the running pid instead
-of failing. The legacy `--autonomous` flag is a hidden, deprecated no-op.
+of failing. The legacy `--autonomous` flag was removed — `daemon start` now
+errors on it as an unknown argument.
+
+The daemon is **queue-only**: it executes explicitly-enqueued entries
+(`animus queue enqueue`) plus cron `schedules:` occurrences. It never scans
+the subject backend for Ready subjects, and a `ready` status alone does not
+cause pickup.
 
 Scheduler/start options:
 
-- `--auto-run-ready true|false` — automatically dispatch ready queued subjects.
 - `--pool-size N` (alias `--max-agents`) — max concurrent agent workflows.
 - `--interval-secs N` — fallback heartbeat (see below), not dispatch latency.
 - `--startup-cleanup true|false` — run cleanup before scheduling (default true).
@@ -73,13 +78,13 @@ Scheduler/start options:
 - `--stale-threshold-hours N` — flag stale in-progress work.
 - `--max-tasks-per-tick N` — max new workflows to dispatch per scheduler pass.
 - `--phase-timeout-secs N` — override phase timeout.
-- `--skip-runner` — do not auto-start the runner process.
 - `--auto-install` / `--skip-preflight` — preflight controls (above).
 
 The old `--auto-merge` / `--auto-pr` / `--auto-commit-before-merge` /
 `--auto-prune-worktrees-after-merge` / `--idle-timeout-secs` flags were
-removed; merge/PR behavior lives in workflow `post_success.merge`
-(workflow-runner plugin).
+removed. Git automation (commit / push / PR / merge) is now expressed as
+`command:` phases running `git` / `gh` in the workflow — `post_success.merge`
+was removed and now fails to parse.
 
 ### Restart
 
@@ -272,15 +277,17 @@ animus daemon stop --shutdown-timeout-secs 120
 
 ```bash
 animus daemon config
-animus daemon config --pool-size 3 --auto-run-ready true --interval-secs 60
+animus daemon config --pool-size 3 --interval-secs 60
+animus daemon config --max-daily-usd 50 --silent-threshold-mins 20
 ```
 
 Hot-reloaded settings: `--pool-size`, `--interval-secs`,
-`--max-tasks-per-tick`, `--auto-run-ready`, `--stale-threshold-hours`,
-`--phase-timeout-secs`, plus notification config
-(`--notification-config-json` / `--notification-config-file` /
-`--clear-notification-config`). The old `--auto-merge` / `--auto-pr` knobs
-were removed.
+`--max-tasks-per-tick`, `--stale-threshold-hours`, `--phase-timeout-secs`,
+plus notification config (`--notification-config-json` /
+`--notification-config-file` / `--clear-notification-config`). Two fleet
+knobs: `--max-daily-usd` (rolling-24h fleet cost cap; pass `0` to clear) and
+`--silent-threshold-mins` (default 20). There is no `--auto-run-ready`; the
+old `--auto-merge` / `--auto-pr` knobs were removed.
 
 MCP names:
 
@@ -375,10 +382,3 @@ animus doctor --fix          # prunes stale cli-tracker entries for exited proce
 
 Live tracked PIDs get a manual `kill` suggestion instead of automatic cleanup
 (the tracker is global across projects).
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus.daemon.observe` MCP tool is v0.5.15+; on v0.5.14 it is not registered (the `daemon observe` CLI exists on both; over MCP use `animus.daemon.events`/`animus.daemon.logs`).
-- The `daemon health` `budget_enforcement` block and the `ANIMUS_DAEMON_DISABLE_BUDGET_ENFORCEMENT` kill-switch are v0.5.15+; absent on v0.5.14.

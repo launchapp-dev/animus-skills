@@ -3,7 +3,7 @@ name: animus-task-management
 description: Task lifecycle through the unified subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.15"   # animus CLI surface this skill targets
+animus_version: "0.5.21"   # animus CLI surface this skill targets
 ---
 
 # Task Management
@@ -173,7 +173,9 @@ unsupported error. There is no MCP delete tool, so deletion is CLI-only.
 
 ### Promote Work
 
-Tasks are dispatchable when the subject backend reports `ready`:
+A `ready` status from the subject backend makes a task *eligible* to enqueue;
+it is dispatched only after `animus queue enqueue` (or a cron schedule), never
+auto-picked-up from `ready` alone:
 
 ```bash
 animus subject status --kind task --id TASK-005 --status ready
@@ -211,13 +213,7 @@ state:
 Typical flow:
 
 1. Create or select a `ready` task subject.
-2. Enqueue it with `animus queue enqueue --task-id TASK-XXX` (explicit
-   enqueues drain even when `daemon.auto_run_ready` is false).
-3. Run a workflow explicitly with `animus workflow run <workflow-ref> --task-id TASK-XXX`, or let the daemon pick it up.
+2. Enqueue it with `animus queue enqueue --task-id TASK-XXX` (enqueue is
+   required — the daemon dispatches enqueued entries and cron schedules only).
+3. Run a workflow explicitly with `animus workflow run <workflow-ref> --task-id TASK-XXX`, or let the daemon pick up the entry it now holds because you enqueued it in step 2.
 4. Inspect execution with `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output read`, and `animus output phase-outputs`.
-
-## Differences on installed v0.5.14
-
-This skill documents the **v0.5.15** surface (see `animus_version`). On an installed **v0.5.14**, the following differ:
-
-- `animus subject batch-create` / `batch-update` CLI subcommands are v0.5.15+; on v0.5.14 batch operations are MCP-only (`animus.subject.batch-create`/`batch-update`).
