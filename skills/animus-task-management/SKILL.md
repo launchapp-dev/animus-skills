@@ -218,10 +218,19 @@ state:
 
 ### Workflow Integration
 
-Typical flow:
+Typical flow (queue-driven is the default — let the daemon dispatch):
 
 1. Create or select a `ready` task subject.
-2. Enqueue it with `animus queue enqueue --task-id TASK-XXX` (enqueue is
-   required — the daemon dispatches enqueued entries and cron schedules only).
-3. Run a workflow explicitly with `animus workflow run <workflow-ref> --task-id TASK-XXX`, or let the daemon pick up the entry it now holds because you enqueued it in step 2.
-4. Inspect execution with `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output read`, and `animus output phase-outputs`.
+2. Enqueue it with `animus queue enqueue --task-id TASK-XXX`. This is both
+   required and the normal run trigger — the daemon dispatches enqueued
+   entries and cron schedules only, and `enqueue` nudges it to pick the entry
+   up immediately. A `ready` status alone is never auto-run.
+3. Let the running daemon dispatch the enqueued entry (start it with
+   `animus daemon start` if it is not already up). Prefer this path for normal
+   task execution — it respects the daemon's pool size and scheduling.
+4. Inspect execution with `animus queue list`, `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output read`, and `animus output phase-outputs`.
+
+`animus workflow run <workflow-ref> --task-id TASK-XXX` is the **ad-hoc /
+foreground-debug** alternative: it runs one workflow directly, bypassing the
+queue and the daemon. Reach for it only for one-off manual runs or when
+debugging a specific workflow — not as the default way to execute tasks.
