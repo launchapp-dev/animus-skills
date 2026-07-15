@@ -135,9 +135,9 @@ These load automatically when the conversation needs them — you don't type a s
 
 After setup you have:
 
-- **`animus` CLI** at `~/.local/bin/animus` — command groups for `subject`, `workflow`, `queue`, `daemon`, `agent`, `project`, `git`, `skill`, `model`, `pack`, `plugin`, `runner`, `history`, `logs`, `trigger`, `mcp`, `web`, `init`, `doctor`, …
+- **`animus` CLI** at `~/.local/bin/animus` — command groups for `subject`, `workflow`, `queue`, `daemon`, `agent`, `chat`, `install`, `add`, `remove`, `git`, `skill`, `pack`, `plugin`, `flavor`, `cost`, `history`, `logs`, `events`, `trigger`, `mcp`, `web`, `init`, `doctor`, `secret`, `auth`, `state`, `approval`, `status`, `output`, `update`, …
 - **A daemon** that runs in the background, dispatches workflows from a queue, and manages agent processes in isolated worktrees
-- **A plugin-based runtime** — provider plugins install with `animus plugin install-defaults`; subject and transport/UI defaults are added with `--include-subjects` and `--include-transports`; trigger and log-storage backends are plugin-discovered when installed
+- **A plugin-based runtime** — projects declare plugins and packs in a committed `animus.toml` manifest and install them with `animus install` (lockfile-driven; `animus install --locked` in CI/Docker reproduces `.animus/plugins.lock` exactly). On a machine without a manifest, `animus plugin install-defaults` installs the required set; subject and transport/UI defaults are added with `--include-subjects` and `--include-transports`
 - **An MCP server** (`animus mcp serve`) that exposes typed tools — your agent calls them directly instead of shelling out
 - **Project-local config** in `.animus/` (workflow YAML, skills, pack overrides) — checked in, sharable with teammates
 - **Scoped runtime state** in `~/.animus/<repo-scope>/` — runs, artifacts, compiled config — never pollutes your repo
@@ -153,7 +153,7 @@ Workflows are battle-tested across 150+ autonomous PRs (see `animus-workflow-pat
 
 **MCP tools missing in Claude / Codex?** Restart your agent so it picks up the new `.mcp.json`. Verify with `animus mcp serve --help` to confirm the binary is on `PATH`.
 
-**Daemon won't start?** Run `animus doctor` and `animus daemon preflight`. Missing provider or subject plugins are fixed with `animus plugin install-defaults --include-subjects`. For everything else, `/animus-troubleshooting`.
+**Daemon won't start?** Run `animus doctor` and `animus daemon preflight`. In a project with a committed `animus.toml`, fix missing plugins with `animus install`; without a manifest, `animus plugin install-defaults --include-subjects`. For everything else, `/animus-troubleshooting`.
 
 **Agent says "Cannot be launched inside another Claude Code session"?** The daemon inherits `CLAUDECODE=1` from a parent Claude Code shell. Start it from a clean terminal, or prefix with `env -u CLAUDECODE animus daemon start`.
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.0.0 — 2026-07-15
+
+### Changed
+- Re-baselined every skill from Animus CLI **v0.5.21** to **v0.7.0-rc.18** and the current portal (animus-launchapp) MCP surface. Full ground truth and task list in `docs/plans/2026-07-15-v0.7-rebaseline.md`. Highlights:
+  - **Dispatch:** `--task-id`/`--requirement-id` (CLI) and `task_id`/`requirement_id` (MCP) replaced by `--subject-id`/`subject_id` with qualified `kind:ID` values everywhere; requirement dispatch no longer defaults to `animus.requirement/plan`.
+  - **Plugin model:** `animus.toml` manifest + `animus install/add/remove`; `.animus/plugins.lock` is the source of truth (schema 2.0, per-target integrity) and `plugins.yaml` a derived projection; avm owns kernel upgrades for managed installs.
+  - **Workflow YAML:** `workspaces:`, `environment_routing:`, workflow/phase `environment:`+`workspace:`, `approval_policy.default: llm`, `retry_on`/`no_retry_on`, schedule `owner_id`, custom verdict routing, OAuth `client_secret_env`.
+  - **Execution substrate:** cross-phase environment broker (one ephemeral node per run; command phases execute in it) documented alongside the local-worktree model.
+  - **Portal MCP:** `team_*`, `script_*`, `skill_*`, `phase_context_schema`, paginated `list_subjects`, budget get/set; plugin renames (`animus-subject-postgres` → `animus-postgres`); new `animus-subject-mcp` and `animus-environment-railway` plugins; Claude/Codex subscription connections (no Gemini connection — removed upstream).
+- New skills: `animus-environment-operations`, `animus-portal-operations`.
+
 ## 2.3.0 — 2026-06-11
 
 ### Changed

@@ -1,5 +1,7 @@
 # Animus Skills — Source-Surface Audit
 
+> **HISTORICAL — v0.5.21 baseline.** This audit describes the skill set as verified against animus-cli v0.5.21 (2026-06-18). The skills have since been re-baselined to **v0.7.0-rc.18 + the animus-launchapp portal surface**; the current ground truth, per-skill findings, and update tasks live in [`plans/2026-07-15-v0.7-rebaseline.md`](plans/2026-07-15-v0.7-rebaseline.md).
+
 **Date:** 2026-06-18
 **Audited against:** `animus-cli` `main` @ **v0.5.21** (git `0e0aae39`) — source code + reference docs **and** the installed **v0.5.21** binary (installed CLI and source now match). Originally audited at the same `main`; re-confirmed at 0.5.21 source + binary (see the two verification subsections below).
 **Skills audited:** all 27 under `skills/` (40 markdown files: 27 `SKILL.md` + 13 `references/*.md`)
