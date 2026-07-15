@@ -3,7 +3,7 @@ name: animus-mcp-servers-for-agents
 description: Connect agents to Context7, package-version, sequential-thinking, memory, GitHub MCP servers
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # MCP Servers for Animus Agents
@@ -31,9 +31,16 @@ mcp_servers:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-memory"]
   github:
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-github"]
+    transport: http
+    url: https://api.githubcopilot.com/mcp/
+    oauth:
+      flow: manual_bearer
+      bearer_env: GITHUB_MCP_TOKEN
 ```
+
+(The `@modelcontextprotocol/server-github` npm package is deprecated
+upstream — use GitHub's hosted MCP endpoint, as the OAuth example later in
+this skill does.)
 
 Each entry picks exactly one transport via `transport:`:
 
@@ -65,15 +72,21 @@ agents:
 
 Agents only get access to the servers listed in their `mcp_servers` array.
 
-### How servers reach the provider (v0.5.13+)
+### How servers reach the provider
 
-The resolved server set is passed down to the provider plugins themselves: it
-rides the provider RPC as `extras.mcp_servers` for `animus agent run` and
-`animus chat` on all four providers (claude, codex, gemini, opencode), and on
-the workflow path via workflow-runner v0.4.3+. Secret-bearing servers (all
-OAuth flows) are rewritten to `animus-mcp-proxy` stdio entries before
-pass-down — tokens never reach CLI configs or argv. The name `animus` always
-resolves to the built-in `animus mcp serve` stdio surface.
+The resolved server set is passed down to the provider plugins themselves:
+it rides the provider contract for `animus agent run` and `animus chat` to
+any provider plugin that declares `supports_mcp` (manifest field, plugin
+protocol 1.2.0; undeclared defaults true), and on the workflow path via
+workflow-runner v0.4.3+. Secret-bearing servers (all OAuth flows) are
+rewritten to `animus-mcp-proxy` stdio entries before pass-down — tokens
+never reach CLI configs or argv. The name `animus` always resolves to the
+built-in `animus mcp serve` stdio surface.
+
+For deterministic, LLM-free access from scripts and command phases, use
+`animus mcp tools <server>` (list) and
+`animus mcp call <server> <tool> --args '<json>'` (v0.7.0-rc.9+) — OAuth
+servers route through the proxy with the bearer injected, never printed.
 
 ### 3. Reference tools in agent prompts
 
@@ -89,7 +102,7 @@ implementer:
 
 ## OAuth-Protected HTTP Servers
 
-http servers can carry an `oauth:` block. Flows: `authorization_code` (interactive browser login via `animus mcp auth <server>`), `client_credentials`, `refresh_token`, `manual_bearer`. Credential material is read from env vars via `*_env` fields (`client_id_env`, `client_secret_env`, `refresh_token_env`, `bearer_env`), never from YAML. Other fields: `token_url`, `scopes`, `audience`, `cache` (default true).
+http servers can carry an `oauth:` block. Flows: `authorization_code` (interactive browser login via `animus mcp auth <server>`), `client_credentials`, `refresh_token`, `manual_bearer`. Credential material is read from env vars via `*_env` fields (`client_id_env`, `client_secret_env`, `refresh_token_env`, `bearer_env`), never from YAML. Other fields: `token_url`, `scopes`, `audience`, `cache` (default true), and — for `authorization_code` providers without Dynamic Client Registration — a pre-registered `client_id` plus `client_secret_env` for confidential clients (v0.7.0-rc.12+; resolved from process env, then the `animus secret` keychain).
 
 ```yaml
 mcp_servers:

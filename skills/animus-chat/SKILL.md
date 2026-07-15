@@ -3,7 +3,7 @@ name: animus-chat
 description: Hold and manage multi-turn Animus chat conversations — interactive provider sessions, conversation history, resume semantics, transcript search and export, and per-conversation cost.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Animus Chat
@@ -49,10 +49,11 @@ Key flags on `chat send`:
   and must stay inside it.
 - `--reasoning-effort low|medium|high` — provider thinking budget
   (codex `model_reasoning_effort`, claude `--effort`).
-- `--permission-mode <MODE>` — forwarded verbatim (claude
-  `default|acceptEdits|bypassPermissions|plan`, codex
-  `untrusted|on-failure|on-request|never`, gemini `default|auto_edit|yolo`);
-  overrides any agent-profile value. Unknown values warn but pass through.
+- `--permission-mode <MODE>` — mapped by each provider plugin onto its
+  driver (claude `default|acceptEdits|bypassPermissions|plan` natively;
+  codex `untrusted|on-failure|on-request|never` via MCP; gemini
+  `default|auto_edit|yolo` via ACP — transports since v0.6.9); overrides any
+  agent-profile value. Unknown values warn but pass through.
 - `--approvals` — kernel-mediated approvals via the
   `animus.agent.request_approval` MCP tool; implied when the `--agent`
   profile declares an `approval_policy`.
@@ -68,11 +69,13 @@ final assistant turn once complete.
 ## Continuity: resume XOR replay
 
 Providers own continuity. With a live `session_id` from a prior turn on the
-same tool, Animus sends only the new message and resumes the provider's
-native session. With no live session (new conversation, missing/stale
-session id, or a mid-conversation tool change), Animus replays its stored
-transcript into the prompt — never both, so context is never double-counted.
-A stale-session error triggers exactly one full-history replay retry.
+same tool, Animus sends only the new message and the provider plugin resumes
+its native session (how it does so is driver-internal — claude natively,
+codex over MCP, gemini/opencode over ACP since v0.6.9). With no live session
+(new conversation, missing/stale session id, or a mid-conversation tool
+change), Animus replays its stored transcript into the prompt — never both,
+so context is never double-counted. A stale-session error triggers exactly
+one full-history replay retry.
 
 ## MCP servers, agent profiles, and skills
 
@@ -91,9 +94,10 @@ animus chat send "Draft release notes" --skill release-notes --no-animus-mcp
   profile/skill servers, the baseline set is just `animus`, so the model
   can call `animus.*` tools mid-conversation.
 
-The resolved set reaches the provider itself as `extras.mcp_servers` on all
-four providers. OAuth/secret-bearing servers are rewritten to
-`animus-mcp-proxy` stdio entries — tokens never reach CLI configs or argv.
+The resolved set rides the provider contract to any provider plugin
+declaring `supports_mcp` (manifest field; undeclared defaults true).
+OAuth/secret-bearing servers are rewritten to `animus-mcp-proxy` stdio
+entries — tokens never reach CLI configs or argv.
 
 ### Full skill application (v0.5.14)
 

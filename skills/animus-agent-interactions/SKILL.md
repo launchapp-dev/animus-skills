@@ -3,7 +3,7 @@ name: animus-agent-interactions
 description: Deep reference for Animus human-in-the-loop (HITL) agent interactions — agent questions and approval requests, the pending-interaction inbox, paused workflows waiting for an answer, permission prompts, approval_policy routing, and suspend/resume mechanics. Use when an agent is parked on a pending interaction, a workflow is paused awaiting a human decision, an approval or permission prompt needs answering, or when configuring approvals for agents.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Agent Interactions (Human-in-the-Loop)
@@ -60,14 +60,15 @@ agents:
   (sets `extras.approvals` so transports route permission decisions through
   the kernel tool).
 - `permission_mode` **composes** with `approval_policy` — neither overrides
-  the other. `permission_mode` is the transport-level guard (forwarded
-  verbatim: claude `--permission-mode`, codex `-c approval_policy`, gemini
-  approval mode) deciding whether the provider escalates at all;
+  the other. `permission_mode` is the transport-level guard — each provider plugin maps
+  it onto its own driver (claude `--permission-mode` natively; codex inside
+  its MCP driver, gemini/opencode inside their ACP drivers, since v0.6.9) —
+  deciding whether the provider escalates at all;
   `approval_policy` decides what happens to escalations that reach the
   kernel. Caveat: ad-hoc surfaces honour `permission_mode` today; workflow
   phase execution enforces it once the out-of-tree workflow-runner plugin
-  pin consumes the field. Phase `runtime.permission_mode` wins over the
-  agent profile's value.
+  pin consumes the field (still true at v0.7.0-rc.18). Phase
+  `runtime.permission_mode` wins over the agent profile's value.
 
 ## Native enforcement (claude) — SDK conformance
 
@@ -94,9 +95,14 @@ through the kernel — enforced, not voluntary. The wire contract:
   resumes with the answer as feedback (voluntary agent calls keep the
   `pending` payload).
 
-codex / gemini / opencode have no exec-mode approval hook: they get
-`permission_mode` mapping plus a system-prompt instruction block directing
-the agent to call the two kernel tools — voluntary compliance.
+codex / gemini / opencode route approvals through their provider plugins'
+`request_approval` wiring (kernel-mediated approvals landed on all five core
+providers in the v0.6.0 line; codex is MCP-driven and gemini/opencode
+ACP-driven since v0.6.9, and ACP carries a native permission-request
+channel). Where a driver cannot intercept a tool call natively it falls back
+to `permission_mode` mapping plus a system-prompt instruction block directing
+the agent to call the two kernel tools. Claude remains the only provider with
+the full SDK permission-prompt-tool conformance described above.
 
 ## Operator inbox: `animus agent interactions`
 

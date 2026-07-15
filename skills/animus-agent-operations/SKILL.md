@@ -3,7 +3,7 @@ name: animus-agent-operations
 description: Run and inspect Animus agent executions, direct provider runs, agent control, status, project-scoped agent memory, agent message channels, and human-in-the-loop interactions.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Agent Operations
@@ -44,8 +44,8 @@ Useful flags:
 - `--model <MODEL>` overrides the configured model for that tool.
 - `--prompt <TEXT>` sends direct prompt text.
 - `--reasoning-effort low|medium|high` overrides provider reasoning effort (also settable as `reasoning_effort` on agent profiles and phase `runtime`).
-- `--permission-mode <MODE>` forwards a provider permission/approval mode verbatim (claude `default|acceptEdits|bypassPermissions|plan`, codex `untrusted|on-failure|on-request|never`, gemini `default|auto_edit|yolo`). Precedence: flag > `permission_mode` in `--context-json` > the `--agent` profile's `permission_mode` field. Unknown values warn but pass through.
-- `--approvals` enables kernel-mediated approvals: transports route permission decisions through the `animus.agent.request_approval` MCP tool (claude wires it as `--permission-prompt-tool`; other providers get a prompt instruction block). Implied when the `--agent` profile declares an `approval_policy`.
+- `--permission-mode <MODE>` passes a provider permission/approval mode to the provider plugin, which maps it onto its driver (claude `default|acceptEdits|bypassPermissions|plan` natively; codex `untrusted|on-failure|on-request|never` via its MCP driver; gemini `default|auto_edit|yolo` via ACP — transports since v0.6.9). Precedence: flag > `permission_mode` in `--context-json` > the `--agent` profile's `permission_mode` field. Unknown values warn but pass through.
+- `--approvals` enables kernel-mediated approvals: transports route permission decisions through the `animus.agent.request_approval` MCP tool (claude wires it as `--permission-prompt-tool`; the other providers route through their MCP/ACP drivers' approval wiring, falling back to a prompt instruction block). Implied when the `--agent` profile declares an `approval_policy`.
 - `--cwd <PATH>` must resolve inside the project root.
 - `--timeout-secs <N>` caps the run.
 - `--context-json <JSON>` passes agent context.
@@ -55,8 +55,9 @@ Useful flags:
 - `--save-jsonl true|false` controls persisted run logs.
 - `--jsonl-dir <PATH>` overrides persisted run log location.
 
-MCP wiring for a run (the resolved server set reaches the provider itself as
-`extras.mcp_servers` on all four providers, for both `agent run` and `chat`;
+MCP wiring for a run (the resolved server set rides the provider contract to
+any provider plugin declaring `supports_mcp` — manifest field, protocol
+1.2.0, undeclared defaults true — for both `agent run` and `chat`;
 secret-bearing/OAuth servers are rewritten to `animus-mcp-proxy` stdio
 entries so tokens never reach CLI configs or argv):
 
@@ -211,7 +212,7 @@ receives via the injected sidecar):
 
 ## Troubleshooting
 
-- Provider tool is missing: `SessionBackendResolver` hard-errors with the exact install command — run it, or `animus plugin install-defaults`, then `animus daemon preflight`.
+- Provider tool is missing: `SessionBackendResolver` hard-errors with the exact install command — run it, or `animus install` (manifest project) / `animus plugin install-defaults`, then `animus daemon preflight`.
 - Provider health: `animus plugin status` (per-provider install state + aggregate `provider_plugins_healthy`); `animus daemon health` carries the same `provider_plugins_healthy` flag.
 - Run appears stuck: inspect `animus daemon observe` (front-door), `animus daemon stream --run <run-id>`, and `animus output monitor --run-id <run-id>`. Check `animus agent interactions list` — it may be parked on a pending question or approval.
 - Orphaned provider CLI processes: `animus doctor` detects them; `--fix` prunes dead tracker entries (live PIDs get a manual suggestion).
