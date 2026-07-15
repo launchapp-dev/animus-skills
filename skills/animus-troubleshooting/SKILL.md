@@ -3,7 +3,7 @@ name: animus-troubleshooting
 description: Common Animus issues and fixes — daemon crashes, plugin preflight, workflow failures, queue problems, merge conflicts
 user_invocable: true
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Troubleshooting Animus
@@ -37,14 +37,16 @@ required role is missing and `1` on transient discovery failure.
 
 The daemon refuses to start when any required role is unsatisfied:
 at least one provider, `at_least_one_subject_backend` (any installed
-`subject_backend` plugin — as of v0.5.20 specific kinds are no longer
-hard-coded), `workflow_runner`, and `queue`. The error prints the exact
-`animus plugin install ...` fix per role, plus one composed fix when several
-roles are missing.
+`subject_backend` plugin — specific kinds are not hard-coded),
+`config_source` (required since v0.6.0 — the kernel no longer parses
+workflow YAML in the runtime load path), `workflow_runner`, and `queue`.
+The error prints the exact `animus plugin install ...` fix per role, plus
+one composed fix when several roles are missing.
 
 ```bash
 animus daemon preflight
-animus plugin install-defaults        # installs the flavor's required set (all roles)
+animus install                        # manifest project: install the declared set
+animus plugin install-defaults        # no-manifest fallback: flavor's required set (all roles)
 animus daemon start
 ```
 
@@ -120,7 +122,9 @@ Current Animus strips the known guard vars at provider spawn points.
 Dispatch is event-driven (sub-second pickup after subject/queue mutations),
 but two knobs bound it: `pool_size` caps concurrent runners (upper-bounded by
 `ANIMUS_WORKFLOW_CONCURRENCY_MAX`, default 10) and `max_tasks_per_tick`
-(default 2) caps new dispatches per pass.
+(default 2) caps new dispatches per pass. (Since runner v0.4.36 these caps
+are config-driven on portal deployments — check `animus daemon config`
+rather than assuming the defaults.)
 
 ```bash
 animus daemon config --pool-size 5 --max-tasks-per-tick 3
@@ -181,6 +185,16 @@ missing), so a typo'd skill name is visible instead of a silent no-op.
 
 ## Crashed or Stuck Phase Sessions
 
+**Restart recovery changed in v0.6.27 (journal resume):** when a durable
+`workflow_journal` backend is installed (e.g. the portal's
+`animus-postgres`), the daemon's boot reconcile **RESUMES** in-flight runs
+from the journal after a restart or redeploy instead of cancelling them.
+Don't diagnose "runs vanished after restart" with old assumptions — check
+`animus workflow list` first; the runs are likely continuing. Kill-switch:
+`ANIMUS_DAEMON_DISABLE_JOURNAL_RESUME=1` (restores cancel-on-boot). With
+only the in-tree SQLite journal, in-flight runs still don't survive a
+restart.
+
 `animus doctor` detects both:
 
 - Zombie sessions: phase session JSON stuck in `running` for over 6 hours
@@ -239,8 +253,9 @@ animus queue drop TASK-XXX            # positional ids; --all --yes for everythi
 2. Check ready task subjects: `animus subject list --kind task --status ready`.
    A `ready` subject is *eligible to enqueue*, not auto-run — it will not
    dispatch until it is enqueued.
-3. Enqueue one manually: `animus queue enqueue --task-id TASK-XXX` — enqueued
-   entries dispatch as pool slots free.
+3. Enqueue one manually: `animus queue enqueue --subject-id task:TASK-XXX` —
+   enqueued entries dispatch as pool slots free. (v0.7 removed
+   `--task-id`/`--requirement-id`; use `--subject-id` with a qualified id.)
 4. Inspect recent workflows: `animus workflow list --limit 5`.
 5. Follow scheduler activity: `animus daemon stream --cat schedule --pretty`.
 
@@ -376,21 +391,31 @@ animus workflow delete --run-id <RUN_ID> --yes
 
 ```bash
 animus plugin outdated                 # installed vs recommended pin vs latest (--exit-code for CI)
+animus install --locked                # manifest project: restore the exact committed set
 animus plugin update --all --restart-daemon
 animus plugin lock verify              # sweeps global + project lockfiles
 ```
 
+Self-update note: on an avm-managed binary (`~/.avm/versions/`),
+`animus update` defers and prints `avm install` / `avm use` commands
+instead of self-replacing (v0.6.11).
+
 ## State Location Reference
 
 ```text
-.animus/
-├── config.json            # self-update + CLI settings only (no daemon settings)
-├── workflows.yaml
-├── workflows/
-├── skills/
-├── plugin-scope.yaml      # scope mode + active_flavor
-├── plugins/  plugins.yaml  plugins.lock   # project-scoped plugin triple
-└── .gitignore             # written by init/project installs; covers plugins/
+<repo-root>/
+├── animus.toml            # committed project manifest (plugins + packs) — animus install resolves it
+├── .env.example
+└── .animus/
+    ├── config.json            # self-update + CLI settings only (no daemon settings)
+    ├── workflows.yaml
+    ├── workflows/
+    ├── skills/
+    ├── plugin-scope.yaml      # scope mode + active_flavor
+    ├── plugins/               # binaries (gitignored)
+    ├── plugins.lock           # committed — SOURCE OF TRUTH for the plugin set
+    ├── plugins.yaml           # derived projection of the lock (regenerated; never hand-edit)
+    └── .gitignore             # written by init/project installs; covers plugins/
 ```
 
 ```text
@@ -402,6 +427,7 @@ animus plugin lock verify              # sweeps global + project lockfiles
 ├── interactions/        # pending agent questions/approvals
 ├── logs/  runs/  artifacts/
 ├── state/
+├── workflow-environments/   # v0.7 environment-broker leases (<run_id>.json)
 └── worktrees/
 ```
 
@@ -414,7 +440,7 @@ Detection:
 
 ```bash
 animus subject get --kind task --id TASK-XXX
-animus workflow list --task-id TASK-XXX
+animus workflow list --subject-id TASK-XXX
 gh pr list --state merged --search "TASK-XXX"
 ```
 
@@ -427,8 +453,9 @@ Set them back to ready and queue rebase-and-retry or a replacement task.
 
 ## Worktrees Have No Dependencies
 
-Command phases can fail in worktrees because dependencies are not installed.
-Add an install phase before build/test/lint commands:
+**Local (no-environment) runs:** command phases can fail in worktrees because
+dependencies are not installed. Add an install phase before build/test/lint
+commands:
 
 ```yaml
 install-deps:
@@ -441,6 +468,32 @@ install-deps:
 ```
 
 Read-only phases can skip worktree creation entirely with `worktree: skip`.
+
+**Environment-pinned runs (v0.7):** all phases of the run — command phases
+included — share one ephemeral broker node, so deps installed by the first
+command phase persist for the rest of the run. The failure mode shifts to
+"the run's first phase never installed them" or a node-acquisition failure
+(see the next section).
+
+## Environment Broker Failures (v0.7)
+
+Runs pinned to an execution environment (workflow/phase `environment:`,
+`environment_routing:`) acquire one ephemeral node per run through the
+daemon-resident broker. When these runs stall or fail at phase boundaries:
+
+1. Lease records live at
+   `~/.animus/<repo-scope>/workflow-environments/<run_id>.json` — a lease
+   with no live node means the node died out from under the run.
+2. Stale leases are cold-torn-down by the daemon's **startup reaper** —
+   `animus daemon restart` clears leaked nodes after a crash.
+3. Node acquisition is single-flight **keyed on the subject**: parallel runs
+   on the same subject share the acquire; a hung acquire blocks them all.
+4. The runner reaches the node through a private broker socket
+   (`ANIMUS_ENVIRONMENT_BROKER_*` env vars, daemon-set — if a run's exec
+   fails with broker auth/connection errors, restart the daemon rather than
+   fiddling with the vars).
+5. Teardown happens on terminal states; a run stuck non-terminal keeps its
+   node (and its cost) alive — cancel the run to release it.
 
 ## Reviewer Merges PRs With Failing CI
 
