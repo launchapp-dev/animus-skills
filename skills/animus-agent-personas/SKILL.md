@@ -3,7 +3,7 @@ name: animus-agent-personas
 description: Product lifecycle agents — product owner, architect, auditor, docs-writer, devops, researcher personas
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Agent Personas — Beyond Code Delivery
@@ -138,9 +138,9 @@ researcher:
 
 **Cron:** Every 1-2 hours during active development.
 
-## Persona Guardrails (v0.5.13+)
+## Persona Guardrails
 
-Persona profiles can now declare runtime guardrails that actually apply:
+Persona profiles declare runtime guardrails that actually apply:
 
 ```yaml
 devops:

@@ -173,7 +173,8 @@ actually selected tool/model.
 
 `activation.tools` and `adapters.<tool>` keys match the runtime tool id with a
 literal case-insensitive comparison. Workflow phases use canonical ids only
-(`claude`, `codex`, `gemini`, `opencode`, `oai-runner`), so a typo (`claud`),
+(`claude`, `codex`, `gemini`, `opencode`, `oai`, `oai-agent` — the legacy
+`oai-runner` id canonicalizes to `oai-agent`), so a typo (`claud`),
 whitespace padding, or an alias (`open-code`) silently never matches there.
 Such inert declarations surface as a non-fatal `warnings` array on
 `animus skill info`, `animus skill list`, and the `animus.skill.get` /

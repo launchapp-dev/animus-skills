@@ -3,7 +3,7 @@ name: animus-project-history-git
 description: Inspect Animus execution history, Git repo and worktree state, and approval records — history search and cleanup, worktree listing and pruning, repo-scope resolution, and the approval gate for destructive operations. Use for post-run forensics, worktree housekeeping, or approval round-trips.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # History, Git Inspection, and Approvals
@@ -72,6 +72,12 @@ animus git worktree prune --repo <name|path> --confirmation-id <id> \
 `--repo` accepts a registered repo name or a path. For everything else
 (status, branches, commits, pushes), use plain `git`; Animus no longer
 wraps those operations.
+
+v0.7 note: worktree pruning covers **locally managed** task worktrees.
+Runs pinned to an execution environment materialize their workspaces inside
+ephemeral remote nodes instead — those are torn down by the environment
+broker (lease records under
+`~/.animus/<repo-scope>/workflow-environments/`), not by `worktree prune`.
 
 `animus doctor --fix --yes` additionally removes orphan worktrees
 (`git worktree remove --force`) as part of its remediations.

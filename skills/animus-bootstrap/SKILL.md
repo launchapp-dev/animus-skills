@@ -3,7 +3,7 @@ name: animus-bootstrap
 description: Guide a project from idea to autonomous engineering setup — interview the user, write VISION.md, AGENT_PRINCIPLES.md, registry, agents/workflows/phases/schedules YAML, scripts, and a first runnable task. Use when standing up Animus in a new project beyond the minimal /animus-setup scaffold.
 user_invocable: true
 auto_invoke: false
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Animus Bootstrap — Idea → Autonomous Engineering Team
@@ -293,6 +293,12 @@ If Phase 1 said "fleet of repos" or "dual-brain", add:
 ## Phase 9 — mcp-servers.yaml
 
 Write to `.animus/workflows/mcp-servers.yaml`. Wire the MCP servers the agents in Phase 5 reference.
+
+> v0.7 note: if the project's phases need heavy dependencies, multiple repos,
+> or isolation beyond local worktrees, consider pinning workflows to an
+> execution environment (workflow-level `environment:` + `workspaces:` — see
+> animus-workflow-authoring "Execution environments"). Local-first remains
+> the right default for a fresh bootstrap.
 
 ```yaml
 mcp_servers:

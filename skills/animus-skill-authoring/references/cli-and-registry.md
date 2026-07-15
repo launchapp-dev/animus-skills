@@ -28,11 +28,30 @@ animus skill search --registry community
 ## Install a skill
 
 ```bash
+# From GitHub (v0.6.8+) — imports Anthropic "Agent Skills" SKILL.md format
+animus skill install OWNER/REPO
+animus skill install OWNER/REPO@ref
+animus skill install https://github.com/OWNER/REPO/tree/main/skills/my-skill
+animus skill install https://raw.githubusercontent.com/OWNER/REPO/main/SKILL.md
+
+# From a registry / local path
 animus skill install --name code-review --registry community
 animus skill install --name code-review --version "^1.0" --allow-prerelease
 animus skill install --path .animus/skills/code-review/SKILL.md
 animus skill install --path .animus/skills/
 ```
+
+GitHub imports auto-detect format: `animus:` frontmatter → native
+passthrough; otherwise Anthropic Agent Skills semantics (`name`/`description`
+map over, the markdown body → `prompt.system`, `allowed-tools` →
+`tool_policy.allow`). Trees of `skills/<name>/SKILL.md` install each skill
+with sibling assets; foreign names are slugified; provenance is recorded
+under the `github-import` source shown by `skill list` / `skill info`.
+
+On the portal, the flat-named `skill_install` / `skill_uninstall` /
+`skill_info` / `skill_search` / `skill_update` MCP tools wrap this surface;
+GitHub installs there land in a durable on-volume registry that survives
+redeploys, while `--path` installs are ephemeral.
 
 `--path` accepts a Markdown skill file, a single skill folder, or a directory of
 skill folders. `--name` is optional when installing from `--path`. Installing an

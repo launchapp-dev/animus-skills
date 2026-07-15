@@ -3,7 +3,7 @@ name: animus-mcp-setup
 description: Set up .mcp.json, Claude Code permissions, and connect AI tools to Animus's MCP server
 user_invocable: true
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # MCP Server Setup
@@ -98,15 +98,17 @@ v0.5.14.)
 
 ## Available Tool Groups
 
-86 built-in tools in management mode; the default server exposes 84 (the two
-`animus.interactions.*` tools are gated behind `--management`).
+Exact tool counts drift between releases — enumerate the live surface with
+`animus.tools.list` (grouped catalog) rather than trusting a doc snapshot.
+The two `animus.interactions.*` tools are gated behind `--management`.
+Families and their purposes:
 
-| Prefix | Tools | Purpose |
+| Prefix | ~Tools | Purpose |
 |--------|-------|---------|
 | `animus.agent.*` | 12 | Agent runs, profiles, memory, messages, ask/approval escalation |
 | `animus.interactions.*` | 2 | List/answer pending agent questions and approvals (`mcp serve --management` only) |
 | `animus.daemon.*` | 12 | Daemon lifecycle, monitoring, and the `observe` front-door |
-| `animus.cost.*` | 1 | Budget-cap breach log (`animus.cost.decisions`) |
+| `animus.cost.*` / `animus.budget.*` | 3 | Breach log (`cost.decisions`) + fleet budget get/set (`budget.get`/`budget.set`) |
 | `animus.subject.*` | 8 | Task, requirement, and external subject CRUD plus batch create/update |
 | `animus.queue.*` | 7 | Dispatch queue management (bulk `subject_ids[]` on hold/release/drop) |
 | `animus.workflow.*` | 17 | Workflow execution, phases, gate approve/reject, config, checkpoints |
