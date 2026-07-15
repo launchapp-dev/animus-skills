@@ -37,7 +37,7 @@ description = "What this pack does."
 mode = "project"
 
 [compatibility]
-animus_core = ">=0.5.14"   # floor required when using [[requires_plugins]]
+animus_core = ">=0.6.9"    # pick the real floor your pack needs; [[requires_plugins]] needs >=0.5.14
 workflow_schema = "v2"
 subject_schema = "v2"
 

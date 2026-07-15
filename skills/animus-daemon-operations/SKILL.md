@@ -22,13 +22,17 @@ of v0.5.20 specific kinds are no longer hard-coded), `workflow_runner`, and
 
 ```bash
 animus daemon preflight
-animus plugin install-defaults --flavor default --yes
+animus install                  # project has a committed animus.toml (v0.6.9+)
+animus plugin install-defaults --flavor default --yes   # no-manifest fallback
 animus daemon preflight
 ```
 
+In a project with a committed `animus.toml`, `animus install` (CI:
+`--locked`) is the canonical fix — it installs exactly the declared plugin
+set from `.animus/plugins.lock`. Without a manifest,
 `animus plugin install-defaults` (no flags) installs the flavor's full
-required set — provider, both subject backends, transport, workflow runner,
-and queue — so a single pass covers every preflight role.
+required set — provider, both subject backends, config_source, transport,
+workflow runner, and queue — so a single pass covers every preflight role.
 `--include-recommended` adds the recommended set.
 
 Preflight behavior:

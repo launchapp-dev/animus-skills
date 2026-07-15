@@ -39,7 +39,7 @@ If the daemon cannot start, run:
 
 ```bash
 animus daemon preflight
-animus plugin install-defaults --flavor default --yes
+animus install   # with a committed animus.toml; else: animus plugin install-defaults --flavor default --yes
 ```
 
 ## Observe Front-Door

@@ -23,6 +23,18 @@ Animus no longer ships bundled packs in the binary. Pinning a pack to the `bundl
 
 ### Install a pack
 
+Projects with a committed `animus.toml` (v0.6.9+) declare packs in `[packs]`
+and install them with the manifest flow — this is the canonical team path:
+
+```bash
+animus add my-org/my-pack@v1.2.0 --pack   # add to animus.toml + install
+animus install                            # install everything the manifest declares
+animus install --locked                   # CI/Docker: reproduce .animus/plugins.lock exactly
+animus remove my-pack --pack              # drop from manifest + uninstall
+```
+
+`animus pack install` remains the direct/ad-hoc path:
+
 ```bash
 animus pack install --path ./my-pack
 animus pack install --name my-pack --registry my-registry
