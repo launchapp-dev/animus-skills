@@ -2,3 +2,4 @@
 .ao/
 .claude/settings.local.json
 .superpowers/
+.DS_Store
