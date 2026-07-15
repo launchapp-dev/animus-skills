@@ -116,6 +116,8 @@ These load automatically when the conversation needs them — you don't type a s
 | `animus-workflow-patterns` | …authoring pipelines — QA gates, command phases, conflict resolution, CI checks |
 | `animus-agent-personas` | …configuring product-lifecycle agents (PO, architect, auditor, docs-writer, devops) |
 | `animus-mcp-servers-for-agents` | …connecting agents to Context7, package-version, sequential-thinking, memory, or GitHub MCP |
+| `animus-environment-operations` | …pinning workflows to execution environments/coder nodes, `workspaces:`, broker leases, node teardown (v0.7) |
+| `animus-portal-operations` | …driving a hosted portal deployment — portal MCP tools, Connections, MCP-server catalog, script registry |
 
 ## Multi-host
 
