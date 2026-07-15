@@ -3,7 +3,7 @@ name: animus-workflow-patterns
 description: Battle-tested pipeline patterns — QA gates, command phases, conflict resolution, CI checks, stale PR handling, budget guardrails, human approval gates
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Workflow Patterns — Production-Ready Pipelines
@@ -139,9 +139,9 @@ Agent phases (mode: agent) spawn a full Claude/Codex session. For deterministic 
 
 ## install-deps Phase — Why It's Required
 
-Worktrees don't have `node_modules`. The implementation agent uses Claude Code's file tools (Read/Write/Edit) which don't need deps installed. But command phases that run `pnpm build`, `pnpm test`, or `pnpm lint` will fail with "command not found" errors.
+**Local (no-environment) runs:** worktrees don't have `node_modules`. The implementation agent uses Claude Code's file tools (Read/Write/Edit) which don't need deps installed. But command phases that run `pnpm build`, `pnpm test`, or `pnpm lint` will fail with "command not found" errors. **Always add `install-deps` before any command phase that needs node_modules.**
 
-**Always add `install-deps` before any command phase that needs node_modules.**
+**Environment-pinned runs (v0.7):** when the workflow resolves to an execution environment, all phases of the run — command phases included — share one ephemeral broker node, so dependencies persist across phases. Install once in the first command phase of the run; later phases reuse it. The failure mode changes from "every command phase is missing deps" to "the first phase forgot to install them".
 
 ## QA Gates Without Rework Loops
 
@@ -292,7 +292,7 @@ schedules:
     workflow_ref: product-owner-codex-loop
 ```
 
-Codex's reasoning footprint differs from Opus enough to catch confirmation bias. Use this when the conductor's decisions compound (roadmap, scope, "what to ship next") rather than for mechanical work.
+Codex's reasoning footprint differs from Opus enough to catch confirmation bias. Use this when the conductor's decisions compound (roadmap, scope, "what to ship next") rather than for mechanical work. (Since v0.6.9 the codex provider drives Codex over MCP — `animus-provider-codex-mcp` — but `tool: codex` routing in YAML is unchanged.)
 
 ## qa-changes Rework Gate
 
@@ -458,6 +458,94 @@ animus queue list
 
 Surface them via `tools_allowlist` so command phases can call them. Cuts agent token cost meaningfully on multi-repo sweeps.
 
+On portal deployments, prefer the durable script registry below over repo-local script files — same DRY benefit, plus team-editable without a redeploy.
+
+## Durable Script-Registry Command Phases (portal)
+
+Portal deployments keep command-phase scripts in a Postgres-backed registry (REQUIREMENT-042): the `script_set` MCP tool upserts a named script (`bash` | `python` | `typescript`, v1 interpreted-only) and atomically materializes it to `/data/animus-state/scripts/<name>.<ext>` — no redeploy, survives volume resets, `script_list`/`script_get`/`script_remove` manage it. Command phases reference the materialized path:
+
+```yaml
+phases:
+  clean-transcript:
+    mode: command
+    command:
+      program: bash                    # bash | python3 | tsx — must be in tools_allowlist
+      args: ["/data/animus-state/scripts/transcript-krisp.sh"]
+      cwd_mode: project_root
+      parse_json_output: true          # REQUIRED for the script's phase_decision to count
+      timeout_secs: 300
+```
+
+The authoring contract for such scripts is one MCP call away: `phase_context_schema` returns the injected `ANIMUS_*` env vars (subject id/kind/title/status, workflow ref/run id/phase id, `ANIMUS_CONTEXT_FILE`, …), the JSON schema of the `$ANIMUS_CONTEXT_FILE` document (full subject including its `data` bag, prior phases with verdicts + outputs, dispatch input), and the `phase_decision` stdout protocol:
+
+```json
+{"kind": "phase_decision", "verdict": "advance", "reason": "cleaned 412 lines",
+ "outputs": {"corrections": 37}}
+```
+
+Print exactly one such JSON object to stdout; `verdict` may be a standard (`advance`/`rework`/`skip`/`fail`) or custom string routed by the phase's `on_verdict` map. Scripts read live Animus state deterministically via `animus mcp call` / the CLI — no LLM tokens spent on mechanical steps.
+
+## Custom-Verdict Routing
+
+Command phases mint domain verdicts via `on_success_verdict`/`on_failure_verdict` (or a `phase_decision` with a custom `verdict`), and the workflow routes them like any other verdict — this replaces "agent phase that decides what obviously follows from an exit code":
+
+```yaml
+phases:
+  check-mergeable:
+    mode: command
+    command:
+      program: gh
+      args: ["pr", "view", "--json", "mergeable", "--jq", ".mergeable"]
+      cwd_mode: task_root
+      failure_pattern: "CONFLICTING"
+      on_success_verdict: advance
+      on_failure_verdict: needs-rebase     # custom verdict
+
+workflows:
+  - id: merge-train
+    phases:
+      - check-mergeable:
+          on_verdict:
+            needs-rebase: { target: rebase-on-main }   # route the custom verdict
+      - merge-pr
+      - rebase-on-main:
+          on_verdict:
+            advance: { target: check-mergeable }
+          max_rework_attempts: 2
+```
+
+`on_verdict` keys are free-form strings; loop guards (`max_rework_attempts`) apply to custom-verdict cycles the same as `rework`. Validation rejects empty or unknown `target`s.
+
+## Environment-Pinned Pipeline (v0.7)
+
+Pin heavy or multi-repo pipelines to an execution-environment plugin (e.g. `animus-environment-railway` coder nodes). One node per run; all phases share it; teardown on terminal states:
+
+```yaml
+workspaces:
+  platform:
+    repos:
+      - url: https://github.com/acme/api
+        primary: true
+      - url: https://github.com/acme/web
+
+environment_routing:
+  default: railway                # or rules matched on subject kind / harness
+
+workflows:
+  - id: platform-delivery
+    environment: railway          # workflow-level pin (daemon rc.16+)
+    workspace: platform
+    phases:
+      - implementation
+      - install-deps              # deps persist in the node for later phases
+      - build-check
+      - pr-review:
+          on_verdict:
+            rework: { target: implementation }
+```
+
+Precedence: phase `environment:` → routing rule → workflow `environment:` → `environment_routing.default` → local. Ops notes: the broker keys node acquisition on the *subject* (parallel runs on one subject share a node acquire), lease records live at `~/.animus/<repo-scope>/workflow-environments/<run_id>.json`, and stale leases are cold-torn-down by the startup reaper. The worktree patterns above still govern runs without an environment.
+
 ## AGENT_PRINCIPLES.md — Stable Prompt Anchor
 
 Conductor system prompts grow — ship targets, gates, kill criteria, anti-patterns. Tuning those by editing the agent's `system_prompt:` triggers a daemon restart and is a high-friction loop for product-side changes. Extract the policy into a sibling file the conductor reads at sweep start:
@@ -536,7 +624,7 @@ Rules:
 
 ## Worktree + Task Title Conventions
 
-The daemon manages task worktrees — agents should not invent their own paths. Each task gets a worktree under the repo's scoped state dir:
+For **local (no-environment) runs**, the daemon manages task worktrees — agents should not invent their own paths. Each task gets a worktree under the repo's scoped state dir:
 
 ```
 ~/.animus/<repo-scope>/worktrees/task-<sanitized-task-id>/
@@ -544,21 +632,22 @@ The daemon manages task worktrees — agents should not invent their own paths. 
 
 `<repo-scope>` is `<repo-name>-<hash>` (hash of the canonical project root), and the default branch is `animus/<sanitized-task-id>`. Multiple agents stay isolated because each task gets its own worktree.
 
+For **environment-pinned runs (v0.7)**, workspace materialization is owned by the environment plugin instead: the run's repos (from `workspaces:` or the subject's `git_repo`) are checked out inside the run's ephemeral node, and the node — not a local worktree — is the isolation boundary. The title conventions below apply unchanged.
+
 Task title format: `<repo-id>:<action>`. The implementer agent parses `<repo-id>` to pick which repo to operate on.
 
 ```bash
 animus subject create --kind task --title "launchapp-nextjs:update-deps" --status ready
-animus queue enqueue --task-id <created-task-id> --workflow-ref update-deps
+animus queue enqueue --subject-id task:<created-task-id> --workflow-ref update-deps
 
 animus subject create --kind task --title "launchapp-nuxt:fix-build" --status ready
-animus queue enqueue --task-id <created-task-id> --workflow-ref fix-build
+animus queue enqueue --subject-id task:<created-task-id> --workflow-ref fix-build
 
 animus subject create --kind task --title "launchapp-react-router:design-improve" --status ready
-animus queue enqueue --task-id <created-task-id> --workflow-ref design-improve
+animus queue enqueue --subject-id task:<created-task-id> --workflow-ref design-improve
 ```
 
-The workflow ref is bound at dispatch time (queue enqueue or workflow run), not on the task itself.
-```
+The workflow ref is bound at dispatch time (queue enqueue or workflow run), not on the task itself. (v0.7 migration: `--task-id`/`--requirement-id` were removed — `--subject-id` with a qualified `kind:ID` is the universal dispatch selector, and a requirement dispatched without `--workflow-ref` uses the project default workflow, no longer `animus.requirement/plan`.)
 
 This convention lets you grep `animus queue list` for all in-flight work on a single repo, and lets the conductor write rules like "skip queueing the same `<repo-id>:<action>` 3+ times in a week — that loop is broken."
 
