@@ -3,7 +3,7 @@ name: animus-observability
 description: Inspect Animus status, daemon observe/health/metrics, structured streams, logs, run output, decision logs, artifacts, budget breaches, plugin status, web UI transports, and trigger events.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Observability
@@ -230,3 +230,13 @@ on the next scheduler pass.
 `subject`, `cost`, `events`, and `plugin` commands use typed exit codes:
 invalid input exits 2, not-found 3, conflict 4, unavailable (missing plugin / network) 5.
 Scripts matching on exit 1 for these cases must update.
+
+## Trigger-Event Subjects (portal, v0.7)
+
+Every trigger delivery — schedules, `triggers:` blocks, webhooks — writes a
+`trigger_event` subject (status `done`, delivery metadata in the `custom`
+bag). "Did my trigger fire?" is answerable from the board or
+`animus subject list --kind trigger_event` / `list_subjects` with
+`kind: "trigger_event"` — no log spelunking. Events are pruned past 30 days
+beyond the newest 2000.
+

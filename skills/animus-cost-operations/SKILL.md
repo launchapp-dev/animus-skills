@@ -3,7 +3,7 @@ name: animus-cost-operations
 description: Inspect Animus token and USD spend, attribute cost to providers/models/phases, and operate workflow budget caps. Use when a question involves cost, spend, tokens, USD, budget caps or `budget:` blocks, budget breaches, paused-for-budget workflows, provider/model cost attribution, cost leaderboards, or `animus cost` commands.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Cost Operations
@@ -94,7 +94,7 @@ pause|fail|warn` (default `pause`). At least one cap is required; both
 must be > 0.
 
 **Enforcement model:** the daemon enforces caps on its housekeeping sweep,
-once per heartbeat (`interval_secs`, default 30s) — not mid-phase
+once per heartbeat (`interval_secs`, default 5s) — not mid-phase
 token-by-token. A phase in flight can overshoot the cap by up to one sweep
 before the action lands. Enforcement requires a running daemon; without
 one, caps are only recorded when an `animus cost` command runs (never
@@ -144,7 +144,7 @@ leg as disabled.
 
 ```bash
 # 1. Declare a cap in .animus/workflows/*.yaml (budget: block above), then run
-animus workflow run --task-id TASK-042
+animus workflow run --subject-id task:TASK-042
 
 # 2. Detect: status shows the Budget section; the task explains itself
 animus status
@@ -161,8 +161,20 @@ animus workflow resume --id wf-...
 
 ## MCP
 
-One cost tool: `animus.cost.decisions` (params `since`, `project_root`) —
-lists recorded budget-cap breaches; works offline.
+Three tools on the local serve surface:
+
+- `animus.cost.decisions` (`since`, `project_root`) — recorded budget-cap
+  breaches; works offline.
+- `animus.budget.get` (`project_root`) — fleet daily cap, rolling-24h spend,
+  remaining headroom, exceeded/dispatch-paused flags, and every configured
+  per-workflow/per-phase cap; works offline.
+- `animus.budget.set` (`max_daily_usd`, `clear`, `project_root`) — set or
+  clear the fleet daily cap (wraps `daemon config --max-daily-usd`;
+  hot-reloaded).
+
+The portal additionally exposes `cost_summary` (flat-named) on its own MCP
+surface. A latched fleet-cap breach flips daemon health to Degraded with
+`dispatch_paused` / `daily_cap_exceeded`.
 
 ## Related skills
 

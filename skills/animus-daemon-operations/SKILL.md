@@ -3,7 +3,7 @@ name: animus-daemon-operations
 description: Start, stop, restart, monitor the Animus daemon — plugin preflight, health verdict, observe front-door, events, logs, metrics, pool sizing, common issues
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Daemon Operations
@@ -308,7 +308,9 @@ old `--auto-merge` / `--auto-pr` knobs were removed.
 
 The daemon's persistent config lives at
 `~/.animus/<repo-scope>/daemon/pm-config.json` and is hot-reloaded once per
-tick.
+tick. The base *workflow* config is served by the resident `config_source`
+plugin host (one warm process per project root since v0.6.7; the role is
+required at preflight since v0.6.0).
 
 MCP names:
 
@@ -326,9 +328,23 @@ MCP names:
 | `animus.daemon.config-set` | Update daemon config |
 | `animus.daemon.pause` | Pause dispatch |
 | `animus.daemon.resume` | Resume dispatch |
+| `animus.budget.get` | Fleet budget posture: daily cap, rolling-24h spend, headroom, exceeded/dispatch-paused flags |
+| `animus.budget.set` | Set/clear the fleet daily cap (`max_daily_usd`, `clear`) |
 
-`daemon stream`, `clear-logs`, `preflight`, `restart`, and `metrics` are CLI
-surfaces, not MCP daemon tools in the current reference.
+`daemon stream`, `clear-logs`, `preflight`, and `restart` are CLI surfaces,
+not MCP daemon tools on the local serve surface (the portal additionally
+exposes `daemon_metrics`).
+
+**Budget breach behavior (v0.7.0-rc.6+):** a latched fleet daily-cap breach
+flips daemon health **Healthy → Degraded** and surfaces
+`dispatch_paused` / `daily_cap_exceeded` in `daemon status` / `daemon
+health` (CLI and MCP), plus a PAUSED banner in status output — check these
+before diagnosing a mysteriously idle daemon.
+
+**Restart recovery (v0.6.27+):** with a durable `workflow_journal` backend
+installed, the boot reconcile RESUMES in-flight runs from the journal after
+a restart/redeploy instead of cancelling them (kill-switch
+`ANIMUS_DAEMON_DISABLE_JOURNAL_RESUME=1`).
 
 ## Kill-Switches
 
