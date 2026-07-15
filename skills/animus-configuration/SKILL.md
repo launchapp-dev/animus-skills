@@ -3,16 +3,33 @@ name: animus-configuration
 description: Animus project config, daemon config, plugin config, agent runtime, environment variables, and state layout
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Configuration
 
-Animus resolves behavior from project-local `.animus/`, installed packs,
-repo-scoped runtime state under `~/.animus/<repo-scope>/`, global machine
-config, environment variables, and installed STDIO plugins.
+Animus resolves behavior from the project manifest `animus.toml`,
+project-local `.animus/`, installed packs, repo-scoped runtime state under
+`~/.animus/<repo-scope>/`, global machine config, environment variables, and
+installed STDIO plugins.
 
 ## Project-local sources
+
+### `animus.toml` (v0.6.9+) — the project manifest
+
+Committed at the repo root; scaffolded by `animus init`. Declares intent:
+`[project]` (kernel version), `[plugins]`, and `[packs]`, with each
+dependency as a version string, `{ git, tag }`, or `{ path }`.
+`animus install` resolves it into `.animus/plugins.lock` and installs the
+set; `animus install --locked` (CI/Docker) reproduces the committed lock
+exactly and fails on manifest↔lock drift; `animus add <spec>` /
+`animus remove <name>` mutate the manifest and install/uninstall. Team
+onboarding is `git clone && animus install`.
+
+`animus init` also scaffolds `.env.example` and a merge-safe project
+`.gitignore`. `animus install` syncs `.env` into the device-encrypted secret
+store (idempotent; blank `KEY=` values are skipped, never stored empty;
+imports audited) and warns about keys declared in `.env.example` but unset.
 
 ### `.animus/config.json`
 
@@ -35,8 +52,12 @@ Hand-authored workflow sources. Typical uses:
 - Set `worktree:` mode (`auto` default / `required` / `skip`) per
   workflow or phase.
 - Map logical secret names in `secrets:`, referenced as `${secret.<name>}`
-  and resolved at compile time (env first, then the `animus secret`
-  keychain store).
+  and resolved at consume/spawn time since v0.6 (env first, then the
+  `animus secret` keychain store) — the reference passes through config
+  parsing verbatim; resolved values never land in compiled artifacts.
+- Declare v0.7 execution-environment surfaces: `workspaces:`,
+  `environment_routing:`, and workflow/phase `environment:` /
+  `workspace:` fields.
 
 Use:
 
@@ -49,11 +70,24 @@ animus workflow config compile
 `validate` / `compile` also report declared-but-unenforced fields and
 unresolvable explicit `skills:` names in a `warnings` array.
 
-A running daemon hot-reloads these files via a filesystem watcher
-(500 ms debounce). A malformed edit keeps the prior config active and
+**Config sourcing is a plugin since v0.6.0:** the kernel no longer parses
+`.animus/*.yaml` in the runtime load path — the base WorkflowConfig comes
+exclusively from an installed `config_source` plugin. The default
+`launchapp-dev/animus-config-yaml` serves exactly these YAML files (so YAML
+remains the default authoring surface); the portal uses the consolidated
+`animus-postgres` plugin instead. The daemon requires the role at preflight
+and keeps ONE resident config_source host per project root (re-spawned only
+on process death or binary mtime change, with a CacheToken short-circuit
+when the source config is unchanged), so file edits are picked up without
+per-load process churn. A malformed edit keeps the prior config active and
 broadcasts `config_reload_failed` instead of crashing. Manual trigger:
 `animus workflow config reload`. Daemon transport settings and
 `.animus/plugins.lock` changes still require a daemon restart.
+
+Sources that advertise `config_write` also accept CLI write-back:
+`animus workflow config set / agent-set / agent-remove / workflow-set /
+workflow-remove / phase-set` (rc.13+) edit the base config without touching
+YAML by hand.
 
 ### `.animus/skills/<name>/SKILL.md`
 
@@ -62,19 +96,28 @@ YAML skill definitions live at `.animus/config/skill_definitions/<name>.yaml`.
 Agent-host skills from `.claude/skills` and `.codex/skills` are lower-trust
 prompt-text-only probes.
 
-### `.animus/plugins/`, `.animus/plugins.yaml`, `.animus/plugins.lock`
+### `.animus/plugins/`, `.animus/plugins.lock`, `.animus/plugins.yaml`
 
-Project-scoped plugin triple, populated by `animus plugin install --project`
-(same flag on `uninstall` / `update`): binaries in `.animus/plugins/`,
-registry in `.animus/plugins.yaml`, integrity lockfile in
-`.animus/plugins.lock`. Project installs run the identical integrity
-pipeline as global installs (sha256, cosign policy, publisher TOFU,
-fail-closed lockfile) and **shadow** same-named global installs during
-discovery (`animus plugin list` shows a `SCOPE` column and a `shadowed`
-array). Commit `.animus/plugins.lock` (pins the repo's plugin set;
-`animus plugin lock verify` sweeps both global and project roots) and
-`.animus/plugins.yaml`; never commit binaries — `animus init` and project
-installs write a `.animus/.gitignore` covering `plugins/`.
+Project-scoped plugin triple, populated by `animus install` (from
+`animus.toml`) or `animus plugin install --project` (same flag on
+`uninstall` / `update`): binaries in `.animus/plugins/`, the **lockfile**
+`.animus/plugins.lock`, and a registry `.animus/plugins.yaml`.
+
+**The lock is the source of truth (v0.6.9+):** `plugins.yaml` is a derived
+projection regenerated from the lock on every mutating op — never hand-edit
+it, and don't treat it as authoritative; drift heals on the next operation.
+Lock schema 2.0 (v0.6.7) records per-target-triple integrity
+(`targets: {triple → {archive_sha256, signature_bundle_sha256,
+installed_binary_sha256}}`) for every published platform, so a lock generated
+on macOS drives a verified `--locked` install in a linux container.
+
+Project installs run the identical integrity pipeline as global installs
+(sha256, cosign policy, publisher TOFU, fail-closed lockfile) and **shadow**
+same-named global installs during discovery (`animus plugin list` shows a
+`SCOPE` column and a `shadowed` array). Commit `animus.toml` and
+`.animus/plugins.lock` (`animus plugin lock verify` sweeps both global and
+project roots); never commit binaries — `animus init` and project installs
+write a `.animus/.gitignore` covering `plugins/`.
 `.animus/plugins/<pack-id>/` doubles as the project-local pack override root.
 
 ### `.animus/plugin-scope.yaml`
@@ -100,8 +143,8 @@ Mutable project runtime state lives outside the repo:
 ├── budget-enforcement.v1.json
 ├── resume-config.json
 ├── workflow.db
+├── .journal-imported-v1          # marker: one-time SQLite→journal-plugin import done
 ├── config/
-│   ├── workflow-config.v2.json
 │   ├── state-machines.v1.json
 │   └── agent-runtime-config.v2.json
 ├── daemon/
@@ -116,6 +159,7 @@ Mutable project runtime state lives outside the repo:
 ├── artifacts/<run-id>/
 ├── state/
 │   └── pack-selection.v1.json
+├── workflow-environments/        # v0.7: environment-broker lease records (<run_id>.json)
 └── worktrees/
 ```
 
@@ -130,9 +174,14 @@ Key files:
   `budget-enforcement.v1.json` records the enforcement sweep's
   `{enabled, last_sweep_at}` status surfaced by `animus daemon health`.
 - `config/agent-runtime-config.v2.json` is the compiled agent runtime config
-  (which AI model/tool each agent profile uses) and `config/workflow-config.v2.json`
-  the compiled workflow config; inspect/validate/replace the agent runtime via
-  `animus workflow agent-runtime get|validate|set` rather than editing the file.
+  (which AI model/tool each agent profile uses); inspect/validate/replace it
+  via `animus workflow agent-runtime get|validate|set` rather than editing
+  the file. The compiled *workflow* config (`animus.workflow-config.v2`) is
+  **in-memory only** — an on-disk `config/workflow-config.v2.json` is a hard
+  load error, not a cache.
+- `workflow-environments/<run_id>.json` (v0.7) are durable environment-broker
+  leases for runs pinned to an execution environment; stale leases are
+  cold-torn-down by the daemon's startup reaper.
 - `interactions/` stores pending agent questions/approvals
   (`animus agent interactions`).
 - `mcp-oauth-cache/<server>.json` caches resolved OAuth tokens for
@@ -227,7 +276,7 @@ include `workflow-failed`, `task-blocked`, and `workflow-budget-breach`.
 ├── principals.yaml
 ├── trusted-orgs.yaml            # plugin-install TOFU allowlist (audited; revoke-trust)
 ├── trusted-signers.yaml
-├── plugins.yaml / plugins.lock  # global plugin registry + lockfile
+├── plugins.lock / plugins.yaml  # global lockfile (source of truth) + derived registry
 ├── plugins/<plugin-name>
 ├── packs/<pack-id>/<version>/
 ├── skills/<skill-name>/SKILL.md
@@ -260,7 +309,11 @@ The `pack inspect` alias was retired in v0.5.14 — use `pack info`.
 ### Plugins and flavors
 
 ```bash
-animus plugin install-defaults            # flavor's required set: covers every preflight role
+animus install                            # install the animus.toml-declared set (canonical for manifest projects)
+animus install --locked                   # CI/Docker: reproduce plugins.lock exactly
+animus add launchapp-dev/animus-subject-linear@v0.2.0   # add to manifest + install
+animus remove animus-subject-linear      # drop from manifest + uninstall
+animus plugin install-defaults            # no-manifest fallback: flavor's required set, every preflight role
 animus plugin install-defaults --include-recommended
 animus plugin list
 animus plugin outdated                    # installed vs recommended pin vs latest
@@ -271,13 +324,18 @@ animus flavor current                     # active flavor + drift
 `animus web serve` and `animus web open` require installed transport/UI
 plugins (`animus plugin install-defaults --include-transports`).
 
-### Self-update
+### Self-update / avm
 
-`animus update` is the canonical self-update command (`--check`, `--yes`,
-`--channel stable|nightly`, `--force`, `--prerelease`). The former
-`animus self update` group was retired — no aliases. Background checks are
-governed by the `auto_update` block in `.animus/config.json` or
-`~/.animus/config.json` (`mode`: `off|notify|prompt|auto`).
+`animus update` self-updates plain installs (`~/.local/bin`,
+`/usr/local/bin`, Cargo) with `--check`, `--yes`, `--channel stable|nightly`,
+`--force`, `--prerelease`. When the running binary is managed by **avm** (the
+Animus Version Manager — kernels under `~/.avm/versions/`, dispatched through
+an `animus` shim), `animus update` defers: it prints the `avm install` /
+`avm use` commands and exits instead of self-replacing (v0.6.11). Multi-project
+machines should prefer avm. The former `animus self update` group was retired
+— no aliases. Background checks are governed by the `auto_update` block in
+`.animus/config.json` or `~/.animus/config.json`
+(`mode`: `off|notify|prompt|auto`).
 
 ### Telemetry
 
@@ -312,9 +370,22 @@ Plugin and template variables:
 |----------|---------|
 | `ANIMUS_PLUGIN_DIR` | Override global plugin install directory |
 | `ANIMUS_PLUGIN_PATH` | Extra directories scanned for plugin binaries |
+| `ANIMUS_PLUGIN_SIGNATURE_POLICY` | Signature policy override: `strict` / `warn` / `skip` (precedence: per-call flag > this env > global config > `warn`) |
+| `ANIMUS_SERVER=1` | Server mode: fail-closed org TOFU — `--yes`/`--force` never auto-trust an unknown org (use `--allow-org`) |
 | `ANIMUS_DISABLE_MANIFEST_CACHE` / `ANIMUS_CACHE_DIR` | Bypass / relocate the plugin manifest cache |
+| `ANIMUS_RESIDENT_HOST_CACHE_MAX` | Cap the resident plugin-host registry (legacy `ANIMUS_SUBJECT_HOST_CACHE_MAX` still read) |
 | `ANIMUS_FLAVORS_DIR` | Override the `flavors/<name>.toml` probe directory |
 | `ANIMUS_TEMPLATE_REGISTRY_URL` | Override project-template registry |
+
+Environment / journal variables (v0.7):
+
+| Variable | Purpose |
+|----------|---------|
+| `ANIMUS_ENVIRONMENT_DELEGATE` | Gate: delegate worktree materialization to the resolved environment plugin (default off) |
+| `ANIMUS_ENVIRONMENT_EXEC` | Gate: route agent exec through resolved environment plugins (default off; no silent local fallback once resolved) |
+| `ANIMUS_ENVIRONMENT_BROKER_*` | Daemon-set on runners: private broker socket/bearer for exec proxying — not user-set |
+| `ANIMUS_DAEMON_DISABLE_JOURNAL_RESUME` | Kill-switch: skip the boot reconcile that RESUMES in-flight runs from a durable workflow_journal after restart |
+| `ANIMUS_MCP_OAUTH_CACHE_DIR` | Relocate the MCP OAuth token cache (containerized/durable-volume deployments) |
 
 Workflow-runner variables:
 
@@ -386,8 +457,10 @@ subjects:
 falls back; `${VAR:?message}` customizes the error; `$$` escapes a literal
 `$`. `${...}` inside YAML comments is not interpolated (fixed in v0.5.13).
 For credentials a phase or MCP server must receive, declare a `secrets:`
-block and reference `${secret.<name>}` — resolved at compile time, and
-resolved values are kept out of generated overlays and parse diagnostics.
+block and reference `${secret.<name>}` — since v0.6 the reference passes
+through config parsing verbatim and is resolved at consume/spawn time (env
+first, then keychain); resolved values are kept out of compiled artifacts,
+generated overlays, and parse diagnostics.
 
 HTTP-transport `mcp_servers` entries can attach an `oauth:` block; the daemon
 resolves a bearer token and injects the `Authorization` header. Credentials
