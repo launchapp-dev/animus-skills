@@ -21,6 +21,8 @@ schedules:
 triggers:
 daemon:
 secrets:
+workspaces:            # v0.7
+environment_routing:   # v0.7
 ```
 
 ## Tools allowlist
@@ -54,9 +56,15 @@ mcp_servers:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-memory"]
   github:
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-github"]
+    transport: http
+    url: https://api.githubcopilot.com/mcp/
+    oauth:
+      flow: manual_bearer
+      bearer_env: GITHUB_MCP_TOKEN
 ```
+
+(The old `@modelcontextprotocol/server-github` npm package is deprecated
+upstream — use GitHub's hosted MCP endpoint.)
 
 ## Wrap bundled pack refs
 
@@ -173,3 +181,38 @@ workflows:
       max_cost_usd: 5.00
       on_exceed: pause     # daemon pauses the workflow on breach
 ```
+
+## Environment-pinned workflow (v0.7)
+
+Pin a workflow to an execution-environment plugin and a named repo set; all
+phases of a run — command phases included — share one ephemeral node:
+
+```yaml
+workspaces:
+  platform:
+    repos:
+      - url: https://github.com/acme/api
+        primary: true
+      - url: https://github.com/acme/web
+
+environment_routing:
+  default: railway
+
+workflows:
+  - id: platform-delivery
+    name: Platform Delivery
+    environment: railway
+    workspace: platform
+    phases:
+      - implementation
+      - install-deps        # runs in the node; deps persist for later phases
+      - build-check
+      - pr-review:
+          on_verdict:
+            rework:
+              target: implementation
+```
+
+Resolution precedence: phase `environment:` → routing rule → workflow
+`environment:` → `environment_routing.default` → local execution. See
+top-level-and-routing.md "Execution environments" for the full field tables.

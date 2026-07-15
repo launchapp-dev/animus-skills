@@ -4,7 +4,7 @@ Use this reference when deciding which top-level sections belong in a workflow Y
 
 ## Current top-level authored surface
 
-`animus-cli` currently supports these top-level sections in workflow YAML:
+`animus-cli` (v0.7) supports these top-level sections in workflow YAML:
 
 ```yaml
 default_workflow_ref:
@@ -23,19 +23,27 @@ schedules:
 triggers:
 daemon:
 secrets:
+workspaces:            # v0.7 — named multi-repo checkout sets
+environment_routing:   # v0.7 — environment plugin selection rules
 ```
+
+Unknown top-level keys are silently ignored (no error on typos) — double-check
+section names by eye; `workflow config validate` will not catch a misspelled
+top-level key.
 
 `agent_channels:` defines named channels for agent-to-agent messaging.
 
 `secrets:` maps logical secret names to env vars (`env`, `required` —
 default true, `description`); reference them in any YAML scalar with
-`${secret.<name>}`. Resolution happens at compile time: explicit process env
-wins, then the project-scoped keychain populated by `animus secret set`.
-A plain `${VAR}` whose name matches `TOKEN|KEY|SECRET|PASSWORD` outside the
-`secrets:` block lints a move-it-to-secrets warning. `${...}` inside YAML
-comments is not interpolated, and `animus workflow phases upsert` /
-`definitions upsert` write generated overlays with `${...}` references
-preserved unresolved — resolved secret values never land in the project tree.
+`${secret.<name>}`. Since v0.6 the `${secret.<name>}` reference passes through
+config parsing verbatim and is resolved at consume/spawn time: explicit
+process env wins, then the project-scoped keychain populated by
+`animus secret set`. A plain `${VAR}` whose name matches
+`TOKEN|KEY|SECRET|PASSWORD` outside the `secrets:` block lints a
+move-it-to-secrets warning. `${...}` inside YAML comments is not
+interpolated, and `animus workflow phases upsert` / `definitions upsert`
+write generated overlays with `${...}` references preserved unresolved —
+resolved secret values never land in the project tree.
 
 Prefer this list over older docs that still describe `pipelines:` as the canonical surface.
 
@@ -70,14 +78,25 @@ workflows:
 
 Project YAML usually wraps canonical pack refs instead of reimplementing bundled task logic.
 
+## Workflow definition fields
+
+Besides `id`, `name`, `description`, and `phases`, a workflow definition
+accepts `variables` (see below), `worktree`, `budget`, and — v0.7 —
+`environment` (an environment plugin id) and `workspace` (a named entry from
+`workspaces:`). See "Execution environments" below.
+
 ## Workflow phase entries
 
 Workflow phases can be:
 
 - A simple phase ID like `implementation`
 - A rich phase entry (a single-key map) with `max_rework_attempts`,
-  `on_verdict`, `skip_if`, and `budget`
+  `on_verdict`, `skip_if`, `budget`, and (v0.7) `environment` / `workspace`
+  overrides
 - A sub-workflow reference via `workflow_ref`
+
+The phase id IS the map key of a rich entry — writing a sibling `id:` field
+is a parse error.
 
 ```yaml
 workflows:
@@ -97,6 +116,25 @@ workflows:
             - "task.type == 'docs'"
       - testing
 ```
+
+### `on_verdict` and custom verdicts
+
+`on_verdict` maps a verdict string to a transition. The standard vocabulary is
+`advance` / `rework` / `fail` / `skip`, but keys are **free-form strings** —
+phases can mint domain verdicts (`needs-design`, `security-block`, …).
+Agent phases carry them on the phase decision's `verdict_key`; command phases
+mint them via `command.on_success_verdict` / `command.on_failure_verdict`
+(see agents-and-phases.md). Transition fields:
+
+- `target` — required. Validation **rejects empty and unknown targets**; there
+  is no `target: ""` "terminate" idiom — route failures to a real phase or let
+  the verdict end the run by policy.
+- `guard` — optional opaque condition string (runner-evaluated, like `skip_if`).
+- `allow_agent_target` (default false) and `allowed_targets[]` — let the
+  agent's `target_phase` override routing, optionally constrained.
+
+Loop guards (`max_rework_attempts`) apply to custom-verdict routing the same
+as to `rework`.
 
 ## Sub-workflows
 
@@ -141,7 +179,21 @@ workflows:
         required: true
 ```
 
-Variable expansion uses `{{var_name}}` placeholders in authored text.
+Variable expansion uses `{{var_name}}` placeholders in phase prompts,
+directives, and skill fragments. What actually resolves:
+
+- **Only declared `variables:` resolve in the kernel**, filled from
+  `--var name=value`, `input` / `--input-json`, then `default:`. Missing
+  `required` variables error at dispatch; unknown `{{x}}` placeholders are
+  left in place. `--var` is rejected together with `--workflow-id` (persisted
+  variables are authoritative on resume).
+- Subject id/title/description are injected into the phase prompt through
+  fixed template slots, not `{{}}` variables — you do not declare them.
+- `{{git_repo}}` and `{{subject.custom.*}}` are **workflow-runner surfaces,
+  not kernel built-ins**: `animus-workflow-runner-default` v0.4.34+ resolves
+  `{{git_repo}}` from the subject's `custom` field bag (set it with
+  `animus subject create/update --data '{"git_repo": "..."}'`). Do not rely
+  on these without that runner installed.
 
 ## Budget caps
 
@@ -190,6 +242,56 @@ A `worktree:` block on a workflow definition sets the default; a phase-level
 adds `cleanup` (default true) and `base_ref`; `worktree: skip` is accepted as
 a short-form scalar. Enforcement is owned by the workflow runner plugin
 (v0.4.0+); older runners treat everything as `auto`.
+
+## Execution environments (v0.7)
+
+v0.7 adds an `environment` plugin kind (optional at preflight): runs can
+execute in ephemeral remote nodes (e.g. `animus-environment-railway` coder
+containers) instead of local worktrees. Three YAML surfaces control it:
+
+```yaml
+workspaces:                     # named multi-repo checkout sets
+  platform:
+    repos:
+      - url: https://github.com/acme/api
+        name: api               # checkout subdir (defaults to last URL segment)
+        git_ref: main
+        primary: true           # default cwd; first entry wins if none marked
+      - url: https://github.com/acme/web
+
+environment_routing:
+  default: railway              # env plugin id used when nothing else matches
+  rules:
+    - match: { kind: task, harness: claude }   # ANDed; unset = wildcard
+      environment: railway
+      spec: { size: large }     # opaque map merged into the compiled EnvironmentSpec
+
+workflows:
+  - id: platform-delivery
+    environment: railway        # workflow-level pin
+    workspace: platform         # named repo set for the run
+    phases:
+      - implementation
+      - heavy-test:
+          environment: railway-xl   # phase-level override
+```
+
+**Resolution precedence:** phase `environment:` → first matching
+`environment_routing.rules` entry → workflow `environment:` →
+`environment_routing.default` → none (local execution).
+
+Semantics to know:
+
+- `workspaces:` is inert without an environment plugin installed.
+- When an environment resolves, **all phases of one workflow run share one
+  ephemeral node** (the daemon's cross-phase environment broker, keyed on the
+  subject) — including command phases, which execute in the node rather than
+  a local worktree. Dependencies installed by an early phase persist for
+  later phases of the same run. The node is torn down on terminal states;
+  stale leases (`~/.animus/<repo-scope>/workflow-environments/<run_id>.json`)
+  are reaped at daemon startup.
+- Without an environment, execution is local and the `worktree:` rules above
+  apply unchanged.
 
 ## Git automation = command phases
 
