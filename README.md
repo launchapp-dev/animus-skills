@@ -11,6 +11,22 @@ You point a fresh agent at this README. It installs the CLI, links the skills, w
 - **Small teams** who need a self-hosted, auditable orchestrator (no cloud lock-in)
 - **Agent power users** who already use Claude Code / Codex / Cursor and want a real backend
 
+## Version compatibility
+
+Each animus-skills release is pinned to the `animus` CLI surface it documents
+(every skill's `animus_version:` frontmatter carries the exact pin). Match
+your installed CLI (`animus --version`) to the right release:
+
+| animus-skills release | Targets animus-cli | Get it |
+|---|---|---|
+| **v3.0.0** (current) | **v0.7.0-rc.18** (v0.7 line: `animus.toml` + `animus install`, `--subject-id` dispatch, execution environments, portal MCP surface) | default branch, or [`v3.0.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.0.0) |
+| [`v2.3.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v2.3.0) | **v0.5.21** (last v0.5-era release: `--task-id` dispatch, `plugin install-defaults`-first, no environments) | `git clone --branch v2.3.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
+
+Still on animus-cli 0.5.x? Install the skills from the `v2.3.0` tag (swap the
+clone command above into the install steps below) — the current skills
+document commands and flags that do not exist on 0.5.21 (and vice versa:
+0.5-era flags like `queue enqueue --task-id` were removed in v0.7).
+
 ## Quick start
 
 1. Install (30 seconds — see below)
