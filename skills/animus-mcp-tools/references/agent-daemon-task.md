@@ -146,6 +146,6 @@ See the conventions reference for batch envelope and remediation details.
 ### Create and dispatch a task
 
 1. `animus.subject.create` with `kind: "task"` and `status: "ready"`
-2. `animus.queue.enqueue` with the returned task id as `task_id`
+2. `animus.queue.enqueue` with the returned id as `subject_id` (qualified `task:<id>`)
 3. `animus.daemon.health`
 4. `animus.workflow.list`

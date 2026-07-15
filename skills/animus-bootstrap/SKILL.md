@@ -389,7 +389,7 @@ animus subject create --kind task --title "<surface>:bootstrap-smoke-test" --pri
   --body "Add a NOTES.md file at repo root with one sentence about the project. Verify worktree, commit, PR flow."
 
 # 4. Enqueue and watch
-animus queue enqueue --task-id <task-id-returned-by-subject-create>
+animus queue enqueue --subject-id task:<task-id-returned-by-subject-create>
 animus daemon stream --pretty
 ```
 

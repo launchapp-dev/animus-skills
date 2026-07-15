@@ -3,7 +3,7 @@ name: animus-task-management
 description: Task lifecycle through the unified subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Task Management
@@ -127,12 +127,16 @@ fallback heartbeat.
 ```bash
 animus subject update --kind task --id TASK-001 --status blocked --priority p1
 animus subject update --kind task --id TASK-001 --labels backend,urgent
+animus subject update --kind task --id TASK-001 --title "Renamed" --body "New description"
+animus subject update --kind task --id TASK-001 --data '{"git_repo": "acme/api"}'
 ```
 
-The current generic subject CLI exposes status, priority, and labels for
-updates. Backend-specific fields such as checklists, dependency edges,
-deadlines, assignees, or native task type are no longer part of the core CLI
-surface; use the backend plugin directly if it provides those operations.
+The generic subject CLI exposes status, priority, labels, `--title`
+(v0.7.0-rc.5+), `--body` (v0.6.0+), and `--data` (v0.7.0-rc.10+ — JSON merged
+into the subject's `custom` bag, readable by workflow runners). Deeper
+backend-specific fields such as checklists, dependency edges, deadlines, or
+assignees stay in the backend plugin's own API if it provides those
+operations.
 
 ### Delete
 
@@ -148,7 +152,7 @@ unsupported error. There is no MCP delete tool, so deletion is CLI-only.
 
 | Tool | Purpose | Key parameters |
 |------|---------|----------------|
-| `animus.subject.list` | List task subjects with `kind: "task"` | `kind`, `status`, `limit`, `project_root` |
+| `animus.subject.list` | List task subjects with `kind: "task"` | `kind`, `status`, `limit`, `cursor` (page via `next_cursor`), `project_root` |
 | `animus.subject.get` | Fetch one task subject | `kind`, `id`, `project_root` |
 | `animus.subject.create` | Create a task subject | `kind`, `title`, `priority`, `status`, `labels[]`, `body`, `project_root` |
 | `animus.subject.update` | Patch task subject fields | `kind`, `id`, `priority`, `status`, `labels[]`, `project_root` |
@@ -221,16 +225,19 @@ state:
 Typical flow (queue-driven is the default — let the daemon dispatch):
 
 1. Create or select a `ready` task subject.
-2. Enqueue it with `animus queue enqueue --task-id TASK-XXX`. This is both
-   required and the normal run trigger — the daemon dispatches enqueued
+2. Enqueue it with `animus queue enqueue --subject-id task:TASK-XXX`. This is
+   both required and the normal run trigger — the daemon dispatches enqueued
    entries and cron schedules only, and `enqueue` nudges it to pick the entry
-   up immediately. A `ready` status alone is never auto-run.
+   up immediately. A `ready` status alone is never auto-run. (v0.7 removed
+   `--task-id`/`--requirement-id`; `--subject-id` with a qualified `kind:ID`
+   is the universal selector — bare ids also work, resolved by the router.)
 3. Let the running daemon dispatch the enqueued entry (start it with
    `animus daemon start` if it is not already up). Prefer this path for normal
    task execution — it respects the daemon's pool size and scheduling.
-4. Inspect execution with `animus queue list`, `animus workflow list`, `animus history task --task-id TASK-XXX`, `animus output read`, and `animus output phase-outputs`.
+4. Inspect execution with `animus queue list`, `animus workflow list --subject-id TASK-XXX`, `animus history task --task-id TASK-XXX` (history keeps its `--task-id` flag), `animus output read`, and `animus output phase-outputs`.
 
-`animus workflow run <workflow-ref> --task-id TASK-XXX` is the **ad-hoc /
-foreground-debug** alternative: it runs one workflow directly, bypassing the
-queue and the daemon. Reach for it only for one-off manual runs or when
-debugging a specific workflow — not as the default way to execute tasks.
+`animus workflow run <workflow-ref> --subject-id task:TASK-XXX` is the
+**ad-hoc / foreground-debug** alternative: it runs one workflow directly,
+bypassing the queue and the daemon. Reach for it only for one-off manual runs
+or when debugging a specific workflow — not as the default way to execute
+tasks.

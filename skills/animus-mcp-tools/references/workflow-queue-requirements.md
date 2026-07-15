@@ -7,11 +7,11 @@ workflow definitions, queue dispatch, or requirement state.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.workflow.run` | `task_id`, `requirement_id`, `title`, `description`, `workflow_ref`, `input_json` |
-| `animus.workflow.run-multiple` | `runs[]` (each: `task_id`, `workflow_ref`, `input_json`), `on_error` |
-| `animus.workflow.execute` | `task_id`, `workflow_ref`, `phase`, `model`, `tool`, `phase_timeout_secs`, `input_json` |
+| `animus.workflow.run` | `subject_id` (qualified `task:TASK-001` / any kind, or bare — router-resolved), `title`, `description`, `workflow_ref`, `input_json`, `project_root` |
+| `animus.workflow.run-multiple` | `runs[]` (each: `subject_id`, `workflow_ref`, `input_json`), `on_error`, `project_root` |
+| `animus.workflow.execute` | `subject_id`, `workflow_ref`, `phase`, `model`, `tool`, `phase_timeout_secs`, `input_json`, `project_root` |
 | `animus.workflow.get` | `id` |
-| `animus.workflow.list` | `status`, `workflow_ref`, `task_id`, `phase_id`, `search`, `sort`, `limit`, `offset`, `max_tokens` |
+| `animus.workflow.list` | `status`, `workflow_ref`, `subject_id`, `phase_id`, `search`, `sort`, `limit`, `offset`, `max_tokens`, `project_root` |
 | `animus.workflow.pause` | `id`, `confirm`, `dry_run` |
 | `animus.workflow.cancel` | `id`, `confirm`, `dry_run` |
 | `animus.workflow.resume` | `id` |
@@ -47,7 +47,7 @@ Pruning terminal runs (`animus workflow prune`) and `animus workflow delete
 |------|----------------|
 | `animus.queue.list` | `project_root` |
 | `animus.queue.stats` | `project_root` |
-| `animus.queue.enqueue` | `task_id`, `requirement_id`, `title`, `description`, `workflow_ref`, `input_json`, `run_at`, `expire_after` (requires `run_at`), `project_root` |
+| `animus.queue.enqueue` | `subject_id` (qualified `kind:ID` of any kind, or bare), `title`, `description`, `workflow_ref`, `input_json`, `run_at`, `expire_after` (requires `run_at`), `project_root` |
 | `animus.queue.reorder` | `subject_ids[]` |
 | `animus.queue.hold` | `subject_id`, `subject_ids[]` |
 | `animus.queue.release` | `subject_id`, `subject_ids[]` |

@@ -3,7 +3,7 @@ name: animus-subject-operations
 description: Work with Animus subjects and subject_backend plugins, including task, requirement, Linear, SQLite, Markdown, and custom subject kinds, default_subject_kind, wire ids, and status routing.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Subject Operations
@@ -29,12 +29,22 @@ animus plugin install-defaults
 animus daemon preflight
 ```
 
-As of v0.5.14, bare `install-defaults` installs the flavor's required set,
-which includes `subject-default` (kind=task) and `subject-requirements`
-(kind=requirement). The recommended extras — `subject-linear`,
-`subject-sqlite`, `subject-markdown`, `subject-github` — install via
-`--include-recommended` (the legacy `--include-subjects` flag still works
-and adds the recommended subject slice).
+Bare `install-defaults` installs the flavor's required set, which includes
+`subject-default` (kind=task) and `subject-requirements` (kind=requirement).
+The recommended extras — `subject-linear`, `subject-sqlite`,
+`subject-markdown`, `subject-github` — install via `--include-recommended`
+(the legacy `--include-subjects` flag still works and adds the recommended
+subject slice). In a project with a committed `animus.toml`, `animus install`
+is the canonical way to install the declared plugin set.
+
+Two v0.7-era backends worth knowing (multi-kind plugins route by
+`serves_kind`): **`animus-postgres`** — a consolidated Postgres BaaS plugin
+serving subject_backend (catch-all `*` kind), config_source, queue,
+workflow_journal, and conversation_store from one process (it replaced the
+five separate `animus-subject-postgres`/`animus-config-postgres`/… plugins);
+and **`animus-subject-mcp`** — a generic read-only adapter that projects
+entities from connected external MCP servers as subjects of kind
+`ext.<server>.<entity>` (its `ext.*` glob beats the Postgres catch-all).
 
 There is no in-tree subject fallback after v0.4.12. If
 `ANIMUS_DAEMON_DISABLE_SUBJECT_PLUGINS=1` is set, subject calls behave as if no
@@ -62,9 +72,16 @@ backend integration.
 ```bash
 animus subject list --kind task
 animus subject list --kind task --status ready --limit 25
+animus subject list --kind task --query "login"        # title filter (v0.6.23+)
+animus subject list --kind task --cursor <next_cursor> # pagination (default limit 50)
 animus subject get --kind task --id TASK-001
 animus subject next --kind task
 ```
+
+`subject list` is paginated: default `--limit` 50 (`0` = uncapped), and the
+output footer carries a `next_cursor` to pass back via `--cursor`. Page
+through rather than raising the limit; never assume the first page is the
+whole board.
 
 Create:
 
@@ -78,13 +95,23 @@ Update:
 ```bash
 animus subject update --kind task --id TASK-001 --status blocked --priority p1
 animus subject update --kind task --id TASK-001 --labels backend,urgent
+animus subject update --kind task --id TASK-001 --title "New title" --body "New description"
 animus subject status --kind task --id TASK-001 --status done
 ```
 
-The generic CLI update surface supports only normalized `status`, `priority`,
-and replacement `labels` — update rejects `--body`. Create additionally
-accepts `--body`. Backend-specific fields belong in the backend plugin's own
-API or `animus plugin call`.
+The generic update surface supports normalized `status`, `priority`,
+replacement `labels`, plus `--title` (rename, v0.7.0-rc.5+) and `--body`
+(v0.6.0+). Structured custom fields ride `--data` (v0.7.0-rc.10+) on
+`create`/`update`/`batch-create`/`batch-update` — a JSON object merged into
+the subject's `custom` bag, which workflow runners can read (e.g.
+`{{git_repo}}` resolution by workflow-runner v0.4.34+):
+
+```bash
+animus subject update --kind task --id TASK-001 --data '{"git_repo": "acme/api", "story_points": 3}'
+```
+
+Deeper backend-specific operations belong in the backend plugin's own API or
+`animus plugin call`.
 
 `subject status ... --status ready` prints an `unstuck: cleared ...` line
 (stderr, human output) naming any `paused` / `blocked_*` flags the
@@ -140,8 +167,8 @@ Enqueue is the default way to run a subject — it hands the work to the daemon,
 which dispatches it (the daemon is queue-only):
 
 ```bash
-animus queue enqueue --task-id TASK-001 --workflow-ref animus.task/standard
-animus queue enqueue --requirement-id REQ-001 --workflow-ref animus.requirement/standard
+animus queue enqueue --subject-id task:TASK-001 --workflow-ref animus.task/standard
+animus queue enqueue --subject-id requirement:REQ-001 --workflow-ref animus.requirement/standard
 ```
 
 `animus workflow run` is the ad-hoc / foreground-debug alternative — it runs
@@ -149,17 +176,17 @@ one workflow directly, bypassing the queue and daemon. Use it only for one-off
 manual runs or debugging, not as the default execution path:
 
 ```bash
-animus workflow run animus.task/standard --task-id TASK-001
+animus workflow run animus.task/standard --subject-id task:TASK-001
 ```
 
-Queue and workflow command flags still use `--task-id` and `--requirement-id`
-for compatibility, but the backing data comes from subjects. To enqueue a
-plugin-backed custom-kind subject, pass its backend-qualified id to
-`--task-id` (e.g. `--task-id song:SONG-001`): as of v0.5.21 control-routed
-`queue enqueue` derives the kind from the `<kind>:<native>` prefix and
-resolves it via that kind's backend instead of forcing it through `task/get`
-(which the owning backend would reject). A bare id with no prefix still
-defaults to `task`.
+> **Removed in v0.7 (breaking).** `--task-id` / `--requirement-id` are gone
+> from queue and workflow commands — `--subject-id` is the universal dispatch
+> selector for subjects of **any** kind. A qualified `<kind>:<native>` id
+> (e.g. `--subject-id song:SONG-001`) trusts the prefix and resolves via that
+> kind's backend; a bare id is resolved by the subject router probing
+> backends. Task and requirement are ordinary kinds: a requirement dispatched
+> without an explicit `--workflow-ref` uses the project **default** workflow
+> (no longer `animus.requirement/plan`) — always name the workflow.
 
 Dispatch is event-driven: `subject create/update/status` and
 `queue enqueue/release` (CLI and MCP) send a fire-and-forget `daemon/nudge`,

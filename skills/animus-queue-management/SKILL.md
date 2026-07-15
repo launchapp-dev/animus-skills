@@ -3,7 +3,7 @@ name: animus-queue-management
 description: Dispatch queue operations — enqueue, hold, release, drop, reorder, and queue patterns
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Queue Management
@@ -49,41 +49,53 @@ scheduled but not yet due it also prints `(N deferred)` — `deferred` is a
 subset of `pending` that is not yet leasable.
 
 ### Enqueue
-`animus queue enqueue` enqueues a subject dispatch for a task, requirement,
-or custom title (`--task-id` / `--requirement-id` / `--title` are mutually
-exclusive):
+`animus queue enqueue` enqueues a subject dispatch by subject id or custom
+title (`--subject-id` / `--title` are mutually exclusive):
 
 ```bash
-animus queue enqueue --task-id TASK-001
-animus queue enqueue --task-id TASK-001 --workflow-ref animus.task/quick-fix
+animus queue enqueue --subject-id TASK-001
+animus queue enqueue --subject-id task:TASK-001 --workflow-ref animus.task/quick-fix
 
-# Requirement
-animus queue enqueue --requirement-id REQ-039
+# Requirement — name the workflow explicitly (see migration note below)
+animus queue enqueue --subject-id requirement:REQ-039 --workflow-ref animus.requirement/plan
+
+# Any custom/dynamic kind — the kind prefix routes to that kind's backend
+animus queue enqueue --subject-id blog:BLOG-001 --workflow-ref publish-blog
 
 # Custom subject
 animus queue enqueue --title "Run nightly build" --description "Verify the release branch" --workflow-ref ops
 ```
 
-The daemon picks up pending entries and assigns them to agents.
-`--task-id` still exists on queue and workflow commands even though the old
-`animus task ...` CRUD tree was removed. It also accepts a backend-qualified
-`<kind>:<native>` id for plugin-backed custom subject kinds (e.g.
-`--task-id song:SONG-001`): as of v0.5.21 control-routed enqueue derives the
-kind from the prefix and resolves the subject via that kind's backend instead
-of forcing it through `task/get`. A bare id with no prefix defaults to `task`.
+> **Removed in v0.7 (breaking).** The old `--task-id` / `--requirement-id`
+> flags (and the `task_id` / `requirement_id` MCP params) are gone — use
+> `--subject-id` with a qualified `kind:ID`, or a bare id (the subject router
+> resolves the kind by probing backends). Task and requirement are ordinary
+> kinds now: a requirement dispatched via `--subject-id` without an explicit
+> `--workflow-ref` uses the project **default** workflow, not
+> `animus.requirement/plan` — always name the workflow.
+
+The daemon picks up pending entries and assigns them to agents. `--subject-id`
+enqueues a subject of **any** kind: the kind prefix is trusted, the queue
+lease and runner resolve the subject via that kind's backend (`<kind>/get`).
+
+Subjectless ad-hoc runs: `animus queue enqueue --adhoc --workflow-ref <ref>`
+declares a run with no subject at all (v0.7.0-rc.3). Caveat: with the current
+default queue plugin (wire pinned to a non-optional subject), enqueue-`--adhoc`
+fails fast — direct dispatch (`animus workflow run <ref>` with no subject)
+carries subjectless runs end-to-end.
 
 Deferred dispatch flags:
 
 ```bash
 # Schedule for later — sets run_at; the entry stays `deferred` until due
-animus queue enqueue --task-id TASK-001 --at "2026-06-18T18:00:00Z"
+animus queue enqueue --subject-id TASK-001 --at "2026-06-18T18:00:00Z"
 
 # Grace window after --at; if still pending past --at + window the entry is
 # dropped instead of dispatched. REQUIRES --at.
-animus queue enqueue --task-id TASK-001 --at "2026-06-18T18:00:00Z" --expire-after 30m
+animus queue enqueue --subject-id TASK-001 --at "2026-06-18T18:00:00Z" --expire-after 30m
 
 # Attach structured input forwarded to the workflow
-animus queue enqueue --task-id TASK-001 --input-json '{"branch":"main"}'
+animus queue enqueue --subject-id TASK-001 --input-json '{"branch":"main"}'
 ```
 
 A not-yet-due `--at` entry sits in the `deferred` queue state until its
@@ -148,10 +160,13 @@ Repeat `--subject-id` in the exact order you want the daemon to consider.
 
 ```json
 // Enqueue a task
-{ "task_id": "TASK-042" }
+{ "subject_id": "task:TASK-042" }
 
 // Enqueue with workflow override
-{ "task_id": "TASK-042", "workflow_ref": "animus.task/quick-fix" }
+{ "subject_id": "task:TASK-042", "workflow_ref": "animus.task/quick-fix" }
+
+// Enqueue a dynamic-kind subject
+{ "subject_id": "blog:BLOG-001", "workflow_ref": "publish-blog" }
 
 // Drop a stuck entry
 { "subject_id": "TASK-042" }
@@ -159,6 +174,10 @@ Repeat `--subject-id` in the exact order you want the daemon to consider.
 // Bulk hold
 { "subject_ids": ["TASK-042", "TASK-043"] }
 ```
+
+(`animus.queue.enqueue` params: `title`, `subject_id`, `description`,
+`workflow_ref`, `input_json`, `run_at`, `expire_after`, `project_root` — the
+old `task_id`/`requirement_id` params were removed in v0.7.)
 
 ## Patterns
 
