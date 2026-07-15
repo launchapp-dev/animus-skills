@@ -3,7 +3,7 @@ name: animus-model-operations
 description: Choose models and verify provider readiness in Animus — provider plugin health, API-key and CLI-tool diagnostics, model/tool routing in workflow YAML, and per-model cost attribution. Use when selecting a model for a phase or agent, or when diagnosing why a provider or model fails to dispatch.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Model Selection and Provider Health
@@ -70,11 +70,18 @@ wins): workflow/pack phase runtime override in `.animus/workflows.yaml` or
 agents:
   swe:
     tool: claude
-    model: claude-sonnet-4-6
+    model: claude-opus-4-8
     fallback_models:
       - gpt-5.5
       - gemini-2.5-pro
 ```
+
+Provider transports (v0.6.9+): all providers are plugins — `claude` and
+`oai` drive natively, `codex` over MCP (`animus-provider-codex-mcp`),
+`gemini` and `opencode` over ACP (`animus-provider-{gemini,opencode}` v0.3.0
+on the shared ACP client). `tool` ids and model→tool routing are unchanged
+by the transports; they matter only when diagnosing dispatch failures (see
+Backing-CLI Config Errors below).
 
 The `daemon:` block supports per-phase overrides applied at spawn time:
 
@@ -99,15 +106,18 @@ Per-invocation overrides:
 ```bash
 animus agent run --tool claude --model claude-sonnet-4-6 --prompt "..."
 animus chat send --tool codex --model gpt-5.5 "..."
-animus workflow run --task-id TASK-001 --model claude-sonnet-4-6
+animus workflow run --subject-id task:TASK-001 --model claude-sonnet-4-6
 ```
 
-Tool inference (`tool_for_model_id()` in
-`crates/protocol/src/model_routing.rs`): `claude-*` → `claude`, `gpt-*` →
-`codex`, `gemini-*` → `gemini`, `zai-*`/`glm-*`/`minimax-*`/`openrouter/*` →
-`oai-runner`, `deepseek-*`/`qwen-*` → `opencode`. Model ids are normalized
-through `canonical_model_id()` (aliases like `opus` resolve to the current
-canonical id), and fallback models map to tools automatically.
+Tool inference (`tool_for_model_id()`, now in the `animus-protocol` repo's
+model-routing module): `claude-*` → `claude`, `gpt-*` → `codex`, `gemini-*`
+→ `gemini`, `zai-*`/`glm-*`/`minimax-*`/`openrouter/*` → `oai-runner`
+(which canonicalizes to `oai-agent` — the agentic OAI provider; write
+`oai-agent` in new YAML), `deepseek-*`/`qwen-*` → `opencode`. Model ids are
+normalized through `canonical_model_id()` (aliases like `opus` resolve to
+the current canonical id), and fallback models map to tools automatically.
+Cost-rate matching strips OpenRouter-style `<provider>/` prefixes
+(`openai/gpt-5.5` matches the `gpt-5.5` rate).
 
 Routing reference: `docs/guides/model-routing.md` in the animus-cli repo.
 
@@ -158,9 +168,10 @@ Diagnose and fix:
    - codex → `~/.codex/config.toml`. Valid `service_tier` is **`fast`** or
      **`flex`** only. `priority` is the model-catalog tier id (display name
      "Fast") that the **Codex desktop app may write** when you pick that tier —
-     it is NOT a valid CLI-config value, so headless `codex` (what the
-     `provider-codex` plugin spawns per phase) rejects it. Remove the line to use
-     the default, or set `fast`/`flex`.
+     it is NOT a valid config value for the headless codex the provider
+     plugin drives (since v0.6.9 over MCP — the vendor config is still read
+     by the codex process the plugin manages). Remove the line to use the
+     default, or set `fast`/`flex`.
    - claude → backing config under the claude CLI's home; gemini → its CLI config.
 3. Re-run. Note the interactive vendor app can tolerate the bad value while
    headless invocations fail, and claude-backed phases are unaffected — so a
@@ -171,8 +182,9 @@ present-but-unparseable, exit code 1, headless vendor CLI.
 
 ## Troubleshooting
 
-- No provider can dispatch: `animus daemon preflight`, then
-  `animus plugin install-defaults` (or `animus daemon start --auto-install`).
+- No provider can dispatch: `animus daemon preflight`, then `animus install`
+  (manifest project) / `animus plugin install-defaults` (or
+  `animus daemon start --auto-install`).
 - Plugin stuck or flapping: `animus plugin status <NAME>` — check
   `disabled_by_supervisor` / `cooldown_until`; fix the underlying error, then
   restart the daemon.

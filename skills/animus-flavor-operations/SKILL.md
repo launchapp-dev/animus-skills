@@ -3,19 +3,25 @@ name: animus-flavor-operations
 description: Operate Animus flavors — curated plugin bundle manifests (`flavors/<name>.toml`), the `animus flavor` command group, manifest-driven `plugin install-defaults --flavor`, active-flavor persistence in `.animus/plugin-scope.yaml`, drift reports, required vs recommended plugin sets, and writing custom flavor manifests.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Flavor Operations
 
 Animus is a kernel + flavors. A **flavor** is a named, curated bundle of
-plugins (providers, subject backends, transports, workflow runner, queue,
-triggers, UI, packs, defaults) declared in a TOML manifest at
-`flavors/<name>.toml`. v0.5 ships exactly one flavor — `default` — whose
-manifest is also bundled into the `animus` binary, so a cargo-installed CLI
-resolves `default` even with no `flavors/` directory on disk. Flavors became
-operationally real in v0.5.14: install-defaults is manifest-driven and the
-active flavor persists per project.
+plugins (providers, subject backends, config source, transports, workflow
+runner, queue, triggers, UI, packs, defaults) declared in a TOML manifest at
+`flavors/<name>.toml`. One flavor ships — `default` — whose manifest is also
+bundled into the `animus` binary, so a cargo-installed CLI resolves
+`default` even with no `flavors/` directory on disk.
+
+**Where flavors sit vs the project manifest (v0.6.9+):** flavors curate the
+*no-manifest* experience — a fresh machine or ad-hoc project gets a working
+plugin set from `install-defaults --flavor`. A project with a committed
+`animus.toml` pins its own set via `animus install` + `.animus/plugins.lock`
+(the source of truth); the flavor then only matters for `flavor-only` scope
+filtering and drift reporting. Prefer the manifest for anything a team
+shares.
 
 Manifest discovery probes, first hit wins:
 
@@ -65,17 +71,19 @@ animus plugin install-defaults --flavor <name> --yes  # another manifest
 
 The manifest named by `--flavor` (default `default`) is the source of truth.
 Everything marked `required` installs — for the default flavor that covers
-all four daemon-preflight roles (`at_least_one_provider`,
-`at_least_one_subject_backend`, `workflow_runner`, `queue`; as of v0.5.20
-the subject role is satisfied by any `subject_backend` plugin rather than
-hard-coded `task`/`requirement` kinds),
+every daemon-preflight role (`at_least_one_provider`,
+`at_least_one_subject_backend`, `config_source` — required since v0.6.0 —
+`workflow_runner`, `queue`; the subject role is satisfied by any
+`subject_backend` plugin rather than hard-coded `task`/`requirement`
+kinds),
 so `animus flavor install` followed by `animus daemon start` needs no second
 command. Unknown flavor names error instead of silently falling back.
 Legacy `--include-subjects` / `--include-transports` still work: they add
 just the recommended slice of those sections. Release tags come from the
-curated pins in `crates/orchestrator-core/src/plugin_registry.rs`; manifest
-slugs without a pin (e.g. `animus-provider-ollama`, `animus-trigger-cron`)
-warn and are skipped.
+kernel's curated default-install pins; manifest slugs without a pin warn
+and are skipped. (Projects that need exact, reproducible versions should
+pin them in `animus.toml` and install with `animus install --locked` —
+the lockfile, not the flavor pins, is the source of truth there.)
 
 ## Active-Flavor Persistence
 
@@ -102,11 +110,16 @@ resolved manifest id.
 
 `flavors/default.toml` (`schema = "animus.flavor.v1"`, id `default`) marks
 required: `animus-provider-claude`, `animus-subject-default`,
-`animus-subject-requirements`, `animus-transport-http`,
+`animus-subject-requirements`, `animus-config-yaml` (config_source —
+required since v0.6.0), `animus-transport-http`,
 `animus-workflow-runner-default`, `animus-queue-default` (all under
-`launchapp-dev/`). Recommended adds codex/ollama providers, linear/sqlite/
+`launchapp-dev/`). Recommended adds providers (`animus-provider-codex-mcp`
+— the MCP-driven codex driver that replaced `animus-provider-codex` in the
+defaults — plus ACP-driven gemini/opencode, ollama), linear/sqlite/
 markdown/github subjects, graphql transport, web UI, cron/webhook triggers,
-durable-store (DBOS), memory-store (Zep), and the engineering-backlog pack.
+durable-store, memory-store, and the engineering-backlog pack. Check
+`animus flavor info --name default` for the authoritative current roster
+rather than trusting a doc snapshot.
 
 ## Writing a Custom Flavor
 
@@ -115,8 +128,9 @@ Manifest sections are `providers`, `subjects`, `transports`, `ui`,
 `packs` — each with optional `required` / `recommended` slug arrays — plus a
 free-form `[defaults]` block (`model_routing`, `cost_ceiling_daily_usd`,
 `execution`, `cloud`; hints only, not load-bearing for install in v0.5).
-Required slugs must cover all four preflight roles or `daemon start` will
-refuse after install. Minimal `flavors/myflavor.toml`:
+Required slugs must cover every preflight role (provider, subject backend,
+config_source, workflow_runner, queue) or `daemon start` will refuse after
+install. Minimal `flavors/myflavor.toml`:
 
 ```toml
 schema = "animus.flavor.v1"
