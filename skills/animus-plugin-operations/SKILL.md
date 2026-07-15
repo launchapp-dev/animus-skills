@@ -3,23 +3,40 @@ name: animus-plugin-operations
 description: Install, inspect, update, lock, sign, scaffold, and troubleshoot Animus STDIO plugins — global and project-scoped installs, flavor-driven defaults, TOFU org trust auditing — covering provider, subject_backend, trigger, transport/web, workflow_runner, queue, and log-storage plugins.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Plugin Operations
 
 Current Animus depends on STDIO plugins for provider execution, subject
-storage, workflow running, queueing, transports, web UI, triggers, and
-optional log storage. Daemon preflight requires four roles:
-`at_least_one_provider`, `at_least_one_subject_backend`,
-`workflow_runner`, and `queue`. (`at_least_one_subject_backend` is
-satisfied by any installed `subject_backend` plugin — as of v0.5.20 the
-daemon no longer hard-codes the `task`/`requirement` kinds.)
+storage, config sourcing, workflow running, queueing, transports, web UI,
+triggers, environments, and optional log storage / journal / conversation
+storage. Daemon preflight requires: `at_least_one_provider`,
+`at_least_one_subject_backend`, `config_source` (required since v0.6.0 — the
+kernel no longer parses workflow YAML in the runtime load path),
+`workflow_runner`, and `queue`. The `environment` kind (v0.7, e.g.
+`animus-environment-railway`) is optional at preflight.
+
+**Multi-kind plugins (v0.7):** a manifest can declare `plugin_kinds`
+(secondary kinds) + `kind_capabilities`, and every role resolver routes by
+`serves_kind` — one consolidated plugin can serve many roles (e.g.
+`animus-postgres` serves subject_backend + config_source + queue +
+workflow_journal + conversation_store from one process).
 
 Plugin commands use typed exit codes: invalid input = 2, not found = 3,
 unavailable (missing plugin / network) = 5.
 
 ## First Fix for Missing Plugins
+
+Project with a committed `animus.toml` (v0.6.9+):
+
+```bash
+animus daemon preflight
+animus install            # installs the manifest-declared set from plugins.lock
+animus daemon preflight
+```
+
+No manifest (fresh machine / ad-hoc project):
 
 ```bash
 animus daemon preflight
@@ -28,30 +45,55 @@ animus daemon preflight
 ```
 
 Bare `install-defaults` installs the default flavor's full required set —
-claude provider, subject-default, subject-requirements, transport-http,
-workflow-runner-default, queue-default — covering every preflight role in
-one command (no second `--include-subjects` pass needed). When preflight
-finds multiple roles missing, it prints the one composed fix:
-`animus plugin install-defaults --flavor default --yes`.
+claude provider, subject-default, subject-requirements, config-yaml,
+transport-http, workflow-runner-default, queue-default — covering every
+preflight role in one command (no second `--include-subjects` pass needed).
+When preflight finds multiple roles missing, it prints the one composed fix.
 
 `animus daemon start` and `animus daemon run` run preflight by default.
 Use `--auto-install` to install recommended missing defaults. Use
 `--skip-preflight` only for local development or intentionally degraded runs.
+
+## The Project Manifest: `animus.toml` (v0.6.9+)
+
+`animus.toml` declares intent (`[project]` kernel version, `[plugins]`,
+`[packs]`; deps as a version string, `{ git, tag }`, or `{ path }`);
+`.animus/plugins.lock` is the resolved **source of truth**, and
+`plugins.yaml` registries are derived projections regenerated on every
+mutating op (never hand-edit them; drift heals on the next op).
+
+```bash
+animus install                     # resolve manifest → lock, install plugins + packs
+animus install --locked            # npm-ci: reproduce the committed lock exactly; fails on manifest↔lock drift
+animus install --allow-org my-org  # non-TTY/server escape hatch for org TOFU
+animus add launchapp-dev/animus-subject-linear@v0.2.0    # manifest + install
+animus add my-org/my-pack@v1.0.0 --pack
+animus remove animus-subject-linear
+```
 
 ## Discovery
 
 Default discovery order (first source to yield a name wins):
 
 1. Project-local tier: `<project>/.animus/plugins/` dir scan, then the
-   project registry `<project>/.animus/plugins.yaml`
-2. Global registry `~/.animus/plugins.yaml`; legacy
+   project registry `<project>/.animus/plugins.yaml` (a lock-derived
+   projection)
+2. Global registry `~/.animus/plugins.yaml` (lock-derived); legacy
    `~/.config/animus/plugins.yaml` only when the new registry is absent
-3. Global install dir: `$ANIMUS_PLUGIN_DIR` if set, otherwise `~/.animus/plugins/`
-4. `$ANIMUS_PLUGIN_PATH` (colon-separated directories)
-5. System `$PATH` (opt-in only)
+3. Optional DB-registry tier (v0.7.0-rc.3, opt-in): resolve the plugin set
+   from a Postgres `plugin_registry` (animus-postgres BaaS deployments)
+4. Global install dir: `$ANIMUS_PLUGIN_DIR` if set, otherwise `~/.animus/plugins/`
+5. `$ANIMUS_PLUGIN_PATH` (colon-separated directories)
+6. System `$PATH` (opt-in only)
 
 The project-local tier wins name collisions, so a project install shadows a
 same-named global install (registry-recorded or bare binary).
+
+**Discovery hardening (v0.7):** project-local `plugins.yaml` `binary:`
+entries and project-local dir scans are gated by trust and location —
+server-safe discovery never executes repo-shipped binaries, even under an
+`all` scope. Trusted installed candidates are always probed post-filter, so
+renamed plugins keep working.
 
 `$PATH` scanning is opt-in:
 
@@ -121,18 +163,27 @@ animus plugin install --url https://example.com/plugin --sha256 <hex>
 
 Use `--force` to replace an installed plugin. `--url` requires `--sha256`.
 
-Signature policy:
+Signature policy (context-aware since v0.7.0-rc.1) — precedence:
+per-call `--signature-policy` flag > `ANIMUS_PLUGIN_SIGNATURE_POLICY` env
+(`strict`/`warn`/`skip`) > `plugins.signature_policy` global config > `warn`
+default:
 
-- `--signature-policy strict` fails closed on missing, invalid, or untrusted signatures.
-- `--signature-policy warn` (current default) logs signature failures and installs anyway.
+- `--signature-policy strict` fails closed on missing, invalid, or untrusted signatures (cosign preflight fails fast).
+- `--signature-policy warn` (default) logs signature failures and installs anyway.
 - `--signature-policy disabled` skips verification.
 - `--require-signature`, `--allow-unsigned`, and `--skip-signature` are legacy aliases.
 - `--allow-org <OWNER>` or `--yes` records trusted orgs for future installs.
+  **Fail-closed TOFU (v0.7):** on a non-TTY or with `ANIMUS_SERVER=1`,
+  `--yes`/`--force` will NOT auto-trust an unknown org — `--allow-org` is the
+  explicit escape hatch, and the release-source gate runs BEFORE download.
 - `--trusted-signers <PATH>` points at a `trusted-signers.yaml` allowlist.
 
-Avoid `--allow-shadow-builtin` unless deliberately replacing provider dispatch
-for a built-in provider tool name such as `claude`, `codex`, `gemini`,
-`opencode`, or `oai-runner`.
+Reserved provider names (`claude`, `codex`, `gemini`, `opencode`, `oai`,
+`oai-agent`, `oai-runner`) are an anti-squat guard, not native backends: a
+canonical `animus-provider-<reserved>` published by the built-in trusted
+publisher `launchapp-dev` installs with **no flag** (v0.6.10+). Only
+untrusted orgs — and `--path` / `--url` installs (owner unknown) — need
+`--allow-shadow-builtin`.
 
 ## Project-Scoped Installs
 
@@ -140,8 +191,8 @@ for a built-in provider tool name such as `claude`, `codex`, `gemini`,
 the project-local triple instead of the global one:
 
 - Binaries: `<project>/.animus/plugins/`
-- Registry: `<project>/.animus/plugins.yaml`
-- Lockfile: `<project>/.animus/plugins.lock`
+- Lockfile (source of truth): `<project>/.animus/plugins.lock`
+- Registry (derived from the lock): `<project>/.animus/plugins.yaml`
 
 Same sha256 / cosign / TOFU / fail-closed-lockfile pipeline as global
 installs. `--project` conflicts with `--plugin-dir`. Project installs shadow
@@ -151,7 +202,9 @@ same-named global installs during discovery and flow into `plugin list`
 
 Version control: `animus init` and project installs write a
 `.animus/.gitignore` covering `plugins/` so binaries stay out of VCS; commit
-the project lockfile (`.animus/plugins.lock`) to pin the repo's plugin set.
+`animus.toml` and the project lockfile (`.animus/plugins.lock`) — the lock
+pins the repo's plugin set with per-target integrity (schema 2.0), so a lock
+generated on macOS drives verified linux `--locked` installs.
 
 ## Org Trust (audited TOFU)
 
@@ -241,6 +294,14 @@ fallback for legacy entries). Each result carries `scope`
 (`global`/`project`/`explicit`); `--lockfile <PATH>` restricts to one file.
 Any mismatch or missing binary exits non-zero.
 
+Lock schema 2.0 (v0.6.7): each entry records per-target-triple integrity —
+`targets: {triple → {archive_sha256, signature_bundle_sha256,
+installed_binary_sha256}}` — captured from the release's `SHA256SUMS.txt`
+for EVERY published platform at install time. Schema-1.0 locks migrate with
+empty targets; re-install to upgrade them. `lock verify` and `--locked`
+installs verify the current platform's entry. When no triple-specific
+release asset exists, install falls back to a `<name>-noarch.tar.gz` asset.
+
 ## Scaffolding
 
 Two paths:
@@ -270,7 +331,7 @@ CLI-first surfaces in the current reference.
 
 ## Troubleshooting
 
-- Daemon preflight fails: run `animus plugin install-defaults` (covers all four required roles), then rerun preflight. The error message includes the exact per-role install commands.
+- Daemon preflight fails: `animus install` in a manifest project, else `animus plugin install-defaults` (covers every required role), then rerun preflight. The error message includes the exact per-role install commands.
 - Plugin installed but not discovered: check the project tier (`.animus/plugins/`, `.animus/plugins.yaml`), `~/.animus/plugins.yaml`, the global install dir, `ANIMUS_PLUGIN_DIR`, and `ANIMUS_PLUGIN_PATH`; add `--include-system-path` only when needed. Also check `.animus/plugin-scope.yaml` — a `flavor-only` or `allowlist` scope can filter the plugin out of discovery.
 - Project install not taking effect: confirm it shadows the global one in `animus plugin list` (`shadowed` note) and that the scope file admits it.
 - Bad provider plugin: uninstall it or move its binary out of discovery. `ANIMUS_PROVIDER_DISABLE_PLUGIN` was removed and has no effect.
