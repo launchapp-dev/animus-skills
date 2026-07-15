@@ -3,7 +3,7 @@ name: animus-setup
 description: Set up Animus in the current project - initialize config, connect MCP, install required plugins, create a first workflow, and start the daemon. Use when bootstrapping Animus in a repo or fixing an incomplete Animus setup.
 user_invocable: true
 auto_invoke: false
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 You are setting up Animus in the current project.
@@ -20,7 +20,13 @@ targeted reads:
 
 ## Setup flow
 
-1. Run `animus init --walkthrough` in the project root to initialize `.animus/`.
+**Repo already has a committed `animus.toml`?** Then setup is
+`animus install` (resolves the manifest into `.animus/plugins.lock` and
+installs the declared plugins + packs; `--locked` in CI), then continue at
+step 4.
+
+1. Run `animus init --walkthrough` in the project root. It scaffolds
+   `animus.toml`, `.env.example`, a merge-safe `.gitignore`, and `.animus/`.
    (`animus setup` was removed in v0.4.4 — use `animus init`.)
    The interactive walkthrough also installs the recommended workflow packs
    (default yes), offers a flavor picker when multiple flavors are
@@ -28,12 +34,14 @@ targeted reads:
    (`animus secret set <KEY>` — preferred over env vars).
 2. Install required plugins with `animus plugin install-defaults` (bare — it
    installs the flavor's full required set: provider, task + requirement
-   subject backends, transport-http, workflow-runner, queue; every
-   daemon-preflight role in one command). `--include-recommended` adds extras.
-3. Run `animus daemon preflight` and resolve any missing role. Preflight also
-   requires the `workflow_runner` and `queue` roles; when multiple roles are
-   missing it prints the composed fix
-   (`animus plugin install-defaults --flavor default --yes`).
+   subject backends, config_source, transport-http, workflow-runner, queue;
+   every daemon-preflight role in one command). `--include-recommended` adds
+   extras. As plugins are added later, prefer `animus add <spec>` so the
+   manifest + lock stay the record.
+3. Run `animus daemon preflight` and resolve any missing role. When multiple
+   roles are missing it prints the composed fix — `animus install` for
+   manifest projects, else
+   `animus plugin install-defaults --flavor default --yes`.
 4. Create or verify `.mcp.json` pointing to the `animus` binary.
 5. Create or validate a minimal workflow file.
 6. Start the daemon with conservative defaults.
@@ -45,10 +53,11 @@ should avoid prompts and plugin installs are already handled elsewhere; add
 `--install-packs` to install the recommended packs non-interactively, or
 `--no-packs` to skip them.
 
-For team repos, prefer project-scoped plugin installs
-(`animus plugin install --project`): binaries land in
-`<project>/.animus/plugins/` (gitignored) and the committable
-`.animus/plugins.lock` pins the repo's plugin set for everyone.
+For team repos, commit `animus.toml` + `.animus/plugins.lock` — the lock is
+the source of truth for everyone (`git clone && animus install`). Binaries
+land in `<project>/.animus/plugins/` (gitignored);
+`.animus/plugins.yaml` is a derived projection of the lock, never the
+authority.
 
 ## Minimal workflow
 

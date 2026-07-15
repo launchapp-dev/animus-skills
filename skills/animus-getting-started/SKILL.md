@@ -3,7 +3,7 @@ name: animus-getting-started
 description: Install Animus, initialize a project, create first task subject, run first workflow — core concepts and project structure
 user_invocable: true
 auto_invoke: true
-animus_version: "0.5.21"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
 ---
 
 # Getting Started with Animus
@@ -25,6 +25,18 @@ OAI, manages worktrees, records output, and coordinates queue-driven work.
 curl -fsSL https://raw.githubusercontent.com/launchapp-dev/animus-cli/main/scripts/install.sh | bash
 ```
 
+Working across multiple projects, or want side-by-side kernel versions?
+Prefer **avm**, the Animus Version Manager
+(github.com/launchapp-dev/avm) — it installs kernels under
+`~/.avm/versions/` and dispatches through an `animus` shim:
+
+```bash
+avm install <version> && avm use <version>
+```
+
+(`animus update` self-updates plain installs; on an avm-managed binary it
+defers and prints the `avm` commands instead.)
+
 ```bash
 # From a local source checkout
 cd /path/to/animus-cli
@@ -38,13 +50,27 @@ which animus
 animus --version
 ```
 
-## Install Default Plugins
+## Joining an existing Animus project?
+
+If the repo already has a committed `animus.toml`, setup is two commands —
+skip the plugin sections below:
+
+```bash
+git clone <repo> && cd <repo>
+animus install        # resolves animus.toml → .animus/plugins.lock, installs plugins + packs
+```
+
+`animus install --locked` (CI/Docker) reproduces the committed lock exactly.
+It also syncs `.env` into the encrypted secret store and warns about keys
+declared in `.env.example` but unset.
+
+## Install Default Plugins (fresh machine, no manifest yet)
 
 The daemon's preflight requires a provider, task + requirement subject
-backends, a workflow runner, and a queue plugin. One command installs the
-default flavor's full required set (provider-claude, subject-default,
-subject-requirements, transport-http, workflow-runner-default,
-queue-default):
+backends, a config_source, a workflow runner, and a queue plugin. One command
+installs the default flavor's full required set (provider-claude,
+subject-default, subject-requirements, config-yaml, transport-http,
+workflow-runner-default, queue-default):
 
 ```bash
 animus plugin install-defaults
@@ -57,9 +83,12 @@ web UI, GraphQL transport — needed for `animus web serve` / `animus web open`)
 OS keychain: `animus secret set <KEY>` (preferred over env vars; `${VAR}`
 interpolation in workflow YAML also checks the keychain).
 
-For team repos, `animus plugin install --project` installs into
-`<project>/.animus/plugins/` with a committable `.animus/plugins.lock` that
-pins the repo's plugin set (binaries stay gitignored).
+For team repos, declare the plugin/pack set in a committed `animus.toml`
+(scaffolded by `animus init`; edited via `animus add` / `animus remove`) and
+commit `.animus/plugins.lock` — teammates then just run `animus install`.
+The lock is the source of truth; `.animus/plugins.yaml` is a derived
+projection (never hand-edit or rely on it). Binaries stay gitignored under
+`<project>/.animus/plugins/`.
 
 ## Initialize a Project
 
@@ -86,8 +115,11 @@ animus init --walkthrough --non-interactive --no-install --install-packs
 Use `--no-packs` to skip the pack install entirely (takes precedence over
 `--install-packs`).
 
-This creates or updates project-local `.animus/` files such as:
+This creates or updates the project manifest and `.animus/` files:
 
+- `animus.toml` — the committed project manifest (`[project]` kernel version,
+  `[plugins]`, `[packs]`); resolved by `animus install`
+- `.env.example` and a merge-safe project `.gitignore`
 - `.animus/config.json` — self-update config only (daemon runtime settings
   live in the scoped `daemon/pm-config.json`, managed via `animus daemon config`)
 - `.animus/workflows.yaml` or `.animus/workflows/*.yaml` — authored workflow sources
@@ -163,10 +195,14 @@ subjects. A `ready` status makes a subject eligible to enqueue, not
 something the daemon auto-runs on its own.
 
 ```bash
-animus queue enqueue --task-id TASK-001
+animus queue enqueue --subject-id task:TASK-001
 animus queue list
 animus queue stats
 ```
+
+(`--subject-id` is the universal dispatch selector — qualified `kind:ID` for
+any subject kind, or a bare id resolved by the router. The old `--task-id` /
+`--requirement-id` flags were removed in v0.7.)
 
 ## First Workflow
 
@@ -175,7 +211,7 @@ animus queue stats
 animus subject create --kind task --title "Add health check endpoint" --priority p1 --status ready
 
 # Enqueue it (use the id returned by subject create)
-animus queue enqueue --task-id <id>
+animus queue enqueue --subject-id task:<id>
 
 # Start the daemon (detaches; prints pid + log path)
 animus daemon start --pool-size 2
@@ -212,6 +248,8 @@ animus output monitor --run-id <run-id>
 
 ```text
 your-project/
+├── animus.toml                   # committed project manifest (plugins + packs)
+├── .env.example
 ├── .animus/
 │   ├── config.json
 │   ├── workflows.yaml
@@ -220,7 +258,8 @@ your-project/
 │   ├── skills/
 │   │   └── <skill-name>/SKILL.md
 │   ├── plugins/                  # pack overrides + project-scoped plugin binaries (gitignored)
-│   ├── plugins.lock              # committable pin of project-scoped plugins
+│   ├── plugins.lock              # committed lockfile — SOURCE OF TRUTH for the plugin set (schema 2.0, per-platform integrity)
+│   ├── plugins.yaml              # derived projection of the lock (regenerated; never hand-edit)
 │   └── plugin-scope.yaml         # optional plugin scope + active_flavor
 └── ~/.animus/<repo-scope>/
     ├── core-state.json
