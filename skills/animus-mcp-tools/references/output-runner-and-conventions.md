@@ -51,6 +51,11 @@ entries; live PIDs get a manual-kill suggestion).
 | `animus.skill.create` | `name`, `scope` (`project` default \| `user`), `description`, `prompt`, `tags`, `tool_policy`, `model`, `mcp_servers`, `category`, `activation`, `capabilities`, `overwrite`, `project_root` |
 | `animus.skill.update` | `name`, `scope` (optional unless the name exists at both scopes), plus any `animus.skill.create` field to patch, `project_root` |
 
+The local serve surface has no install/uninstall tools — installing skills
+from GitHub is `animus skill install OWNER/REPO[@ref]` on the CLI (v0.6.8+),
+and the portal exposes `skill_install` / `skill_uninstall` / `skill_info`
+(see portal-launchapp-tools.md).
+
 Skill sources include project, user, installed pack/registry, and lower-trust
 agent-host probes such as `~/.claude/skills` and `~/.codex/skills`.
 Agent-host skills are prompt-text-only; structural fields (`tool_policy`,

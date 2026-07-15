@@ -107,8 +107,13 @@ running.
 | Tool | Key parameters |
 |------|----------------|
 | `animus.cost.decisions` | `since`, `project_root` |
+| `animus.budget.get` | `project_root` — fleet daily cap, rolling-24h spend, remaining headroom, exceeded/dispatch-paused flags, plus every configured per-workflow/per-phase cap. Works offline |
+| `animus.budget.set` | `max_daily_usd`, `clear`, `project_root` — set or clear the fleet daily cap (wraps `daemon config --max-daily-usd`; hot-reloaded; `{clear: true}` uncaps) |
 
-Lists recorded budget-cap breaches from the scoped breach log. Works offline.
+`animus.cost.decisions` lists recorded budget-cap breaches from the scoped
+breach log. Works offline. A latched fleet-cap breach also flips
+`animus.daemon.health` to Degraded with `dispatch_paused` /
+`daily_cap_exceeded` fields.
 
 ## Subject tools
 
@@ -120,10 +125,10 @@ accepts an optional `project_root` parameter.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.subject.list` | `kind`, `status`, `limit` |
+| `animus.subject.list` | `kind`, `status`, `limit` (default 50; `0` = uncapped), `cursor` — the result carries `next_cursor` (+ `total` when the backend reports it); page until `next_cursor` is null instead of raising `limit` |
 | `animus.subject.get` | `kind`, `id` (wire id `<kind>:<native_id>`) |
-| `animus.subject.create` | `kind`, `title`, `priority`, `status`, `labels[]`, `body` |
-| `animus.subject.update` | `kind`, `id`, `priority`, `status`, `labels[]` |
+| `animus.subject.create` | `kind`, `title`, `priority`, `status`, `labels[]`, `body`, `data` (JSON custom fields → the subject's `custom` bag) |
+| `animus.subject.update` | `kind`, `id`, `title`, `priority`, `status`, `labels[]`, `body`, `data` |
 | `animus.subject.next` | `kind` |
 | `animus.subject.status` | `kind`, `id`, `status` |
 | `animus.subject.batch-create` | `kind`, `items[]` (`title`, `status`, `priority`, `labels[]`, `body`), `on_error` |
