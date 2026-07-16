@@ -35,18 +35,30 @@ You never hand-write OOXML: you write a structured **spec**, and the
 3. **Render + store** with `store_document({ format, spec, title, owner:
    <requested_by>, visibility })`. Keep the returned `s3_key`, `size_bytes`,
    `content_type`, `filename`, `url`.
-4. **Record** the document with `create_subject`:
+4. **Record** the document with `create_subject`. Pass `kind`, `title`, and a
+   **`data`** argument that is a **JSON OBJECT** (not a string) holding the fields:
    ```
-   create_subject(kind="document", title=<title>, custom={
-     format, spec,                         // the SAME spec you rendered (source of truth)
-     s3_key, size_bytes, url,
-     mime_type: <content_type>, filename,
-     owner_id: <requested_by>, visibility,
-     source_subject_id: <if generated from a subject>
-   })
+   create_subject(
+     kind="document",
+     title=<title>,
+     data={                                  // MUST be a JSON object, never a stringified string
+       "format": <format>,
+       "spec": <the SAME spec you rendered>, // source of truth
+       "s3_key": <from store_document>,
+       "size_bytes": <from store_document>,
+       "url": <from store_document>,
+       "mime_type": <content_type from store_document>,
+       "filename": <from store_document>,
+       "owner_id": <requested_by>,
+       "visibility": <"private" | "org">,
+       "source_subject_id": <if generated from a subject, else omit>
+     }
+   )
    ```
-   Set `owner_id` to the requester (`requested_by`) and `visibility` to the chosen
-   scope — this is what controls who can see the document.
+   The argument name is **`data`** (it maps to `animus subject create --data`), and
+   it must be a real JSON object. Set `owner_id` to the requester (`requested_by`)
+   and `visibility` to the chosen scope — that is what controls who can see the
+   document.
 5. Report the created `document:DOC-…` id.
 
 Do NOT try to upload bytes yourself and do NOT call `author_document` — that tool
