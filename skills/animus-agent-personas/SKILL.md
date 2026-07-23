@@ -3,7 +3,7 @@ name: animus-agent-personas
 description: Product lifecycle agents — product owner, architect, auditor, docs-writer, devops, researcher personas
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Agent Personas — Beyond Code Delivery

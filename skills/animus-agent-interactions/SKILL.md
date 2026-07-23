@@ -3,7 +3,7 @@ name: animus-agent-interactions
 description: Deep reference for Animus human-in-the-loop (HITL) agent interactions — agent questions and approval requests, the pending-interaction inbox, paused workflows waiting for an answer, permission prompts, approval_policy routing, and suspend/resume mechanics. Use when an agent is parked on a pending interaction, a workflow is paused awaiting a human decision, an approval or permission prompt needs answering, or when configuring approvals for agents.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Agent Interactions (Human-in-the-Loop)
@@ -50,12 +50,23 @@ agents:
     approval_policy:                # kernel inbox layer
       auto_allow: ["cargo *", "git.commit"]
       auto_deny: ["git.push*"]
-      default: ask                  # ask | allow | deny
+      default: ask                  # ask | allow | deny | llm
+      evaluator_model: anthropic/claude-haiku-4-5   # default: llm only — judge model
+      evaluator_instructions: "Deny anything touching billing or prod."
 ```
 
 - `auto_allow` / `auto_deny` are `*`-glob lists matched against the request's
   `tool_name` when present, otherwise its `action`. `auto_deny` wins on
   overlap (fail closed). `default: ask` escalates to a pending interaction.
+- `default: llm` auto-approves via an in-process judge model: the judge reads
+  the tool call and returns allow/deny, recorded with `source: "llm"` and the
+  judge's reason. `evaluator_model` picks the judge (defaults to the agent's
+  own model); `evaluator_instructions` appends an operator rubric to the
+  built-in judge prompt. The judge runs with no MCP tools (cannot recurse),
+  and any evaluator failure falls back to manual `ask` escalation — an LLM
+  outage never silently auto-approves (fail safe). In llm mode the judge also
+  auto-answers `animus.agent.ask` structured questions (recorded in the inbox,
+  answered_by `llm`, for auditability).
 - Declaring an `approval_policy` implies `--approvals` on `animus agent run`
   (sets `extras.approvals` so transports route permission decisions through
   the kernel tool).
@@ -67,7 +78,7 @@ agents:
   `approval_policy` decides what happens to escalations that reach the
   kernel. Caveat: ad-hoc surfaces honour `permission_mode` today; workflow
   phase execution enforces it once the out-of-tree workflow-runner plugin
-  pin consumes the field (still true at v0.7.0-rc.18). Phase
+  pin consumes the field (still true at v0.7.0-rc.27). Phase
   `runtime.permission_mode` wins over the agent profile's value.
 
 ## Native enforcement (claude) — SDK conformance
@@ -99,10 +110,17 @@ codex / gemini / opencode route approvals through their provider plugins'
 `request_approval` wiring (kernel-mediated approvals landed on all five core
 providers in the v0.6.0 line; codex is MCP-driven and gemini/opencode
 ACP-driven since v0.6.9, and ACP carries a native permission-request
-channel). Where a driver cannot intercept a tool call natively it falls back
-to `permission_mode` mapping plus a system-prompt instruction block directing
-the agent to call the two kernel tools. Claude remains the only provider with
-the full SDK permission-prompt-tool conformance described above.
+channel). Where a driver cannot intercept natively, the hidden
+`animus agent approve-hook` verb (v0.6.4) provides **enforced** command-hook
+interception: gemini's BeforeTool hook, claude's PreToolUse hook, the
+opencode plugin, and the oai harness each invoke it with one tool call as
+JSON on stdin, and it routes the call through the same decide_approval logic
+that backs `animus.agent.request_approval`, rendering the decision in the
+provider's own hook contract (`--format claude|gemini|generic`;
+`--agent-id` is required — the hook supplies no pinned identity; an Ask
+escalation that times out fails closed to deny). Claude remains the only
+provider with the full SDK permission-prompt-tool conformance described
+above.
 
 ## Operator inbox: `animus agent interactions`
 
@@ -157,6 +175,10 @@ Identity pins on the serving process:
   `animus chat send --agent` injection path appends it automatically.
 - `animus mcp serve --workflow-id <ID>` (or `ANIMUS_MCP_WORKFLOW_ID`) binds
   escalations to that workflow and flips the default wait mode to suspend.
+- `animus mcp serve --actor-json <JSON>` pins a transport-asserted per-user
+  Actor (`user_id`, `claims`, `tenant_id`) on the serving process, scoping
+  the per-user tool surface to that identity. Trusted-host-only: the caller
+  asserts the identity, so only trusted transports may set it.
 - The two blocking tools accept no `project_root` override — they always
   operate on the server's own project scope.
 

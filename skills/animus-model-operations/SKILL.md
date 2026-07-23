@@ -3,7 +3,7 @@ name: animus-model-operations
 description: Choose models and verify provider readiness in Animus — provider plugin health, API-key and CLI-tool diagnostics, model/tool routing in workflow YAML, and per-model cost attribution. Use when selecting a model for a phase or agent, or when diagnosing why a provider or model fails to dispatch.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Model Selection and Provider Health
@@ -114,8 +114,11 @@ model-routing module): `claude-*` → `claude`, `gpt-*` → `codex`, `gemini-*`
 → `gemini`, `zai-*`/`glm-*`/`minimax-*`/`openrouter/*` → `oai-runner`
 (which canonicalizes to `oai-agent` — the agentic OAI provider; write
 `oai-agent` in new YAML), `deepseek-*`/`qwen-*` → `opencode`. Model ids are
-normalized through `canonical_model_id()` (aliases like `opus` resolve to
-the current canonical id), and fallback models map to tools automatically.
+normalized through `canonical_model_id()` — aliases like `opus` resolve via
+the protocol routing table, so never assume which concrete id an alias
+currently maps to: check `docs/guides/model-routing.md` or
+`animus workflow agent-runtime get` for the resolved ids. Fallback models
+map to tools automatically.
 Cost-rate matching strips OpenRouter-style `<provider>/` prefixes
 (`openai/gpt-5.5` matches the `gpt-5.5` rate).
 
@@ -188,6 +191,11 @@ present-but-unparseable, exit code 1, headless vendor CLI.
 - Plugin stuck or flapping: `animus plugin status <NAME>` — check
   `disabled_by_supervisor` / `cooldown_until`; fix the underlying error, then
   restart the daemon.
+- Plugin handshake fails: since v0.6.33 the handshake error includes the
+  plugin's own captured stderr — read it before guessing (it usually names
+  the real cause: missing binary dep, bad env, credential parse). Transient
+  spawn/handshake failures also self-retry since v0.6.33, so a one-off blip
+  no longer needs manual intervention.
 - Phase exits code 1 immediately with a vendor config-parse error (e.g.
   `unknown variant ... in service_tier`): the provider CLI's own config is
   invalid — see **Backing-CLI Config Errors** above. Health/preflight checks

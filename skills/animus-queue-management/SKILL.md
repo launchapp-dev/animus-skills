@@ -3,7 +3,7 @@ name: animus-queue-management
 description: Dispatch queue operations — enqueue, hold, release, drop, reorder, and queue patterns
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Queue Management
@@ -24,11 +24,15 @@ fallback heartbeat, not the dispatch latency.
 ## Queue Entry States
 
 ```
-deferred → pending (when --at run_at passes)
+pending (deferred) → pending, leasable (when --at run_at passes)
 pending → assigned → (removed on completion)
 pending → held → pending (released)
 any → dropped (via animus queue drop)
 ```
+
+`deferred` is not a separate state: it is the not-yet-leasable subset of
+`pending` (entries whose `--at run_at` has not passed), matching the
+`(N deferred)` annotation in `queue stats`.
 
 ## CLI Commands
 
@@ -66,12 +70,15 @@ animus queue enqueue --subject-id blog:BLOG-001 --workflow-ref publish-blog
 animus queue enqueue --title "Run nightly build" --description "Verify the release branch" --workflow-ref ops
 ```
 
-> **Removed in v0.7 (breaking).** The old `--task-id` / `--requirement-id`
-> flags (and the `task_id` / `requirement_id` MCP params) are gone — use
-> `--subject-id` with a qualified `kind:ID`, or a bare id (the subject router
-> resolves the kind by probing backends). Task and requirement are ordinary
-> kinds now: a requirement dispatched via `--subject-id` without an explicit
-> `--workflow-ref` uses the project **default** workflow, not
+> **Version note.** On 0.6.x local installs (mainline, v0.6.33) both the
+> legacy `--task-id` / `--requirement-id` flags (and `task_id` /
+> `requirement_id` MCP params) and `--subject-id` (added v0.6.29) work.
+> The legacy flags/params are removed on the v0.7-rc line (the portal
+> already enforces `subjectId`), so prefer `--subject-id` with a qualified
+> `kind:ID`, or a bare id (the subject router resolves the kind by probing
+> backends). (v0.7-rc/portal only:) task and requirement become ordinary
+> kinds there — a requirement dispatched via `--subject-id` without an
+> explicit `--workflow-ref` uses the project **default** workflow, not
 > `animus.requirement/plan` — always name the workflow.
 
 The daemon picks up pending entries and assigns them to agents. `--subject-id`
@@ -79,7 +86,8 @@ enqueues a subject of **any** kind: the kind prefix is trusted, the queue
 lease and runner resolve the subject via that kind's backend (`<kind>/get`).
 
 Subjectless ad-hoc runs: `animus queue enqueue --adhoc --workflow-ref <ref>`
-declares a run with no subject at all (v0.7.0-rc.3). Caveat: with the current
+declares a run with no subject at all (v0.7-rc/portal only — the flag does
+not exist on 0.6.x local installs; use direct dispatch there). Caveat: with the current
 default queue plugin (wire pinned to a non-optional subject), enqueue-`--adhoc`
 fails fast — direct dispatch (`animus workflow run <ref>` with no subject)
 carries subjectless runs end-to-end.
@@ -177,7 +185,8 @@ Repeat `--subject-id` in the exact order you want the daemon to consider.
 
 (`animus.queue.enqueue` params: `title`, `subject_id`, `description`,
 `workflow_ref`, `input_json`, `run_at`, `expire_after`, `project_root` — the
-old `task_id`/`requirement_id` params were removed in v0.7.)
+legacy `task_id`/`requirement_id` params still work on 0.6.x local installs
+but are removed on the v0.7-rc line; prefer `subject_id`.)
 
 ## Patterns
 

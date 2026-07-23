@@ -37,7 +37,7 @@ skills:
         - "Edit"
         - "Bash"
 
-    model:
+    model:                 # discouraged — see the `model` field note below
       preferred: claude-sonnet-4-6
       fallback: claude-opus-4-8
 
@@ -68,7 +68,7 @@ skills:
 | `activation` | object | No | Which tools or models trigger this skill |
 | `prompt` | object | No | System prompt, prefix, suffix, directives |
 | `tool_policy` | object | No | Allow and deny glob patterns |
-| `model` | object | No | `preferred` and `fallback` model IDs — each is a single string, not a list |
+| `model` | object | No | `preferred` and `fallback` model IDs — each is a single string, not a list. **Discouraged:** a skill-pinned model SILENTLY OVERRIDES the activating agent's model — and, when the pinned model implies a different provider, its tool. Skills should be model-agnostic; put model choice on the agent profile / phase runtime instead. v0.6.33+ surfaces a `warn_skill_pins_model` warning ("skills should be model-agnostic — move the model to the agent profile") on `animus skill info` / `skill list` and the skill MCP tools |
 | `mcp_servers` | list | No | MCP servers to activate |
 | `timeout_secs` | int | No | Agent timeout override |
 | `capabilities` | object | No | Boolean capability flags |
@@ -158,6 +158,11 @@ adapters:
       allow: ["*"]
     extra_args: ["--full-auto"]
 ```
+
+`adapters.<tool>.model` pins carry the same caveat as top-level `model:`:
+they silently override the activating agent's model (and tool, when the model
+implies a different provider), and trigger the same `warn_skill_pins_model`
+warning (v0.6.33+). Prefer model-agnostic skills.
 
 ## Activation filters
 

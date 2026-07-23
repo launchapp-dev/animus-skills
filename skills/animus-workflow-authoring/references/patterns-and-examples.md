@@ -21,8 +21,8 @@ schedules:
 triggers:
 daemon:
 secrets:
-workspaces:            # v0.7
-environment_routing:   # v0.7
+workspaces:            # v0.7-rc/portal only — not on 0.6.x local installs
+environment_routing:   # v0.7-rc/portal only — not on 0.6.x local installs
 ```
 
 ## Tools allowlist
@@ -183,6 +183,9 @@ workflows:
 ```
 
 ## Environment-pinned workflow (v0.7)
+
+(v0.7-rc/portal only — not on 0.6.x local installs; on 0.6.x execution is
+always local, controlled by `worktree:`.)
 
 Pin a workflow to an execution-environment plugin and a named repo set; all
 phases of a run — command phases included — share one ephemeral node:

@@ -3,7 +3,7 @@ name: animus-mcp-servers-for-agents
 description: Connect agents to Context7, package-version, sequential-thinking, memory, GitHub MCP servers
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # MCP Servers for Animus Agents
@@ -178,7 +178,7 @@ Persistent memory across agent runs. Agents can remember what they reviewed last
 
 **Why:** Without memory, each cron run starts from scratch. The PO can't remember what it reviewed, the researcher re-checks the same packages, the reconciler re-analyzes the same tasks.
 
-### GitHub (`@modelcontextprotocol/server-github`) — LOW priority
+### GitHub (hosted MCP endpoint, `https://api.githubcopilot.com/mcp/`) — LOW priority
 
 Structured GitHub operations as MCP tools.
 

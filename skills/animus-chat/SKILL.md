@@ -3,13 +3,13 @@ name: animus-chat
 description: Hold and manage multi-turn Animus chat conversations — interactive provider sessions, conversation history, resume semantics, transcript search and export, and per-conversation cost.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Animus Chat
 
 Use `animus chat` (v0.5.10+) for multi-turn conversations with a provider tool
-(claude / codex / gemini / opencode / any installed `provider_backend`
+(claude / codex / gemini / opencode / any installed `provider`
 plugin). It is the conversational sibling of `animus agent run`: same
 `SessionBackendResolver`, same provider plugins, but with a durable,
 queryable conversation store and turn-by-turn continuity.
@@ -17,7 +17,7 @@ queryable conversation store and turn-by-turn continuity.
 ## Command Surface
 
 ```bash
-animus chat new [--id <id>] [--title <title>]      # start an empty conversation, prints its id
+animus chat new [--id <id>] [--title <title>] [--visibility private|shared]   # start an empty conversation, prints its id
 animus chat send "your message" [flags]            # send a turn, stream the reply
 animus chat get <id>                               # print the full transcript
 animus chat list                                   # conversations, most-recently-updated first
@@ -26,6 +26,9 @@ animus chat delete <id>                            # permanent; idempotent if al
 animus chat export <id> [--format markdown|json] [--output <path>]
 animus chat search <query> [--limit 20] [--case-sensitive]
 ```
+
+Every subcommand above also takes `--as-user <USER_ID>` — see
+"Per-user conversations" below.
 
 ## Sending Turns
 
@@ -58,6 +61,14 @@ Key flags on `chat send`:
   `animus.agent.request_approval` MCP tool; implied when the `--agent`
   profile declares an `approval_policy`.
 - `--agent` / `--skill` / `--mcp-server` / `--no-animus-mcp` — see below.
+- `--as-user <USER_ID>` / `--visibility private|shared` — ownership stamp
+  and visibility for a conversation created by this send (see
+  "Per-user conversations" below).
+- `--actor-json <JSON>` — transport-asserted authz identity for this turn
+  (`user_id`, `claims`, `tenant_id`), **distinct from `--as-user`** (which is
+  the conversation-ownership stamp): it binds the chat agent's built-in
+  `animus` MCP server to that user so per-user subject / queue / integration
+  tools are scoped accordingly. Trusted-host-only.
 
 Output modes: `--json` (global flag) emits one JSON event per line
 (`turn_started`, `text_delta`, `thinking`, `tool_call`, `tool_result`,
@@ -115,13 +126,37 @@ flags reach every turn's provider process. Practical implication: slower
 turns and more tokens (history re-sent each turn), but launch behavior
 stays correct on every turn.
 
+## Per-user conversations (v0.6.x)
+
+Chat is multi-user aware:
+
+- `--as-user <USER_ID>` (on `new`, `send`, `get`, `list`, `rename`, `delete`,
+  `export`, `search`) stamps or asserts the acting user. On `new`/`send` it
+  sets the conversation's owner; on `list`/`search` it limits results to that
+  user's conversations PLUS any shared ones (omit for the full legacy/admin
+  view); on `get`/`rename`/`delete`/`export` it is the acting identity.
+  Advisory for the in-tree filesystem store; a `conversation_store` plugin
+  may use it to enforce access.
+- `--visibility private|shared` (on `new` and `send`, default `private`) —
+  `private` is owner-only (plus admin/unscoped listings), `shared` is
+  visible to every user in addition to the owner.
+- `chat send --actor-json` is the separate transport-asserted **authz**
+  identity (see the flag list above) — do not conflate it with the
+  `--as-user` ownership stamp.
+- The optional `conversation_store` plugin role backs per-user history:
+  when such a plugin is installed, conversation ops route to it instead of
+  the in-tree filesystem store.
+
 ## Inspecting, searching, exporting
 
-Conversations live under `~/.animus/<repo-scope>/chat/<conversation-id>/`:
-`meta.json` (continuity pointer: `session_id` + `tool` + `model`) and
-`messages.jsonl` (append-only message log with ordered assistant `blocks[]`
-timelines). Treat as tool-managed — use the `animus chat` surface, not
-hand-edits.
+Conversations live under `~/.animus/<repo-scope>/chat/<conversation-id>/`
+when no `conversation_store` plugin is installed — with one installed,
+conversation ops route to the plugin over JSON-RPC instead (and since
+v0.6.24 `chat search` runs over ONE spawned plugin host rather than one per
+conversation). The filesystem layout: `meta.json` (continuity pointer:
+`session_id` + `tool` + `model`) and `messages.jsonl` (append-only message
+log with ordered assistant `blocks[]` timelines). Treat as tool-managed —
+use the `animus chat` surface, not hand-edits.
 
 ```bash
 animus chat list

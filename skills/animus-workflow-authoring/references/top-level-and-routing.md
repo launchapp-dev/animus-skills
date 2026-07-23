@@ -245,6 +245,11 @@ a short-form scalar. Enforcement is owned by the workflow runner plugin
 
 ## Execution environments (v0.7)
 
+(v0.7-rc/portal only — not on 0.6.x local installs; on 0.6.x all execution is
+local and the `worktree:` rules above are the only placement control. The
+`workspaces:`, `environment_routing:`, and `environment:` keys parse only on
+the v0.7-rc line.)
+
 v0.7 adds an `environment` plugin kind (optional at preflight): runs can
 execute in ephemeral remote nodes (e.g. `animus-environment-railway` coder
 containers) instead of local worktrees. Three YAML surfaces control it:

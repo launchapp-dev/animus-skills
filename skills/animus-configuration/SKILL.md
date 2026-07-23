@@ -3,7 +3,7 @@ name: animus-configuration
 description: Animus project config, daemon config, plugin config, agent runtime, environment variables, and state layout
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Configuration
@@ -55,9 +55,9 @@ Hand-authored workflow sources. Typical uses:
   and resolved at consume/spawn time since v0.6 (env first, then the
   `animus secret` keychain store) — the reference passes through config
   parsing verbatim; resolved values never land in compiled artifacts.
-- Declare v0.7 execution-environment surfaces: `workspaces:`,
-  `environment_routing:`, and workflow/phase `environment:` /
-  `workspace:` fields.
+- Declare execution-environment surfaces (v0.7-rc/portal only — not on
+  0.6.x local installs): `workspaces:`, `environment_routing:`, and
+  workflow/phase `environment:` / `workspace:` fields.
 
 Use:
 
@@ -86,8 +86,8 @@ broadcasts `config_reload_failed` instead of crashing. Manual trigger:
 
 Sources that advertise `config_write` also accept CLI write-back:
 `animus workflow config set / agent-set / agent-remove / workflow-set /
-workflow-remove / phase-set` (rc.13+) edit the base config without touching
-YAML by hand.
+workflow-remove` edit the base config without touching YAML by hand
+(`phase-set` is v0.7-rc only — not on 0.6.x local installs).
 
 ### `.animus/skills/<name>/SKILL.md`
 
@@ -144,6 +144,9 @@ Mutable project runtime state lives outside the repo:
 ├── resume-config.json
 ├── workflow.db
 ├── .journal-imported-v1          # marker: one-time SQLite→journal-plugin import done
+├── cache/
+│   ├── workflow-config.compiled.v1.json   # hash-keyed compile cache
+│   └── ci-status.json                     # `animus status` CI-status cache
 ├── config/
 │   ├── state-machines.v1.json
 │   └── agent-runtime-config.v2.json
@@ -159,7 +162,7 @@ Mutable project runtime state lives outside the repo:
 ├── artifacts/<run-id>/
 ├── state/
 │   └── pack-selection.v1.json
-├── workflow-environments/        # v0.7: environment-broker lease records (<run_id>.json)
+├── workflow-environments/        # v0.7-rc/portal only: environment-broker lease records (<run_id>.json)
 └── worktrees/
 ```
 
@@ -179,9 +182,9 @@ Key files:
   the file. The compiled *workflow* config (`animus.workflow-config.v2`) is
   **in-memory only** — an on-disk `config/workflow-config.v2.json` is a hard
   load error, not a cache.
-- `workflow-environments/<run_id>.json` (v0.7) are durable environment-broker
-  leases for runs pinned to an execution environment; stale leases are
-  cold-torn-down by the daemon's startup reaper.
+- `workflow-environments/<run_id>.json` (v0.7-rc/portal only) are durable
+  environment-broker leases for runs pinned to an execution environment;
+  stale leases are cold-torn-down by the daemon's startup reaper.
 - `interactions/` stores pending agent questions/approvals
   (`animus agent interactions`).
 - `mcp-oauth-cache/<server>.json` caches resolved OAuth tokens for
@@ -370,22 +373,23 @@ Plugin and template variables:
 |----------|---------|
 | `ANIMUS_PLUGIN_DIR` | Override global plugin install directory |
 | `ANIMUS_PLUGIN_PATH` | Extra directories scanned for plugin binaries |
-| `ANIMUS_PLUGIN_SIGNATURE_POLICY` | Signature policy override: `strict` / `warn` / `skip` (precedence: per-call flag > this env > global config > `warn`) |
-| `ANIMUS_SERVER=1` | Server mode: fail-closed org TOFU — `--yes`/`--force` never auto-trust an unknown org (use `--allow-org`) |
+| `ANIMUS_PLUGIN_SIGNATURE_POLICY` | Signature policy override: `strict` / `warn` / `skip` (precedence: per-call flag > this env > global config `plugins.signature_policy` > `warn`). v0.7-rc/portal only — on 0.6.x local installs there is no env or global-config layer: precedence is `--signature-policy` flag > legacy `--skip-signature`/`--require-signature` > `warn` default |
+| `ANIMUS_SERVER=1` | Server mode: fail-closed org TOFU — `--yes`/`--force` never auto-trust an unknown org (use `--allow-org`). v0.7-rc/portal only — on 0.6.x local installs `--yes`/`--force` DO auto-trust unconditionally |
 | `ANIMUS_DISABLE_MANIFEST_CACHE` / `ANIMUS_CACHE_DIR` | Bypass / relocate the plugin manifest cache |
-| `ANIMUS_RESIDENT_HOST_CACHE_MAX` | Cap the resident plugin-host registry (legacy `ANIMUS_SUBJECT_HOST_CACHE_MAX` still read) |
+| `ANIMUS_RESIDENT_HOST_CACHE_MAX` | Cap the resident plugin-host registry (v0.7-rc/portal only; legacy `ANIMUS_SUBJECT_HOST_CACHE_MAX` still read — on 0.6.x local installs `ANIMUS_SUBJECT_HOST_CACHE_MAX` is the only var) |
 | `ANIMUS_FLAVORS_DIR` | Override the `flavors/<name>.toml` probe directory |
 | `ANIMUS_TEMPLATE_REGISTRY_URL` | Override project-template registry |
 
-Environment / journal variables (v0.7):
+Environment / journal variables (the `ANIMUS_ENVIRONMENT_*` and OAuth-cache
+rows are v0.7-rc/portal only — absent on 0.6.x local installs):
 
 | Variable | Purpose |
 |----------|---------|
-| `ANIMUS_ENVIRONMENT_DELEGATE` | Gate: delegate worktree materialization to the resolved environment plugin (default off) |
-| `ANIMUS_ENVIRONMENT_EXEC` | Gate: route agent exec through resolved environment plugins (default off; no silent local fallback once resolved) |
-| `ANIMUS_ENVIRONMENT_BROKER_*` | Daemon-set on runners: private broker socket/bearer for exec proxying — not user-set |
-| `ANIMUS_DAEMON_DISABLE_JOURNAL_RESUME` | Kill-switch: skip the boot reconcile that RESUMES in-flight runs from a durable workflow_journal after restart |
-| `ANIMUS_MCP_OAUTH_CACHE_DIR` | Relocate the MCP OAuth token cache (containerized/durable-volume deployments) |
+| `ANIMUS_ENVIRONMENT_DELEGATE` | Gate: delegate worktree materialization to the resolved environment plugin (default off; v0.7-rc/portal only) |
+| `ANIMUS_ENVIRONMENT_EXEC` | Gate: route agent exec through resolved environment plugins (default off; no silent local fallback once resolved; v0.7-rc/portal only) |
+| `ANIMUS_ENVIRONMENT_BROKER_*` | Daemon-set on runners: private broker socket/bearer for exec proxying — not user-set (v0.7-rc/portal only) |
+| `ANIMUS_DAEMON_DISABLE_JOURNAL_RESUME` | Kill-switch: skip the boot reconcile that RESUMES in-flight runs from a durable workflow_journal after restart (v0.6.27+, mainline) |
+| `ANIMUS_MCP_OAUTH_CACHE_DIR` | Relocate the MCP OAuth token cache (containerized/durable-volume deployments). v0.7-rc/portal only — on 0.6.x local installs the path is hardwired to `~/.animus/<repo-scope>/mcp-oauth-cache/` |
 
 Workflow-runner variables:
 
@@ -441,6 +445,18 @@ keychain with `animus secret set <KEY>` (also `get`, `list`, `rm`,
 explicit parent-process env first, then the keychain entry for the current
 repo-scope. The daemon does not auto-load `.env` files — source them before
 startup, or migrate with `animus secret import-env`.
+
+Two storage backends sit behind the same `animus secret` surface, selected
+per machine via the global config's `secrets.backend`
+(`auto` default | `keyring` | `device` | `env`): `keyring` is the OS
+keychain; `device` is a device-encrypted store — secrets AEAD-sealed
+(ChaCha20-Poly1305) in `~/.animus/<repo-scope>/secrets/secrets.enc.v1`
+(`0600`), master key wrapped by a `key_source`
+(`device-id` / `user-key` / `passphrase`) — for hosts where the keyring is
+awkward or absent (headless Linux, re-prompting macOS binaries). Move
+between backends with `animus secret migrate --to device|keyring`
+(verified copy; `--remove-source` clears the origin after). See
+`docs/reference/secrets.md`.
 
 Use YAML interpolation for non-secret config only:
 

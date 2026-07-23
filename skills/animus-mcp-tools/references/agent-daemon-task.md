@@ -35,6 +35,16 @@ escalation calls with two wait modes (`wait`: `block` | `suspend`):
   Answering the interaction resumes the workflow with the decision as
   feedback.
 
+`animus.agent.ask` accepts two shapes: (1) a flat single question —
+`question` plus optional `options[]`, returning `{ id, answer,
+answered_by }`; or (2) a
+structured `questions[]` array (multi-question / multi-select / described
+options — parity with claude's native AskUserQuestion channel), each entry
+`{ question, header?, options: [{ label, description? }], multi_select? }`,
+returning `{ id, answers: { <question>: <label | [labels] | text> },
+response?, answer }` where `answer` is a readable join kept for back-compat.
+At least one of `question` / `questions` must be present.
+
 An agent profile's `approval_policy` can auto-allow or auto-deny without
 escalating. Both tools operate on the server's own project scope and take no
 `project_root`. The agent identity can be pinned with
@@ -66,7 +76,7 @@ equivalent is `animus agent interactions {list, show, answer}`.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.agent.ask` | `agent_id`, `question`, `options[]`, `timeout_secs`, `workflow_id`, `task_id`, `wait` (`block` \| `suspend`) |
+| `animus.agent.ask` | `agent_id`, `question`, `options[]`, `questions[]` (structured form; see above), `timeout_secs`, `workflow_id`, `task_id`, `wait` (`block` \| `suspend`) |
 | `animus.agent.request_approval` | `agent_id`, `action` (derived from `tool_name` when omitted), `tool_name`, `input` \| `arguments`, `tool_use_id`, `suggestions`, `timeout_secs`, `workflow_id`, `task_id`, `wait` (`block` \| `suspend`) |
 | `animus.interactions.list` | `all`, `agent_id`, `limit`, `project_root` |
 | `animus.interactions.answer` | `id`, `text` (questions), `decision` + `message` (approvals), `answers` + `response` (structured AskUserQuestion records), `updated_input`, `updated_permissions`, `remember` (allowed approvals), `answered_by`, `project_root` |
@@ -84,7 +94,7 @@ exposed on `animus.daemon.start`.
 
 | Tool | Key parameters |
 |------|----------------|
-| `animus.daemon.start` | `pool_size` (alias `max_agents`), `interval_secs`, `stale_threshold_hours`, `max_tasks_per_tick`, `phase_timeout_secs`, `startup_cleanup`, `resume_interrupted`, `reconcile_stale`, `project_root` |
+| `animus.daemon.start` | `pool_size` (alias `max_agents`), `interval_secs`, `stale_threshold_hours`, `max_tasks_per_tick`, `phase_timeout_secs`, `startup_cleanup`, `reconcile_stale`, `project_root` |
 | `animus.daemon.stop` | `project_root` |
 | `animus.daemon.status` | `project_root` |
 | `animus.daemon.health` | `project_root` — payload carries a `healthy` boolean verdict and `provider_plugins_healthy` |
@@ -94,7 +104,7 @@ exposed on `animus.daemon.start`.
 | `animus.daemon.agents` | `project_root` |
 | `animus.daemon.logs` | `limit`, `search`, `project_root` |
 | `animus.daemon.config` | `project_root` |
-| `animus.daemon.config-set` | `pool_size` (alias `max_agents`), `interval_secs`, `max_tasks_per_tick`, `stale_threshold_hours`, `phase_timeout_secs`, `notification_config_json`, `notification_config_file`, `clear_notification_config`, `project_root` |
+| `animus.daemon.config-set` | `pool_size` (alias `max_agents`), `interval_secs`, `max_tasks_per_tick`, `stale_threshold_hours`, `phase_timeout_secs`, `max_daily_usd` (fleet daily spend cap; non-positive persists as explicit uncapped; v0.7-rc/portal only — absent on 0.6.x local installs), `notification_config_json`, `notification_config_file`, `clear_notification_config`, `project_root` |
 | `animus.daemon.observe` | `since`, `source` (`logs`/`events`/`stream`/`workflow`), `workflow_id`, `limit`, `project_root` |
 
 `animus.daemon.observe` is the observability front-door: it returns the
@@ -110,10 +120,15 @@ running.
 | `animus.budget.get` | `project_root` — fleet daily cap, rolling-24h spend, remaining headroom, exceeded/dispatch-paused flags, plus every configured per-workflow/per-phase cap. Works offline |
 | `animus.budget.set` | `max_daily_usd`, `clear`, `project_root` — set or clear the fleet daily cap (wraps `daemon config --max-daily-usd`; hot-reloaded; `{clear: true}` uncaps) |
 
+`animus.budget.get` / `animus.budget.set` are v0.7-rc/portal only — 0.6.x
+local installs expose just `animus.cost.decisions` (use the CLI's
+`animus daemon config --max-daily-usd` there instead).
+
 `animus.cost.decisions` lists recorded budget-cap breaches from the scoped
-breach log. Works offline. A latched fleet-cap breach also flips
-`animus.daemon.health` to Degraded with `dispatch_paused` /
-`daily_cap_exceeded` fields.
+breach log. Works offline. On the rc/portal line a latched fleet-cap breach
+also flips `animus.daemon.health` to Degraded with `dispatch_paused` /
+`daily_cap_exceeded` fields (on 0.6.x the latch appears under the health
+payload's `budget_enforcement.daily_cap` instead).
 
 ## Subject tools
 
@@ -131,11 +146,20 @@ accepts an optional `project_root` parameter.
 | `animus.subject.update` | `kind`, `id`, `title`, `priority`, `status`, `labels[]`, `body`, `data` |
 | `animus.subject.next` | `kind` |
 | `animus.subject.status` | `kind`, `id`, `status` |
-| `animus.subject.batch-create` | `kind`, `items[]` (`title`, `status`, `priority`, `labels[]`, `body`), `on_error` |
-| `animus.subject.batch-update` | `kind`, `items[]` (`id`, `status`, `priority`, `labels[]`), `on_error` |
+| `animus.subject.batch-create` | `kind`, `items[]` (`title`, `status`, `priority`, `labels[]`, `body`, `data`), `on_error` |
+| `animus.subject.batch-update` | `kind`, `items[]` (`id`, `status`, `priority`, `labels[]`, `data`), `on_error` |
+
+`title` on `animus.subject.update` (rename) and the `data` param on
+`create`/`update`/`batch-create`/`batch-update` are v0.7-rc/portal only —
+0.6.x local installs accept `body` but not `title`/`data` on these tools
+(matching the CLI, where `--title`/`--data` are rc-only).
 
 The batch tools dispatch up to 100 items per call through the same code paths
 as the single-item tools; `on_error` is `"stop"` (default) or `"continue"`.
+Each item's `data` is a JSON object of custom fields merged into the
+subject's `custom` bag; an update item carrying only `id` + `data` is valid
+(each update item needs at least one of `status` / `priority` / `labels` /
+`data`).
 CLI mirrors exist: `animus subject batch-create` / `batch-update` take the
 items array via `--file <json>` and honor `--on-error stop|continue`.
 See the conventions reference for batch envelope and remediation details.

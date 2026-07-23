@@ -3,7 +3,7 @@ name: animus-agent-operations
 description: Run and inspect Animus agent executions, direct provider runs, agent control, status, project-scoped agent memory, agent message channels, and human-in-the-loop interactions.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Agent Operations
@@ -79,6 +79,13 @@ field: explicit CLI flags / context-json > skill > defaults. A caller-supplied
 skill application entirely. On `animus chat send`, a launch-affecting skill
 forces full-history replay instead of native session resume so launch flags
 reach every turn's provider process.
+
+Watch for model pinning: a skill declaring `model.preferred` /
+`model.fallback` / `adapters.<tool>.model` silently overrides the model AND
+tool of any agent that activates it. Since v0.6.33 (#280, 0.6.x main line),
+`animus skill info` / `animus skill list` and the skill MCP tools emit a
+`warn_skill_pins_model` warning on such skills so the override is visible
+before dispatch.
 
 ## Control and Status
 
@@ -165,10 +172,14 @@ questions, `--remember` and `--updated-input <JSON>` (with `--allow`), and
 Key mechanics:
 
 - **Approval policy**: a profile's `approval_policy` (`auto_allow`/`auto_deny`
-  glob lists + `default: ask|allow|deny`) is consulted before escalating;
-  `auto_deny` wins on overlap (fail closed). Declaring one implies
-  `--approvals`. It composes with `permission_mode` (transport-level guard) —
-  neither overrides the other.
+  glob lists + `default: ask|allow|deny|llm`) is consulted before escalating;
+  `auto_deny` wins on overlap (fail closed). `default: llm` auto-approves via
+  an in-process judge model (`evaluator_model`, defaulting to the agent's own
+  model; optional `evaluator_instructions` rubric) — decisions record
+  `source: "llm"`, evaluator failure falls back to manual `ask`, and the judge
+  also auto-answers `animus.agent.ask` structured questions. Declaring a
+  policy implies `--approvals`. It composes with `permission_mode`
+  (transport-level guard) — neither overrides the other.
 - **Block vs suspend**: ad-hoc runs default to `wait: "block"` (the tool call
   parks). When the MCP server is pinned to a workflow (`animus mcp serve
   --workflow-id <ID>` or `ANIMUS_MCP_WORKFLOW_ID`) the default is suspend: the

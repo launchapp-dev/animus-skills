@@ -3,7 +3,7 @@ name: animus-pack-authoring
 description: Build Animus workflow packs - `pack.toml`, workflow exports, runtime overlays, MCP server descriptors, schedules, and marketplace operations. Use when creating or updating installable Animus packs.
 user_invocable: true
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Pack Authoring

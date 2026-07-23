@@ -3,7 +3,7 @@ name: animus-getting-started
 description: Install Animus, initialize a project, create first task subject, run first workflow — core concepts and project structure
 user_invocable: true
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Getting Started with Animus
@@ -66,8 +66,9 @@ declared in `.env.example` but unset.
 
 ## Install Default Plugins (fresh machine, no manifest yet)
 
-The daemon's preflight requires a provider, task + requirement subject
-backends, a config_source, a workflow runner, and a queue plugin. One command
+The daemon's preflight requires a provider, at least one subject backend
+(the default flavor installs task + requirement), a config_source, a
+workflow runner, and a queue plugin. One command
 installs the default flavor's full required set (provider-claude,
 subject-default, subject-requirements, config-yaml, transport-http,
 workflow-runner-default, queue-default):
@@ -122,7 +123,14 @@ This creates or updates the project manifest and `.animus/` files:
 - `.env.example` and a merge-safe project `.gitignore`
 - `.animus/config.json` — self-update config only (daemon runtime settings
   live in the scoped `daemon/pm-config.json`, managed via `animus daemon config`)
-- `.animus/workflows.yaml` or `.animus/workflows/*.yaml` — authored workflow sources
+
+Since v0.6.4 `animus init` does NOT scaffold workflow YAML (the old scaffold
+flag is a deprecated no-op) — a fresh project becomes functional through the
+recommended pack install (`animus.task` et al. supply the default workflows).
+You author `.animus/workflows.yaml` / `.animus/workflows/*.yaml` yourself when
+you need project-local workflow definitions. Other author-written files that
+live alongside it:
+
 - `.animus/skills/<name>/SKILL.md` — optional project-scoped skills
 - `.animus/plugins/<pack-id>/` — optional project pack overrides
 
@@ -200,9 +208,11 @@ animus queue list
 animus queue stats
 ```
 
-(`--subject-id` is the universal dispatch selector — qualified `kind:ID` for
-any subject kind, or a bare id resolved by the router. The old `--task-id` /
-`--requirement-id` flags were removed in v0.7.)
+(`--subject-id` (v0.6.29+) is the universal dispatch selector — qualified
+`kind:ID` for any subject kind, or a bare id resolved by the router. Current
+0.6.x also still accepts `--task-id` / `--requirement-id`; v0.7-rc/portal
+removes those kind-specific flags and requires the subject form. Prefer
+`--subject-id` so commands work on both lines.)
 
 ## First Workflow
 

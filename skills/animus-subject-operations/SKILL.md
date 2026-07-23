@@ -3,7 +3,7 @@ name: animus-subject-operations
 description: Work with Animus subjects and subject_backend plugins, including task, requirement, Linear, SQLite, Markdown, and custom subject kinds, default_subject_kind, wire ids, and status routing.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Subject Operations
@@ -95,19 +95,22 @@ Update:
 ```bash
 animus subject update --kind task --id TASK-001 --status blocked --priority p1
 animus subject update --kind task --id TASK-001 --labels backend,urgent
-animus subject update --kind task --id TASK-001 --title "New title" --body "New description"
+animus subject update --kind task --id TASK-001 --body "New description"
 animus subject status --kind task --id TASK-001 --status done
 ```
 
 The generic update surface supports normalized `status`, `priority`,
-replacement `labels`, plus `--title` (rename, v0.7.0-rc.5+) and `--body`
-(v0.6.0+). Structured custom fields ride `--data` (v0.7.0-rc.10+) on
-`create`/`update`/`batch-create`/`batch-update` — a JSON object merged into
-the subject's `custom` bag, which workflow runners can read (e.g.
-`{{git_repo}}` resolution by workflow-runner v0.4.34+):
+replacement `labels`, and `--body` (v0.6.0+ — the current 0.6.x write path
+for long-form content). Two more flags are v0.7-rc/portal only (on 0.6.x
+local installs they error): `--title` (rename, v0.7.0-rc.5+) and `--data`
+(v0.7.0-rc.10+) on `create`/`update`/`batch-create`/`batch-update` — a JSON
+object merged into the subject's `custom` bag, which workflow runners can
+read (e.g. `{{git_repo}}` resolution by workflow-runner v0.4.34+):
 
 ```bash
-animus subject update --kind task --id TASK-001 --data '{"git_repo": "acme/api", "story_points": 3}'
+# v0.7-rc/portal only
+animus subject update --kind task --id TASK-001 --title "New title" \
+  --data '{"git_repo": "acme/api", "story_points": 3}'
 ```
 
 Deeper backend-specific operations belong in the backend plugin's own API or
@@ -171,20 +174,26 @@ animus queue enqueue --subject-id task:TASK-001 --workflow-ref animus.task/stand
 animus queue enqueue --subject-id requirement:REQ-001 --workflow-ref animus.requirement/standard
 ```
 
-`animus workflow run` is the ad-hoc / foreground-debug alternative — it runs
-one workflow directly, bypassing the queue and daemon. Use it only for one-off
+`animus workflow run` is the ad-hoc alternative — it runs one workflow
+directly, bypassing the queue and daemon scheduling. By default it spawns a
+detached workflow_runner and returns; pass `--sync` to run in the foreground
+in your terminal. `--actor-json` threads a per-user Actor onto the run
+(v0.6.21+, also on `workflow config get|validate`). Use it only for one-off
 manual runs or debugging, not as the default execution path:
 
 ```bash
 animus workflow run animus.task/standard --subject-id task:TASK-001
 ```
 
-> **Removed in v0.7 (breaking).** `--task-id` / `--requirement-id` are gone
-> from queue and workflow commands — `--subject-id` is the universal dispatch
-> selector for subjects of **any** kind. A qualified `<kind>:<native>` id
-> (e.g. `--subject-id song:SONG-001`) trusts the prefix and resolves via that
-> kind's backend; a bare id is resolved by the subject router probing
-> backends. Task and requirement are ordinary kinds: a requirement dispatched
+> **Version note.** On 0.6.x local installs (mainline, v0.6.33) both the
+> legacy `--task-id` / `--requirement-id` flags and `--subject-id` (added
+> v0.6.29) work on queue and workflow commands. The legacy flags are removed
+> on the v0.7-rc line (the portal already enforces `subjectId`), so prefer
+> `--subject-id` — the universal dispatch selector for subjects of **any**
+> kind. A qualified `<kind>:<native>` id (e.g. `--subject-id song:SONG-001`)
+> trusts the prefix and resolves via that kind's backend; a bare id is
+> resolved by the subject router probing backends. (v0.7-rc/portal only:)
+> task and requirement become ordinary kinds there — a requirement dispatched
 > without an explicit `--workflow-ref` uses the project **default** workflow
 > (no longer `animus.requirement/plan`) — always name the workflow.
 
