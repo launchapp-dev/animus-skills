@@ -3,7 +3,7 @@ name: animus-troubleshooting
 description: Common Animus issues and fixes — daemon crashes, plugin preflight, workflow failures, queue problems, merge conflicts
 user_invocable: true
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Troubleshooting Animus
@@ -254,8 +254,10 @@ animus queue drop TASK-XXX            # positional ids; --all --yes for everythi
    A `ready` subject is *eligible to enqueue*, not auto-run — it will not
    dispatch until it is enqueued.
 3. Enqueue one manually: `animus queue enqueue --subject-id task:TASK-XXX` —
-   enqueued entries dispatch as pool slots free. (v0.7 removed
-   `--task-id`/`--requirement-id`; use `--subject-id` with a qualified id.)
+   enqueued entries dispatch as pool slots free. (Current 0.6.x accepts
+   `--task-id`/`--requirement-id` alongside `--subject-id` (v0.6.29+);
+   v0.7-rc/portal removes the kind-specific flags — prefer `--subject-id`
+   with a qualified id on both lines.)
 4. Inspect recent workflows: `animus workflow list --limit 5`.
 5. Follow scheduler activity: `animus daemon stream --cat schedule --pretty`.
 
@@ -427,7 +429,7 @@ instead of self-replacing (v0.6.11).
 ├── interactions/        # pending agent questions/approvals
 ├── logs/  runs/  artifacts/
 ├── state/
-├── workflow-environments/   # v0.7 environment-broker leases (<run_id>.json)
+├── workflow-environments/   # environment-broker leases (<run_id>.json) — v0.7-rc/portal only
 └── worktrees/
 ```
 
@@ -476,6 +478,9 @@ command phase persist for the rest of the run. The failure mode shifts to
 (see the next section).
 
 ## Environment Broker Failures (v0.7)
+
+(v0.7-rc/portal only — not on 0.6.x local installs, where all runs are local
+and this section does not apply.)
 
 Runs pinned to an execution environment (workflow/phase `environment:`,
 `environment_routing:`) acquire one ephemeral node per run through the

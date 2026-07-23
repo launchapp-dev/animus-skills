@@ -3,7 +3,7 @@ name: animus-bootstrap
 description: Guide a project from idea to autonomous engineering setup — interview the user, write VISION.md, AGENT_PRINCIPLES.md, registry, agents/workflows/phases/schedules YAML, scripts, and a first runnable task. Use when standing up Animus in a new project beyond the minimal /animus-setup scaffold.
 user_invocable: true
 auto_invoke: false
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Animus Bootstrap — Idea → Autonomous Engineering Team
@@ -309,8 +309,13 @@ mcp_servers:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-memory"]
   github:
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-github"]
+    transport: http
+    url: https://api.githubcopilot.com/mcp/
+    oauth:
+      flow: manual_bearer
+      bearer_env: GITHUB_MCP_TOKEN
+    # the old `npx @modelcontextprotocol/server-github` package is deprecated
+    # upstream — use GitHub's hosted MCP endpoint
   context7:
     command: npx
     args: ["-y", "@upstash/context7-mcp"]

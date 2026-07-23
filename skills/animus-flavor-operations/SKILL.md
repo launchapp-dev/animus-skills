@@ -3,7 +3,7 @@ name: animus-flavor-operations
 description: Operate Animus flavors — curated plugin bundle manifests (`flavors/<name>.toml`), the `animus flavor` command group, manifest-driven `plugin install-defaults --flavor`, active-flavor persistence in `.animus/plugin-scope.yaml`, drift reports, required vs recommended plugin sets, and writing custom flavor manifests.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Flavor Operations
@@ -115,7 +115,7 @@ required since v0.6.0), `animus-transport-http`,
 `animus-workflow-runner-default`, `animus-queue-default` (all under
 `launchapp-dev/`). Recommended adds providers (`animus-provider-codex-mcp`
 — the MCP-driven codex driver that replaced `animus-provider-codex` in the
-defaults — plus ACP-driven gemini/opencode, ollama), linear/sqlite/
+defaults — and `animus-provider-ollama`), linear/sqlite/
 markdown/github subjects, graphql transport, web UI, cron/webhook triggers,
 durable-store, memory-store, and the engineering-backlog pack. Check
 `animus flavor info --name default` for the authoritative current roster
@@ -124,8 +124,9 @@ rather than trusting a doc snapshot.
 ## Writing a Custom Flavor
 
 Manifest sections are `providers`, `subjects`, `transports`, `ui`,
-`triggers`, `workflow_runner`, `queue`, `durable_store`, `memory_store`,
-`packs` — each with optional `required` / `recommended` slug arrays — plus a
+`triggers`, `workflow_runner`, `queue`, `config_source`, `durable_store`,
+`memory_store`, `packs` — each with optional `required` / `recommended`
+slug arrays — plus a
 free-form `[defaults]` block (`model_routing`, `cost_ceiling_daily_usd`,
 `execution`, `cloud`; hints only, not load-bearing for install in v0.5).
 Required slugs must cover every preflight role (provider, subject backend,
@@ -154,6 +155,9 @@ required = ["launchapp-dev/animus-workflow-runner-default"]
 
 [queue]
 required = ["launchapp-dev/animus-queue-default"]
+
+[config_source]
+required = ["launchapp-dev/animus-config-yaml"]
 ```
 
 Then: `animus flavor install myflavor --yes`, verify with

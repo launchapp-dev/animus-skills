@@ -3,7 +3,7 @@ name: animus-observability
 description: Inspect Animus status, daemon observe/health/metrics, structured streams, logs, run output, decision logs, artifacts, budget breaches, plugin status, web UI transports, and trigger events.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Observability
@@ -176,6 +176,10 @@ animus output decisions --run-id <run-id-from-history>
 RFC3339 `--started-after` / `--started-before` remain, and `--since`
 conflicts with `--started-after`.
 
+The workflow journal populates `subject_id` for every run (v0.6.30+,
+including dynamic/BaaS kinds), so journal-backed views can always pivot from
+a run back to its subject.
+
 MCP output tools include `animus.output.run`, `monitor`, `jsonl`,
 `artifacts`, and `phase-outputs`. The MCP reference also exposes
 `animus.output.tail`; the current CLI tree does not have a matching
@@ -200,6 +204,9 @@ animus doctor --fix
 - `animus doctor --fix` absorbed orphaned-CLI-process detection: it prunes
   stale cli-tracker entries for exited processes; live tracked PIDs get a
   manual `kill` suggestion.
+- Plugin handshake failures capture the plugin's stderr into the failure
+  message, and transient (re)spawn failures self-retry (v0.6.33) — check
+  the reported `last error` before assuming a plugin binary is broken.
 
 ## Web UI
 
@@ -232,6 +239,8 @@ invalid input exits 2, not-found 3, conflict 4, unavailable (missing plugin / ne
 Scripts matching on exit 1 for these cases must update.
 
 ## Trigger-Event Subjects (portal, v0.7)
+
+Portal deployments only — not on local 0.6.x installs.
 
 Every trigger delivery — schedules, `triggers:` blocks, webhooks — writes a
 `trigger_event` subject (status `done`, delivery metadata in the `custom`

@@ -60,7 +60,7 @@ The top-level `models:` registry lets agents reference named model entries inste
 | `max_attempts` | int | Retry attempts |
 | `max_continuations` | int | Max continuations per phase |
 | `timeout_secs` | int | Agent timeout |
-| `retry_on` / `no_retry_on` | list | (v0.7) Failure-class tokens gating the agent-call retry loop. `no_retry_on` always wins; an empty `retry_on` means retry all transient classes |
+| `retry_on` / `no_retry_on` | list | (v0.6.x, protocol v0.1.26) Failure-class tokens gating the agent-call retry loop. `no_retry_on` always wins; an empty `retry_on` means retry all transient classes |
 | `reasoning_effort` | string | Provider reasoning effort: `low`/`medium`/`high`; validated at compile time |
 | `permission_mode` | string | Provider permission/approval mode (claude: `default`/`acceptEdits`/`bypassPermissions`/`plan`; codex: `untrusted`/`on-failure`/`on-request`/`never`; gemini: `default`/`auto_edit`/`yolo`). Unknown values warn but pass through. The value is mapped by each provider plugin (transports differ since v0.6.9 — claude native, codex over MCP, gemini/opencode over ACP) |
 | `tool_policy` | object | Allow and deny glob patterns |
