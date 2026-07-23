@@ -3,7 +3,7 @@ name: animus-plugin-operations
 description: Install, inspect, update, lock, sign, scaffold, and troubleshoot Animus STDIO plugins — global and project-scoped installs, flavor-driven defaults, TOFU org trust auditing — covering provider, subject_backend, trigger, transport/web, workflow_runner, queue, and log-storage plugins.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Plugin Operations
@@ -14,14 +14,16 @@ triggers, environments, and optional log storage / journal / conversation
 storage. Daemon preflight requires: `at_least_one_provider`,
 `at_least_one_subject_backend`, `config_source` (required since v0.6.0 — the
 kernel no longer parses workflow YAML in the runtime load path),
-`workflow_runner`, and `queue`. The `environment` kind (v0.7, e.g.
-`animus-environment-railway`) is optional at preflight.
+`workflow_runner`, and `queue`. The `environment` kind (v0.7-rc/portal
+only, e.g. `animus-environment-railway`) is optional at preflight.
 
-**Multi-kind plugins (v0.7):** a manifest can declare `plugin_kinds`
-(secondary kinds) + `kind_capabilities`, and every role resolver routes by
-`serves_kind` — one consolidated plugin can serve many roles (e.g.
-`animus-postgres` serves subject_backend + config_source + queue +
-workflow_journal + conversation_store from one process).
+**Multi-kind plugins (v0.7-rc/portal only):** a manifest can declare
+`plugin_kinds` (secondary kinds) + `kind_capabilities`, and every role
+resolver routes by `serves_kind` — one consolidated plugin can serve many
+roles (e.g. `animus-postgres` serves subject_backend + config_source +
+queue + workflow_journal + conversation_store from one process). The
+0.6.x in-tree plugin protocol does not implement multi-kind — on local
+installs each plugin serves exactly its primary kind.
 
 Plugin commands use typed exit codes: invalid input = 2, not found = 3,
 unavailable (missing plugin / network) = 5.
@@ -65,7 +67,7 @@ mutating op (never hand-edit them; drift heals on the next op).
 ```bash
 animus install                     # resolve manifest → lock, install plugins + packs
 animus install --locked            # npm-ci: reproduce the committed lock exactly; fails on manifest↔lock drift
-animus install --allow-org my-org  # non-TTY/server escape hatch for org TOFU
+animus install --allow-org my-org  # non-TTY/server escape hatch for org TOFU (v0.7-rc only; 0.6.x `animus install` has just --locked/--force and only installs from the trusted launchapp-dev org)
 animus add launchapp-dev/animus-subject-linear@v0.2.0    # manifest + install
 animus add my-org/my-pack@v1.0.0 --pack
 animus remove animus-subject-linear
@@ -80,8 +82,9 @@ Default discovery order (first source to yield a name wins):
    projection)
 2. Global registry `~/.animus/plugins.yaml` (lock-derived); legacy
    `~/.config/animus/plugins.yaml` only when the new registry is absent
-3. Optional DB-registry tier (v0.7.0-rc.3, opt-in): resolve the plugin set
-   from a Postgres `plugin_registry` (animus-postgres BaaS deployments)
+3. Optional DB-registry tier (v0.7-rc/portal only, opt-in — not on 0.6.x
+   local installs): resolve the plugin set from a Postgres
+   `plugin_registry` (animus-postgres BaaS deployments)
 4. Global install dir: `$ANIMUS_PLUGIN_DIR` if set, otherwise `~/.animus/plugins/`
 5. `$ANIMUS_PLUGIN_PATH` (colon-separated directories)
 6. System `$PATH` (opt-in only)
@@ -89,11 +92,12 @@ Default discovery order (first source to yield a name wins):
 The project-local tier wins name collisions, so a project install shadows a
 same-named global install (registry-recorded or bare binary).
 
-**Discovery hardening (v0.7):** project-local `plugins.yaml` `binary:`
-entries and project-local dir scans are gated by trust and location —
-server-safe discovery never executes repo-shipped binaries, even under an
-`all` scope. Trusted installed candidates are always probed post-filter, so
-renamed plugins keep working.
+**Discovery hardening (v0.7-rc/portal only):** project-local
+`plugins.yaml` `binary:` entries and project-local dir scans are gated by
+trust and location — server-safe discovery never executes repo-shipped
+binaries, even under an `all` scope. Trusted installed candidates are
+always probed post-filter, so renamed plugins keep working. 0.6.x local
+installs do not carry this gating.
 
 `$PATH` scanning is opt-in:
 
@@ -115,7 +119,7 @@ The flavor manifest (`flavors/<name>.toml`; binary-bundled fallback for
 names error instead of silently falling back.
 
 ```bash
-# Default flavor's required set (all four preflight roles)
+# Default flavor's required set (every preflight role)
 animus plugin install-defaults
 
 # Required + recommended (extra providers, more subjects, graphql, web UI)
@@ -163,19 +167,25 @@ animus plugin install --url https://example.com/plugin --sha256 <hex>
 
 Use `--force` to replace an installed plugin. `--url` requires `--sha256`.
 
-Signature policy (context-aware since v0.7.0-rc.1) — precedence:
+Signature policy — v0.7-rc/portal resolution is context-aware, precedence:
 per-call `--signature-policy` flag > `ANIMUS_PLUGIN_SIGNATURE_POLICY` env
 (`strict`/`warn`/`skip`) > `plugins.signature_policy` global config > `warn`
-default:
+default. (On 0.6.x local installs there is no env or global-config layer:
+precedence is the `--signature-policy` flag > legacy
+`--skip-signature`/`--require-signature` > `warn` default.) The flag's mode
+words are `strict`/`warn`/`disabled`:
 
 - `--signature-policy strict` fails closed on missing, invalid, or untrusted signatures (cosign preflight fails fast).
 - `--signature-policy warn` (default) logs signature failures and installs anyway.
 - `--signature-policy disabled` skips verification.
 - `--require-signature`, `--allow-unsigned`, and `--skip-signature` are legacy aliases.
 - `--allow-org <OWNER>` or `--yes` records trusted orgs for future installs.
-  **Fail-closed TOFU (v0.7):** on a non-TTY or with `ANIMUS_SERVER=1`,
-  `--yes`/`--force` will NOT auto-trust an unknown org — `--allow-org` is the
-  explicit escape hatch, and the release-source gate runs BEFORE download.
+  **Fail-closed TOFU (v0.7-rc/portal only):** on a non-TTY or with
+  `ANIMUS_SERVER=1`, `--yes`/`--force` will NOT auto-trust an unknown org —
+  `--allow-org` is the explicit escape hatch, and the release-source gate
+  runs BEFORE download. On 0.6.x local installs `--yes`/`--force` auto-trust
+  unconditionally (with a warning), and the org gate runs after
+  download + manifest probe.
 - `--trusted-signers <PATH>` points at a `trusted-signers.yaml` allowlist.
 
 Reserved provider names (`claude`, `codex`, `gemini`, `opencode`, `oai`,
@@ -237,7 +247,7 @@ the plugin's manifest-declared `env_required` vars are unset.
 
 ## Diagnostics, Cache, and Scope
 
-- `animus plugin doctor` — per-role view of installed plugins (installed_kind + native_kind) with duplicate/collision detection across all four preflight roles.
+- `animus plugin doctor` — per-role view of installed plugins (installed_kind + native_kind) with duplicate/collision detection across all five preflight roles (`at_least_one_provider`, `at_least_one_subject_backend`, `workflow_runner`, `queue`, `config_source`).
 - `animus plugin status [NAME]` — per-plugin runtime status (pid, state, last RPC, restart count, supervisor `disabled_by_supervisor` / `cooldown_until`); also reports aggregate provider health (absorbed from the removed `animus runner health`): a `providers` array plus a rolled-up `provider_plugins_healthy` boolean. Only provider runtimes report live fields; other kinds show `discovered`.
 - `animus plugin prune [--yes]` — remove stale `plugins.yaml` registry entries whose binary was deleted (the prune remedy named in the `plugin list` stale-entry warning); without `--yes` it previews.
 - `animus plugin rename <NAME> --to <KIND>` — change an installed plugin's `installed_kind` in the lockfile; the binary and manifest `native_kind` are untouched.
@@ -300,7 +310,8 @@ installed_binary_sha256}}` — captured from the release's `SHA256SUMS.txt`
 for EVERY published platform at install time. Schema-1.0 locks migrate with
 empty targets; re-install to upgrade them. `lock verify` and `--locked`
 installs verify the current platform's entry. When no triple-specific
-release asset exists, install falls back to a `<name>-noarch.tar.gz` asset.
+release asset exists, install falls back to a `<name>-noarch.tar.gz` asset
+(v0.7-rc only — 0.6.x local installs have no noarch fallback).
 
 ## Scaffolding
 
@@ -337,4 +348,6 @@ CLI-first surfaces in the current reference.
 - Bad provider plugin: uninstall it or move its binary out of discovery. `ANIMUS_PROVIDER_DISABLE_PLUGIN` was removed and has no effect.
 - Subject calls all fail: check `ANIMUS_DAEMON_DISABLE_SUBJECT_PLUGINS` and whether a subject backend claims the requested kind.
 - Log tail is wrong: check `ANIMUS_DAEMON_DISABLE_LOG_STORAGE_PLUGIN`; when set, Animus forces the in-tree `events.jsonl` fallback.
+- Opaque "plugin connection lost" on startup: since v0.6.33 the plugin host captures a bounded, redacted ring buffer of each plugin's stderr and appends it to handshake/ConnectionLost errors, so the error names WHY the plugin died; the subject_router and config_source spawn+handshake paths also retry transient (re)spawn failures with backoff before surfacing a hard error.
+- Zombie run after a container/host reboot: since v0.6.32 runner pid files record the per-process start-time alongside the PID, so a reboot-reused PID no longer passes liveness — it can no longer shield an interrupted workflow from cancellation/resume.
 - Stale flavor selection (`flavors/<name>.toml` deleted): the scope resolver logs a warning and falls back to the default flavor's plugin set — it never fail-closes discovery to empty. Re-run `animus plugin install-defaults` (default flavor) to clear the persisted key.

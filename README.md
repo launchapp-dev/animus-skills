@@ -19,7 +19,8 @@ your installed CLI (`animus --version`) to the right release:
 
 | animus-skills release | Targets animus-cli | Get it |
 |---|---|---|
-| **v3.0.0** (current) | **v0.7.0-rc.18** (v0.7 line: `animus.toml` + `animus install`, `--subject-id` dispatch, execution environments, portal MCP surface) | default branch, or [`v3.0.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.0.0) |
+| **v3.1.0** (current) | **v0.7.0-rc.27** (portal deploy line). Dual-line aware: rc/portal-only surfaces carry explicit "v0.7-rc/portal only" fences with the v0.6.x equivalent for local installs (current local line: v0.6.33). | default branch, or [`v3.1.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.1.0) |
+| [`v3.0.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.0.0) | **v0.7.0-rc.18** (v0.7 line: `animus.toml` + `animus install`, `--subject-id` dispatch, execution environments, portal MCP surface) | `git clone --branch v3.0.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
 | [`v2.3.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v2.3.0) | **v0.5.21** (last v0.5-era release: `--task-id` dispatch, `plugin install-defaults`-first, no environments) | `git clone --branch v2.3.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
 
 Still on animus-cli 0.5.x? Install the skills from the `v2.3.0` tag (swap the

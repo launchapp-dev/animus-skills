@@ -3,7 +3,7 @@ name: animus-task-management
 description: Task lifecycle through the unified subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Task Management
@@ -127,13 +127,15 @@ fallback heartbeat.
 ```bash
 animus subject update --kind task --id TASK-001 --status blocked --priority p1
 animus subject update --kind task --id TASK-001 --labels backend,urgent
-animus subject update --kind task --id TASK-001 --title "Renamed" --body "New description"
-animus subject update --kind task --id TASK-001 --data '{"git_repo": "acme/api"}'
+animus subject update --kind task --id TASK-001 --body "New description"
+animus subject update --kind task --id TASK-001 --title "Renamed" --data '{"git_repo": "acme/api"}'   # v0.7-rc/portal only
 ```
 
-The generic subject CLI exposes status, priority, labels, `--title`
-(v0.7.0-rc.5+), `--body` (v0.6.0+), and `--data` (v0.7.0-rc.10+ — JSON merged
-into the subject's `custom` bag, readable by workflow runners). Deeper
+The generic subject CLI exposes status, priority, labels, and `--body`
+(v0.6.0+ — the current 0.6.x write path for long-form content). `--title`
+(rename, v0.7.0-rc.5+) and `--data` (v0.7.0-rc.10+ — JSON merged into the
+subject's `custom` bag, readable by workflow runners) are v0.7-rc/portal
+only — on 0.6.x local installs those flags error. Deeper
 backend-specific fields such as checklists, dependency edges, deadlines, or
 assignees stay in the backend plugin's own API if it provides those
 operations.
@@ -228,16 +230,21 @@ Typical flow (queue-driven is the default — let the daemon dispatch):
 2. Enqueue it with `animus queue enqueue --subject-id task:TASK-XXX`. This is
    both required and the normal run trigger — the daemon dispatches enqueued
    entries and cron schedules only, and `enqueue` nudges it to pick the entry
-   up immediately. A `ready` status alone is never auto-run. (v0.7 removed
-   `--task-id`/`--requirement-id`; `--subject-id` with a qualified `kind:ID`
-   is the universal selector — bare ids also work, resolved by the router.)
+   up immediately. A `ready` status alone is never auto-run. (On 0.6.x local
+   installs both the legacy `--task-id`/`--requirement-id` flags and
+   `--subject-id` (added v0.6.29) work; the legacy flags are removed on the
+   v0.7-rc line, so prefer `--subject-id` with a qualified `kind:ID` — bare
+   ids also work, resolved by the router.)
 3. Let the running daemon dispatch the enqueued entry (start it with
    `animus daemon start` if it is not already up). Prefer this path for normal
    task execution — it respects the daemon's pool size and scheduling.
-4. Inspect execution with `animus queue list`, `animus workflow list --subject-id TASK-XXX`, `animus history task --task-id TASK-XXX` (history keeps its `--task-id` flag), `animus output read`, and `animus output phase-outputs`.
+4. Inspect execution with `animus queue list`, `animus workflow list --task-id TASK-XXX` (on the v0.7-rc line use `--subject-id task:TASK-XXX` — the filter matches the stored **qualified** id, so a bare `TASK-XXX` returns nothing), `animus history task --task-id TASK-XXX` (history keeps its `--task-id` flag), `animus output read`, and `animus output phase-outputs`.
 
 `animus workflow run <workflow-ref> --subject-id task:TASK-XXX` is the
-**ad-hoc / foreground-debug** alternative: it runs one workflow directly,
-bypassing the queue and the daemon. Reach for it only for one-off manual runs
-or when debugging a specific workflow — not as the default way to execute
-tasks.
+**ad-hoc** alternative: it runs one workflow directly, bypassing the queue
+and the daemon's pool/scheduling. By default it spawns a detached
+workflow_runner and returns; pass `--sync` to run in the foreground in your
+terminal. `--actor-json` threads a per-user Actor onto the run (v0.6.21+,
+also on `workflow config get|validate`). Reach for it only for one-off
+manual runs or when debugging a specific workflow — not as the default way
+to execute tasks.

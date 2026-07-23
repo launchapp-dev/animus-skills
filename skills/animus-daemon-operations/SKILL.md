@@ -3,7 +3,7 @@ name: animus-daemon-operations
 description: Start, stop, restart, monitor the Animus daemon — plugin preflight, health verdict, observe front-door, events, logs, metrics, pool sizing, common issues
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Daemon Operations
@@ -17,8 +17,9 @@ workflow_runner, queue, transport, trigger, and log-storage plugins.
 The daemon runs plugin preflight on every startup and refuses to start when a
 required role is unsatisfied: at least one provider,
 `at_least_one_subject_backend` (any installed `subject_backend` plugin — as
-of v0.5.20 specific kinds are no longer hard-coded), `workflow_runner`, and
-`queue`.
+of v0.5.20 specific kinds are no longer hard-coded), `workflow_runner`,
+`queue`, and `config_source` (required since v0.6.0 — the kernel sources its
+workflow config exclusively from this plugin).
 
 ```bash
 animus daemon preflight
@@ -77,8 +78,7 @@ Scheduler/start options:
 - `--pool-size N` (alias `--max-agents`) — max concurrent agent workflows.
 - `--interval-secs N` — fallback heartbeat (see below), not dispatch latency.
 - `--startup-cleanup true|false` — run cleanup before scheduling (default true).
-- `--resume-interrupted true|false` — attempt interrupted workflow recovery (default true).
-- `--reconcile-stale true|false` — recover stale in-progress tasks/runs on startup (default true).
+- `--reconcile-stale true|false` — recover stale in-progress tasks/runs on startup (default true). This is also the interrupted-run recovery path. Runner liveness checks are reboot-safe: per-process start-times distinguish a live runner from a reused PID after reboot (v0.6.32).
 - `--stale-threshold-hours N` — flag stale in-progress work.
 - `--max-tasks-per-tick N` — max new workflows to dispatch per scheduler pass.
 - `--phase-timeout-secs N` — override phase timeout.
@@ -123,7 +123,8 @@ The daemon main loop is event-driven, not polling. A dispatch pass runs on:
    (and their MCP equivalents); also fires on workflow/phase completion
    events and workflow-config hot-reloads. Pickup is typically sub-second.
 2. **Cron deadlines** — the loop sleeps until the next compiled `schedules:`
-   occurrence, so cron fires on time.
+   occurrence, so cron fires on time. Schedules can be owner-scoped
+   (v0.6.22+): an owned schedule dispatches under its owning user's Actor.
 3. **Fallback heartbeat (`interval_secs`)** — the maximum sleep when no event
    arrives. It bounds pickup of out-of-band state edits made without the
    CLI/MCP and paces heavier housekeeping legs (zombie/stale reconciliation),
@@ -211,9 +212,13 @@ offline.
 ```bash
 animus daemon events --limit 50             # one-shot: print and exit
 animus daemon events --follow               # stream until Ctrl-C
+animus daemon events --all-projects         # drop the current-project scope
 ```
 
 `daemon events` is one-shot by default; `--follow` opts into streaming.
+Output is scoped to the current project root by default — pass
+`--all-projects` for the fleet-wide view across every project root on this
+host.
 Use events for a lower-volume audit trail.
 
 ### Logs
@@ -328,18 +333,26 @@ MCP names:
 | `animus.daemon.config-set` | Update daemon config |
 | `animus.daemon.pause` | Pause dispatch |
 | `animus.daemon.resume` | Resume dispatch |
-| `animus.budget.get` | Fleet budget posture: daily cap, rolling-24h spend, headroom, exceeded/dispatch-paused flags |
-| `animus.budget.set` | Set/clear the fleet daily cap (`max_daily_usd`, `clear`) |
+| `animus.budget.get` | Fleet budget posture: daily cap, rolling-24h spend, headroom, exceeded/dispatch-paused flags (v0.7-rc/portal only) |
+| `animus.budget.set` | Set/clear the fleet daily cap (`max_daily_usd`, `clear`) (v0.7-rc/portal only) |
+
+`animus.budget.get` / `animus.budget.set` exist only on the v0.7-rc/portal
+surface — on 0.6.x local installs manage the fleet daily cap with
+`animus daemon config --max-daily-usd`.
 
 `daemon stream`, `clear-logs`, `preflight`, and `restart` are CLI surfaces,
 not MCP daemon tools on the local serve surface (the portal additionally
 exposes `daemon_metrics`).
 
-**Budget breach behavior (v0.7.0-rc.6+):** a latched fleet daily-cap breach
-flips daemon health **Healthy → Degraded** and surfaces
-`dispatch_paused` / `daily_cap_exceeded` in `daemon status` / `daemon
-health` (CLI and MCP), plus a PAUSED banner in status output — check these
-before diagnosing a mysteriously idle daemon.
+**Budget breach behavior (v0.7-rc/portal only, v0.7.0-rc.6+):** a latched
+fleet daily-cap breach flips daemon health **Healthy → Degraded** and
+surfaces `dispatch_paused` / `daily_cap_exceeded` in `daemon status` /
+`daemon health` (CLI and MCP), plus a PAUSED banner in status output — on
+rc/portal deployments check these before diagnosing a mysteriously idle
+daemon. 0.6.x local installs latch and suppress dispatch the same way but
+do not surface the top-level flags or the Degraded flip; inspect budget
+posture via `animus daemon health`'s `budget_enforcement` section
+(`daily_cap.dispatch_paused` / `daily_cap.exceeded`) instead.
 
 **Restart recovery (v0.6.27+):** with a durable `workflow_journal` backend
 installed, the boot reconcile RESUMES in-flight runs from the journal after
@@ -431,3 +444,7 @@ animus doctor --check orphan_cli_processes --fix  # scoped detect + prune
 
 Live tracked PIDs get a manual `kill` suggestion instead of automatic cleanup
 (the tracker is global across projects).
+
+Plugin handshake failures capture the plugin's stderr, so a crashing plugin's
+own error output lands in the failure message instead of a bare
+"handshake failed"; transient (re)spawn failures self-retry (v0.6.33).

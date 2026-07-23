@@ -3,7 +3,7 @@ name: animus-project-history-git
 description: Inspect Animus execution history, Git repo and worktree state, and approval records — history search and cleanup, worktree listing and pruning, repo-scope resolution, and the approval gate for destructive operations. Use for post-run forensics, worktree housekeeping, or approval round-trips.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # History, Git Inspection, and Approvals
@@ -98,7 +98,8 @@ animus approval outcome --request-id <id> --success --message "pruned"
 
 - `respond` requires exactly one of `--approve` / `--reject` (omitting both
   errors "provide exactly one of --approve or --reject"); pass `--reject` to
-  decline. For `outcome`, `--success` is a flag: omit it to record failure.
+  decline. For `outcome`, `--message` is **required** and `--success` is a
+  flag: omit it to record failure.
   `request` takes optional `--context-json`; `respond` takes optional
   `--user-id`; `outcome` takes optional `--metadata-json`.
 - The record schema still accepts the legacy operation types

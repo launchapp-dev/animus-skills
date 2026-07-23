@@ -3,7 +3,7 @@ name: animus-workflow-authoring
 description: Write or update Animus workflow YAML in `.animus/workflows.yaml` and `.animus/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
 user_invocable: true
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Workflow Authoring
@@ -73,13 +73,19 @@ animus workflow phases list
 animus workflow prompt render --subject-id <kind:ID>   # preview a phase's effective (skill-injected) prompt
 ```
 
+(`prompt render --subject-id` is v0.7-rc/portal only — not on 0.6.x local
+installs; on 0.6.x use `--task-id` / `--requirement-id` / `--title` instead.)
+
 Config can also be edited through the CLI instead of raw YAML (requires a
 config_source plugin that advertises `config_write`; read-only sources refuse
 up front): `animus workflow config set` (full model), `agent-set` /
 `agent-remove`, `workflow-set` / `workflow-remove`, and
-`phase-set --id <id> --input-json <json>` (v0.7.0-rc.13+; writes
-`phase_definitions` on the config_source base — the layer the validator sees,
-unlike the legacy `workflow phases upsert` overlay).
+`phase-set --id <id> --input-json <json>` (v0.7-rc.13+/portal only — not on
+0.6.x local installs, where the `workflow config` verbs are `set` /
+`agent-set` / `agent-remove` / `workflow-set` / `workflow-remove` and
+`workflow phases upsert` is the extant overlay path; on the rc line
+`phase-set` writes `phase_definitions` on the config_source base — the layer
+the validator sees, unlike the legacy `workflow phases upsert` overlay).
 
 `validate` and `compile` emit a `warnings` array (also on stderr) for
 declared-but-unenforced fields (e.g. `daemon.pool_size`, removed git policy

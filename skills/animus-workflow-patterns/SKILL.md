@@ -3,7 +3,7 @@ name: animus-workflow-patterns
 description: Battle-tested pipeline patterns — QA gates, command phases, conflict resolution, CI checks, stale PR handling, budget guardrails, human approval gates
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Workflow Patterns — Production-Ready Pipelines
@@ -483,7 +483,7 @@ The authoring contract for such scripts is one MCP call away: `phase_context_sch
  "outputs": {"corrections": 37}}
 ```
 
-Print exactly one such JSON object to stdout; `verdict` may be a standard (`advance`/`rework`/`skip`/`fail`) or custom string routed by the phase's `on_verdict` map. Scripts read live Animus state deterministically via `animus mcp call` / the CLI — no LLM tokens spent on mechanical steps.
+Print exactly one such JSON object to stdout; `verdict` may be a standard (`advance`/`rework`/`skip`/`fail`) or custom string routed by the phase's `on_verdict` map. Scripts read live Animus state deterministically via `animus mcp call` (v0.7-rc.9+/portal only — not on 0.6.x local installs, where `animus mcp` has only `serve`/`memory`/`auth` verbs; on 0.6.x use the plain CLI) or the CLI — no LLM tokens spent on mechanical steps.
 
 ## Custom-Verdict Routing
 
@@ -517,6 +517,8 @@ workflows:
 `on_verdict` keys are free-form strings; loop guards (`max_rework_attempts`) apply to custom-verdict cycles the same as `rework`. Validation rejects empty or unknown `target`s.
 
 ## Environment-Pinned Pipeline (v0.7)
+
+(v0.7-rc/portal only — not on 0.6.x local installs; on 0.6.x all runs are local and the worktree patterns above are the isolation model.)
 
 Pin heavy or multi-repo pipelines to an execution-environment plugin (e.g. `animus-environment-railway` coder nodes). One node per run; all phases share it; teardown on terminal states:
 
@@ -647,7 +649,7 @@ animus subject create --kind task --title "launchapp-react-router:design-improve
 animus queue enqueue --subject-id task:<created-task-id> --workflow-ref design-improve
 ```
 
-The workflow ref is bound at dispatch time (queue enqueue or workflow run), not on the task itself. (v0.7 migration: `--task-id`/`--requirement-id` were removed — `--subject-id` with a qualified `kind:ID` is the universal dispatch selector, and a requirement dispatched without `--workflow-ref` uses the project default workflow, no longer `animus.requirement/plan`.)
+The workflow ref is bound at dispatch time (queue enqueue or workflow run), not on the task itself. Current 0.6.x still accepts `--task-id` / `--requirement-id` alongside `--subject-id` (v0.6.29+); on v0.7-rc/portal the kind-specific flags are removed — `--subject-id` with a qualified `kind:ID` is the universal dispatch selector, and a requirement dispatched without `--workflow-ref` uses the project default workflow, no longer `animus.requirement/plan`. Prefer `--subject-id` everywhere so the same commands work on both lines.
 
 This convention lets you grep `animus queue list` for all in-flight work on a single repo, and lets the conductor write rules like "skip queueing the same `<repo-id>:<action>` 3+ times in a week — that loop is broken."
 

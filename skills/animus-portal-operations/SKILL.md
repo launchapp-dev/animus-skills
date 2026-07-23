@@ -3,7 +3,7 @@ name: animus-portal-operations
 description: Operate the Animus portal (animus-launchapp) — the flat-named portal MCP surface and admin-only tool visibility, Claude/Codex subscription Connections, the external MCP-server catalog with Connect handshake and ext.* subject projection, the durable script registry and phase_context_schema authoring loop, team_* workflow authoring over MCP, and trigger-event observability. Use when driving a portal deployment rather than a local CLI install.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # portal at ao-cli v0.7.0-rc.18 / runner v0.4.38
+animus_version: "0.7.0-rc.27"   # portal at ao-cli v0.7.0-rc.27 / runner v0.4.49
 ---
 
 # Portal Operations (animus-launchapp)
@@ -14,16 +14,31 @@ multi-kind plugin serves subject_backend + config_source + queue +
 workflow_journal + conversation_store), and clients drive it through the
 portal's own MCP server.
 
+As of the durable-runtime-root deploy, the animus binaries + plugins live
+on the volume under `/data/runtime` (`/data/runtime/bin` first on PATH,
+`ANIMUS_PLUGIN_DIR=/data/runtime/animus/plugins`), so hot `animus update`
+and runtime plugin installs survive redeploys — until the committed image
+pins (animus.toml / plugins.lock) change, at which point the image wins and
+re-seeds `/data` (deploy/start.sh).
+
 ## Portal MCP surface — naming and visibility
 
 - Tools are **flat snake_case** (`list_subjects`, `queue_enqueue`,
   `run_workflow`, `daemon_health`, `cost_summary`, …), encoded by hosts as
-  `mcp__animus-launchapp__<name>`; params are camelCase (`subjectId`,
-  `workflowRef`).
+  `mcp__animus-launchapp__<name>`. Param casing is mixed: dispatch/team
+  tools use camelCase (`subjectId`, `workflowRef`), while `trigger_*`,
+  kind management, and `run_events` use snake_case (`workflow_ref`,
+  `github_event`, `run_id`) — check the tool schema when unsure.
 - **Admin tools are invisible to non-admins** — they are not registered at
-  all for non-admin users (`team_*` writes, `script_set`/`script_remove`,
-  `sql_*`). A "missing" tool usually means a role problem, not a version
-  problem.
+  all for non-admin users. The admin-only set: `team_*` writes,
+  `script_set`/`script_remove`, `sql_execute` (only that one —
+  `sql_query`/`list_tables`/`describe_table` are read-scope for all
+  members), all five `trigger_*`, `queue_drop`/`queue_reorder`,
+  `daemon_pause`/`daemon_resume`, `agent_control`,
+  `plugin_install`/`plugin_uninstall`/`plugin_update`,
+  `declare_kind`/`update_kind`/`delete_kind`, and the note reviewer tools
+  (`note_list_pending`/`note_approve`/`note_reject`/`note_review_pending`).
+  A "missing" tool usually means a role problem, not a version problem.
 - Dispatch params follow the v0.7 breaking rename: `subjectId` everywhere
   (`taskId`/`requirementId` are gone); `list_subjects` is paginated
   (`cursor` → `next_cursor`, `status` filter; never assume page one is the
@@ -99,7 +114,7 @@ run on the deployment — never returned to clients or logged.
 The portal connects external MCP servers and projects their data into the
 board as read-only subjects:
 
-1. **Catalog**: ~110 curated entries (hosted-OAuth + stdio-npx) in 10
+1. **Catalog**: 108 curated entries (hosted-OAuth + stdio-npx) in 10
    categories; admins add one, or register a custom server (pre-registered
    OAuth `client_id` + confidential client secret supported, ao-cli rc.12+).
 2. **Connect** runs a real MCP handshake (initialize + tools/list) — via the
@@ -124,6 +139,12 @@ Every trigger delivery (schedules, `triggers:` blocks, webhooks) writes a
 `trigger_event` subject — status `done`, delivery metadata in `custom` —
 so "did my trigger fire?" is a board/`list_subjects` query, not a log hunt.
 Pruned past 30 days beyond the newest 2000 events.
+
+The triggers themselves are managed over MCP via the admin-only `trigger_*`
+family (`trigger_list/create/update/delete/test`; snake_case params,
+`kind: github|cron`, `trigger_update` is a full replace by `id`,
+`trigger_test` dispatches immediately without stamping `last_fired_at`) —
+family table in the animus-mcp-tools portal reference.
 
 ## Skills on the portal — durability
 

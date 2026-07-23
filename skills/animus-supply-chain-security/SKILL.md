@@ -3,7 +3,7 @@ name: animus-supply-chain-security
 description: Animus plugin supply-chain security — sha256 checksums, cosign keyless signature verification, signature policy (strict/warn/disabled), trusted-signers allowlists, audited TOFU org trust with revocation, plugin lockfiles and fail-closed semantics, lock verify tamper detection, and CI verification gates. Use for questions about plugin security, lockfile integrity, signature verification, trusting or revoking orgs, or detecting tampered plugin binaries.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Supply-Chain Security
@@ -28,13 +28,17 @@ Every install — global or `--project` — runs the identical pipeline:
    it optionally. Mismatch fails the install.
 2. **Cosign signature policy** — keyless verification of the
    `<asset>.bundle` published next to the release asset (see below).
-3. **Publisher TOFU (fail-closed since v0.7.0-rc.1)** — release-source
+3. **Publisher TOFU (fail-closed; v0.7-rc/portal only)** — release-source
    installs from an org not in `~/.animus/trusted-orgs.yaml` prompt at the
    TTY. Non-interactively — and always with `ANIMUS_SERVER=1` — the install
    fails: `--yes`/`--force` do NOT auto-trust an unknown org; `--allow-org
    <OWNER>` is the explicit escape hatch (on `animus install`, `plugin
    install`, and the MCP install tool). The release-source gate runs BEFORE
-   any download or `--manifest` probe.
+   any download or `--manifest` probe. On 0.6.x local installs the behavior
+   differs: `--yes`/`--force` auto-trust an unknown org with a warning,
+   `ANIMUS_SERVER` has no effect, `animus install` has no `--allow-org`,
+   and the org gate runs after download + manifest probe (before the
+   install-dir copy and lock write).
 4. **Lockfile (schema 2.0, v0.6.7)** — the install records per-target-triple
    integrity for EVERY published platform from the release's
    `SHA256SUMS.txt`: `targets: {triple → {archive_sha256,
@@ -50,8 +54,11 @@ the reserved provider names (`claude`, `codex`, `gemini`, `opencode`,
 `animus-provider-<reserved>` from the built-in trusted publisher
 `launchapp-dev` installs with **no flag** (v0.6.10+); untrusted orgs and
 `--path`/`--url` installs (owner unknown) are refused without
-`--allow-shadow-builtin`. The guard also covers secondary-role providers
-and the effective installed name (v0.7.0-rc.9).
+`--allow-shadow-builtin`. On the v0.7-rc/portal line the guard also covers
+secondary-role providers (any plugin whose `plugin_kinds` serves the
+provider role) and keys off the effective installed name rather than
+`manifest.name` alone; 0.6.x local installs check the primary kind and
+manifest name only.
 
 ## Signature Verification (cosign keyless)
 
@@ -66,10 +73,12 @@ The workflow-runner default releases are cosign-signed like any other
 first-party plugin — `animus plugin install` verifies them identically
 (pins advance; check the current one with `animus plugin outdated`).
 
-Policy resolution is context-aware (v0.7.0-rc.1) — precedence: per-call
-`--signature-policy` flag > `ANIMUS_PLUGIN_SIGNATURE_POLICY` env
+Policy resolution is context-aware on the v0.7-rc/portal line — precedence:
+per-call `--signature-policy` flag > `ANIMUS_PLUGIN_SIGNATURE_POLICY` env
 (`strict`/`warn`/`skip`) > `plugins.signature_policy` global config >
-`warn` default.
+`warn` default. On 0.6.x local installs there is no env or global-config
+layer: precedence is the `--signature-policy` flag > legacy
+`--skip-signature`/`--require-signature` > `warn` default.
 
 Policy modes via `--signature-policy <MODE>`:
 
@@ -169,8 +178,12 @@ animus plugin lock verify [--lockfile <PATH>] [--plugin-dir <PATH>] [--json]
 BOTH roots: global entries against the global dir, project entries
 against the project dir with a global-dir fallback for legacy entries.
 Each result carries `scope` (`global` / `project` / `explicit`);
-`--lockfile <PATH>` restricts to one file. Any mismatch or missing
-binary exits non-zero.
+`--lockfile <PATH>` restricts to one file. Result categories beyond
+`verified`/`mismatch`/`missing`: `missing_target` (the lock entry has no
+integrity record for the current platform triple — e.g. an unmigrated
+schema-1.0 entry) and `extra` (a binary installed on disk but absent from
+the lockfile). Any mismatch, missing binary, `missing_target`, or `extra`
+exits non-zero.
 
 **Fail-closed:** `animus plugin install` and `install-defaults` REFUSE
 when the resolved lockfile exists but cannot be parsed or has an
@@ -199,11 +212,13 @@ animus plugin outdated --exit-code   # non-zero when any plugin lags its pin
 animus plugin outdated --exit-code --offline   # cached registry index, no network
 ```
 
-Pre-populate `~/.animus/trusted-orgs.yaml` (or pass `--allow-org` — on
-non-TTY/`ANIMUS_SERVER=1` runs `--yes` alone will NOT auto-trust an
-unknown org) so non-interactive installs never block on the TOFU gate, and
-set `ANIMUS_PLUGIN_SIGNATURE_POLICY=strict` (or pass `--signature-policy
-strict`) on every CI install.
+Pre-populate `~/.animus/trusted-orgs.yaml` (or pass `--allow-org` — on the
+v0.7-rc/portal line, non-TTY/`ANIMUS_SERVER=1` runs fail closed: `--yes`
+alone will NOT auto-trust an unknown org; on 0.6.x, `--yes`/`--force`
+auto-trust with a warning) so non-interactive installs never block on the
+TOFU gate. For strict signatures: on the v0.7-rc/portal line set
+`ANIMUS_PLUGIN_SIGNATURE_POLICY=strict` once; 0.6.x has no env layer, so
+CI should pass `--signature-policy strict` on every install.
 
 ## Related Skills
 

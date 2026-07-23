@@ -40,6 +40,21 @@ Pruning terminal runs (`animus workflow prune`) and `animus workflow delete
 | `animus.workflow.definitions.list` | `project_root` |
 | `animus.workflow.config.get` | `project_root` |
 | `animus.workflow.config.validate` | `project_root` |
+| `animus.workflow.config.set` | `file` (path to a full RAW source `WorkflowConfig` JSON), `project_root` |
+| `animus.workflow.config.agent-set` | `id`, `input_json`, `project_root` |
+| `animus.workflow.config.agent-remove` | `id`, `project_root` |
+| `animus.workflow.config.workflow-set` | `input_json` (must include an `id`), `project_root` |
+| `animus.workflow.config.workflow-remove` | `id`, `project_root` |
+
+The five config write-back tools persist through the installed writable
+`config_source` plugin and fail cleanly when the source is read-only (e.g.
+YAML). `config.set` replaces the entire config and must be fed the RAW
+source model — never the effective output of `animus.workflow.config.get`
+(that is post-pack-merge; feeding it back would bake pack-provided entities
+into the source). For single-entity edits prefer the entity verbs
+(`agent-set` / `workflow-set` / `*-remove`), which read-modify-write the raw
+model and validate before writing. `config.agent-set` manages agent
+*definitions* — it does not collide with the runtime `animus.agent.*` tools.
 
 ## Queue tools
 

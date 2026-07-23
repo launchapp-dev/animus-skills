@@ -31,7 +31,7 @@ flows `client_credentials` / `refresh_token` / `manual_bearer` /
 `authorization_code` via `animus mcp auth`). For `authorization_code`
 providers that don't support Dynamic Client Registration, set `client_id`
 (pre-registered application id) and — for confidential clients (HubSpot,
-Dropbox, …) — `client_secret_env` (v0.7.0-rc.12+; resolved from process env,
+Dropbox, …) — `client_secret_env` (v0.6.x+, protocol v0.1.26; resolved from process env,
 then the `animus secret` keychain). All credential material is named via
 `*_env` fields, never inlined.
 
@@ -42,7 +42,10 @@ to true — the workflow path needs workflow-runner v0.4.3+). Secret-bearing
 servers (all OAuth flows) are rewritten to `animus-mcp-proxy` stdio entries,
 so tokens never reach CLI configs or argv. For deterministic, LLM-free access
 from command phases or scripts, use `animus mcp tools <server>` and
-`animus mcp call <server> <tool> --args '<json>'` (v0.7.0-rc.9+).
+`animus mcp call <server> <tool> --args '<json>'` (v0.7-rc.9+/portal only —
+not on 0.6.x local installs, where `animus mcp` has only `serve` / `memory` /
+`auth` / `auth-status` / `auth-logout`; on 0.6.x let an agent phase call the
+tool instead).
 
 ## Tool registry
 
@@ -93,13 +96,14 @@ schedules:
       scope: nightly
       full_test: true
     enabled: true
-    owner_id: rafal          # v0.7, optional — see below
+    owner_id: rafal          # v0.6.x, optional — see below
 ```
 
 Cron expressions use 5 fields (`minute hour day-of-month month day-of-week`)
 and are evaluated in UTC. Cron shortcuts (`@daily`, …) are rejected.
 
-`owner_id` (+ optional `claims[]`) is the v0.7 actor foundation: the
+`owner_id` (+ optional `claims[]`) is the actor foundation (v0.6.x, protocol
+v0.1.26): the
 scheduler mints that user's Actor for dispatched runs, so the run uses the
 owner's config partition and integrations. Omit it for global dispatch.
 
@@ -175,6 +179,10 @@ exercised by producing their real underlying event.)
 
 ## Inter-workflow dependencies (fan-in)
 
+(v0.7-rc/portal only — not on 0.6.x local installs; on 0.6.x sequence
+dependent work as phases of one workflow or gate downstream enqueues
+manually.)
+
 Runs can declare upstream dependencies via two reserved run-vars
 (v0.7.0-rc.6, TASK-208 — passed as workflow input/`--var`, not YAML fields):
 
@@ -204,6 +212,10 @@ daemon:
     max_cost_usd_per_day: 50.0
     on_exceed: pause            # pause (default) | fail | warn
 ```
+
+For `daemon.budget`, only `on_exceed: pause` is enforced at the daemon level
+today — `fail` and `warn` parse and are carried for forward compatibility
+only.
 
 The daemon is queue-only: it dispatches enqueued subjects (`animus queue enqueue`)
 and cron `schedules:` fires — Ready subjects are NEVER auto-dispatched. There is

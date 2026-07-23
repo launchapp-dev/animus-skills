@@ -3,7 +3,7 @@ name: animus-cost-operations
 description: Inspect Animus token and USD spend, attribute cost to providers/models/phases, and operate workflow budget caps. Use when a question involves cost, spend, tokens, USD, budget caps or `budget:` blocks, budget breaches, paused-for-budget workflows, provider/model cost attribution, cost leaderboards, or `animus cost` commands.
 user_invocable: false
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # Cost Operations
@@ -43,7 +43,7 @@ Typed exit codes (v0.5.13+): invalid input = 2, not-found = 3,
 unavailable = 5. `--json` envelope schemas include `animus.cost.summary.v1`,
 `animus.cost.workflow.v1`, `animus.cost.top.v1`, `animus.cost.trends.v1`,
 `animus.cost.conversation.v1`, `animus.cost.decisions.v1`, and the grouped
-views `animus.cost.summary.breakdown.v1`,
+views `animus.cost.summary.breakdown.v1`, `animus.cost.summary.task.v1`,
 `animus.cost.workflow.breakdown.v1`, `animus.cost.top.models.v1`.
 
 ### Attribution caveats
@@ -64,6 +64,13 @@ views `animus.cost.summary.breakdown.v1`,
 - Text output marks an estimated cost with a trailing `(est.)` (the USD
   was derived from token counts and a price table, not a provider-reported
   figure).
+- Conversation attribution (v0.6.31): `animus queue enqueue` stamps
+  `ANIMUS_CONVERSATION_ID` from its process environment into the dispatch
+  input, so provider spend from the resulting workflow run attributes to the
+  enqueuing chat conversation (`animus cost conversation <id>` picks it up).
+- Rate matching (v0.6.31) strips OpenRouter-style `<provider>/` prefixes
+  before price-table lookup — e.g. `openai/gpt-5.5` matches the `gpt-5.5`
+  rate and gets labeled-estimated costs instead of falling to `unknown`.
 
 ## Budget caps in workflow YAML
 
@@ -101,6 +108,19 @@ one, caps are only recorded when an `animus cost` command runs (never
 paused). Each newly crossed cap is acted on exactly once: `pause` pauses
 the workflow, `fail` fails the current phase terminally, `warn` records and
 notifies only.
+
+## Fleet daily cap (`animus daemon config --max-daily-usd`)
+
+Above per-workflow/per-phase `budget:` caps sits an optional fleet-wide
+daily cap set with `animus daemon config --max-daily-usd <USD>`
+(hot-reloaded by the running daemon). It is a **rolling-24h** ceiling on
+total fleet spend: when crossed, the daemon latches `dispatch_paused` and
+stops dispatching new work; it auto-resumes once the rolling-24h spend
+falls back under the cap. On 0.6.x local installs the latch surfaces in
+`animus daemon health` under the `budget_enforcement` section
+(`daily_cap.dispatch_paused` / `daily_cap.exceeded`). The top-level
+`dispatch_paused` / `daily_cap_exceeded` flags and the
+Healthy → Degraded flip while latched are v0.7-rc/portal only.
 
 ## Breach visibility
 
@@ -161,20 +181,23 @@ animus workflow resume --id wf-...
 
 ## MCP
 
-Three tools on the local serve surface:
+On the local serve surface:
 
 - `animus.cost.decisions` (`since`, `project_root`) — recorded budget-cap
-  breaches; works offline.
+  breaches; works offline. The only cost/budget tool registered on 0.6.x
+  local installs.
 - `animus.budget.get` (`project_root`) — fleet daily cap, rolling-24h spend,
   remaining headroom, exceeded/dispatch-paused flags, and every configured
-  per-workflow/per-phase cap; works offline.
+  per-workflow/per-phase cap; works offline. (v0.7-rc/portal only — not on
+  0.6.x local installs.)
 - `animus.budget.set` (`max_daily_usd`, `clear`, `project_root`) — set or
   clear the fleet daily cap (wraps `daemon config --max-daily-usd`;
-  hot-reloaded).
+  hot-reloaded). (v0.7-rc/portal only — not on 0.6.x local installs; the
+  0.6.x equivalent is the CLI `animus daemon config --max-daily-usd`.)
 
 The portal additionally exposes `cost_summary` (flat-named) on its own MCP
-surface. A latched fleet-cap breach flips daemon health to Degraded with
-`dispatch_paused` / `daily_cap_exceeded`.
+surface. On the rc/portal line a latched fleet-cap breach flips daemon
+health to Degraded with `dispatch_paused` / `daily_cap_exceeded`.
 
 ## Related skills
 

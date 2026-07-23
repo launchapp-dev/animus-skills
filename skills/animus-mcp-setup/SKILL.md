@@ -3,7 +3,7 @@ name: animus-mcp-setup
 description: Set up .mcp.json, Claude Code permissions, and connect AI tools to Animus's MCP server
 user_invocable: true
 auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
 ---
 
 # MCP Server Setup
@@ -52,7 +52,7 @@ If the launch environment strips `PATH`, pin the binary returned by
 
 ### Serve flags
 
-`animus mcp serve` accepts three flags worth knowing:
+`animus mcp serve` accepts four flags worth knowing:
 
 - `--management` — also exposes the `animus.interactions.*` inbox tools
   (list/answer pending agent questions and approvals). Off by default so
@@ -66,6 +66,13 @@ If the launch environment strips `PATH`, pin the binary returned by
 - `--workflow-id <ID>` — pins the workflow context and flips the escalation
   tools' default wait mode from block to suspend (env fallback:
   `ANIMUS_MCP_WORKFLOW_ID`).
+- `--actor-json <JSON>` — binds the server to the transport-asserted caller
+  identity for the run (a JSON-encoded `Actor`:
+  `{"user_id","claims","tenant_id"}`) so tools can scope per-user
+  integrations and subject/queue ops. Trust boundary: set ONLY by the
+  trusted host from the authenticated run — never from agent output,
+  workflow YAML, or subject content. Omitted = global scope (system /
+  local runs).
 
 The pins are appended automatically on the agent-injection paths
 (`animus agent run --agent`, workflow phases); set them yourself only when
@@ -93,8 +100,9 @@ animus daemon preflight
 ```
 
 (Flagless `install-defaults` installs the active flavor's full required set —
-provider, both subject backends, transport, workflow runner, queue — as of
-v0.5.14.)
+provider, both subject backends, transport, workflow runner, queue, and the
+`config_source` plugin (`launchapp-dev/animus-config-yaml`, mandatory since
+v0.6 for the daemon to start) — as of v0.5.14.)
 
 ## Available Tool Groups
 
@@ -108,10 +116,11 @@ Families and their purposes:
 | `animus.agent.*` | 12 | Agent runs, profiles, memory, messages, ask/approval escalation |
 | `animus.interactions.*` | 2 | List/answer pending agent questions and approvals (`mcp serve --management` only) |
 | `animus.daemon.*` | 12 | Daemon lifecycle, monitoring, and the `observe` front-door |
-| `animus.cost.*` / `animus.budget.*` | 3 | Breach log (`cost.decisions`) + fleet budget get/set (`budget.get`/`budget.set`) |
+| `animus.cost.*` / `animus.budget.*` | 3 | Breach log (`cost.decisions`) + fleet budget get/set (`budget.get`/`budget.set`; `budget.*` is v0.7-rc/portal only — not on 0.6.x local installs) |
 | `animus.subject.*` | 8 | Task, requirement, and external subject CRUD plus batch create/update |
 | `animus.queue.*` | 7 | Dispatch queue management (bulk `subject_ids[]` on hold/release/drop) |
-| `animus.workflow.*` | 17 | Workflow execution, phases, gate approve/reject, config, checkpoints |
+| `animus.workflow.*` | 22 | Workflow execution, phases, gate approve/reject, checkpoints (12 runtime) plus definitions/config, including the config write-back subgroup `config.set` / `config.agent-set` / `config.agent-remove` / `config.workflow-set` / `config.workflow-remove` (10 definition/config) |
+| `animus.environment.*` | 4 | Environment-plugin node inspection/reaping: `list`, `get`, `teardown`, `reap` (reap defaults to dead-only; v0.7-rc.26+/portal only — not on 0.6.x local installs) |
 | `animus.output.*` | 6 | Run output, JSONL, monitor, artifacts |
 | `animus.logs.*` | 1 | Active log backend tailing |
 | `animus.skill.*` | 5 | Skill list, resolve, search, create, update (project or user scope) |
