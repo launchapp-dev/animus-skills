@@ -1,9 +1,10 @@
 ---
 name: animus-agent-operations
 description: Run and inspect Animus agent executions, direct provider runs, agent control, status, project-scoped agent memory, agent message channels, and human-in-the-loop interactions.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+metadata:
+  user_invocable: false
+  auto_invoke: true
+  animus_version: "0.7.0-rc.27"
 ---
 
 # Agent Operations
@@ -220,6 +221,13 @@ Top-level memory tools (also the only family a memory-capable workflow agent
 receives via the injected sidecar):
 
 - `animus.memory.get`, `list`, `append`, `clear`
+
+Tool availability depends on the MCP server posture. An actor-bound workflow
+server retains actor-safe reads such as agent list/get but intentionally omits
+management operations including agent run/control/status and the broader
+memory/message surfaces. `--management` is a separate trusted operator
+surface. Workflow agents must not assume the full CLI/MCP inventory merely
+because those tools exist on a management server.
 
 ## Troubleshooting
 

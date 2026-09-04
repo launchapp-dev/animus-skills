@@ -1,9 +1,10 @@
 ---
 name: animus-configuration
 description: Animus project config, daemon config, plugin config, agent runtime, environment variables, and state layout
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+metadata:
+  user_invocable: false
+  auto_invoke: true
+  animus_version: "0.7.0-rc.27"
 ---
 
 # Configuration
@@ -159,6 +160,7 @@ Mutable project runtime state lives outside the repo:
 ├── mcp-oauth-cache/
 │   └── <server>.json
 ├── runs/<run-id>/
+│   └── skills/definitions/                # per-run resolved phase-skill staging
 ├── artifacts/<run-id>/
 ├── state/
 │   └── pack-selection.v1.json
@@ -191,6 +193,10 @@ Key files:
   HTTP MCP servers (`0600` on Unix).
 - `runs/<run-id>/` and `artifacts/<run-id>/` are never auto-deleted —
   reclaim disk with `animus workflow prune` / `animus workflow delete`.
+- `runs/<run-id>/skills/definitions/` is the isolated skill-definition set
+  resolved for that run. The daemon passes its path as
+  `ANIMUS_PHASE_SKILLS_DIR`; the former JSON-in-environment transport was
+  removed because large payloads could prevent process spawn.
 
 Treat these as Animus-managed state. Prefer CLI or MCP tools over direct edits.
 

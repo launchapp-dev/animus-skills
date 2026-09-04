@@ -1,9 +1,10 @@
 ---
 name: animus-mcp-tools
 description: Animus MCP tool surface - agent, daemon, cost, subject, workflow, queue, output, skill, memory, plugin, logs, and tool-discovery tools, including pagination, batch behavior, and error remediation. Use when an Animus task needs exact MCP tool names, key parameters, or tool-selection guidance.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+metadata:
+  user_invocable: false
+  auto_invoke: true
+  animus_version: "0.7.0-rc.50"
 ---
 
 # MCP Tools
@@ -17,13 +18,15 @@ Use this skill as a router, not as a wall of tables.
   `mcp__animus__animus_subject_list`).
 - **The portal (animus-launchapp)** exposes flat snake_case names on its own
   MCP server: `list_subjects`, `queue_enqueue`, `run_workflow`,
-  `daemon_health`, `cost_summary`, … (encoded as
-  `mcp__animus-launchapp__<name>`), plus portal-only families — `team_*`,
+  `daemon_health`, `cost_summary`, … (the encoded server prefix is chosen by
+  the client, such as `mcp__launchapp__<name>`), plus portal-only families — `team_*`,
   `script_*`, `skill_*`, `phase_context_schema`, notes/kinds/sql tools.
-  Portal admin tools are **not registered at all** for non-admin users.
+  Admin schemas may be hidden by one client or discoverable and return
+  `forbidden` in another. Tool visibility never grants authority.
 
-Where both surfaces expose the same operation the parameters match (e.g.
-`queue_enqueue` takes `subjectId` camel-cased). Read
+Similar local and portal operations do not guarantee parameter parity. For
+example, the core queue surface can expose idempotency/input fields that the
+current portal MCP wrapper omits. Inspect the connected tool schema. Read
 [references/portal-launchapp-tools.md](references/portal-launchapp-tools.md)
 for the portal-only families.
 
@@ -32,6 +35,8 @@ for the portal-only families.
 - Prefer the MCP tool that performs the mutation directly instead of shelling out to `animus`.
 - Treat destructive tools as explicit actions and pass the required confirmation fields when calling them.
 - Every tool accepts optional `project_root` unless noted otherwise.
+- Actor-bound workflow MCP intentionally exposes fewer tools than a trusted
+  management server; agents must not assume run/control/config/global access.
 - Tasks and requirements use `animus.subject.*`; the old `animus.task.*` and `animus.requirements.*` families were removed.
 - For task operations, pass `kind: "task"`. For requirement operations, pass `kind: "requirement"`.
 - Unsure which tool fits? Call `animus.tools.search` with intent keywords (ranked matches with compact parameter summaries) or `animus.tools.list` for the full grouped catalog.

@@ -1,95 +1,123 @@
 ---
 name: animus-workflow-authoring
-description: Write or update Animus workflow YAML in `.animus/workflows.yaml` and `.animus/workflows/*.yaml` - workflow definitions, agents, phases, model registries, MCP bindings, schedules, triggers, daemon config, and related runtime sections. Use when defining a workflow or fixing workflow config.
-user_invocable: true
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Design, write, review, or repair Animus workflows and workflow config for local CLI projects or the hosted Animus portal. Use for agents, phases, routing, retries, evaluations, execution environments, queue dispatch, publication, schedules, triggers, and workflow safety.
+metadata:
+  user_invocable: true
+  auto_invoke: true
+  animus_version: "0.7.0-rc.50"
 ---
 
-# Workflow Authoring
+# Animus Workflow Authoring
 
-Project-authored workflow sources live in `.animus/workflows.yaml` and `.animus/workflows/*.yaml`.
+Author against the effective deployment, not the schema alone. Animus is a
+kernel plus independently versioned plugins; a field can parse in the rc.50
+CLI while an older workflow runner does not execute it. The hosted portal
+currently pairs rc.50 with a newer runner than the CLI repository's default
+install manifest.
 
-Do not read every reference file up front. Start with the smallest change that solves the task, then open only the reference that matches the section you are editing:
+## Start here
 
-- Read [references/agents-and-phases.md](references/agents-and-phases.md) for agent or phase fields (including command phases and custom verdicts).
-- Read [references/top-level-and-routing.md](references/top-level-and-routing.md) for the real top-level authored surface, workflow composition, variables, budgets, and the v0.7 execution-environment surface (`environment:`, `workspaces:`, `environment_routing:`).
-- Read [references/automation-and-integrations.md](references/automation-and-integrations.md) for `phase_mcp_bindings`, `tools`, `integrations`, `schedules`, `triggers`, `daemon`, and inter-workflow fan-in.
-- Read [mcp-servers-for-agents](../animus-mcp-servers-for-agents/SKILL.md) only when wiring external MCP servers.
+1. Identify the config authority and runtime versions.
+   - Local/default YAML: `.animus/workflows.yaml` plus lexical
+     `.animus/workflows/*.yaml|yml` overlays, served at runtime by a
+     `config_source` plugin.
+   - Portal: Postgres is canonical after first boot. Read `team_config_get`;
+     do not treat image YAML as the live team.
+   - Inspect kernel, workflow-runner, provider, environment, queue, and config
+     source health before relying on optional behavior.
+2. Model one bounded unit of work: one qualified subject, one queue lease or
+   idempotent direct launch, one workflow state machine, and one independently
+   verifiable terminal outcome.
+3. Give every phase a single responsibility. Use command phases for
+   deterministic checks/transforms, agent phases for judgment or generative
+   work, and manual phases for real human authority.
+4. Make permissions explicit. `writes_files: true` permits repository edits;
+   `mutates_state: true` alone explicitly does not. Add
+   `requires_commit: true` only when a commit is part of the phase contract.
+5. Route structured decisions deliberately. Bound every cycle on the rework
+   **target** with `phases.<target>.retry.max_attempts`; `1` permits one
+   re-entry (at most two executions of that target). Do not rely on rich-step
+   `max_rework_attempts` or transition `guard`, which currently parse but do
+   not control lifecycle execution.
+6. Separate workflow success from external success. A completed run does not
+   mark its task Done, prove a push/PR/deploy, or make an ambiguous external
+   side effect safe to retry.
+7. Validate, inspect the compiled/effective config, reload, run a canary, and
+   inspect decisions/events before enabling triggers.
 
-Prefer `workflows:` as the authored surface. Some Animus docs still mention `pipelines:`, but `animus-cli`'s current workflow YAML parser, types, and tests are centered on `workflows:`.
+## Minimal agent workflow
 
-## Minimal skeleton
-
-Start from the smallest valid shape and expand only where the task needs more structure:
+Use provider/model values advertised by the deployment; these are examples.
 
 ```yaml
 agents:
-  default:
-    model: claude-sonnet-4-6
-    tool: claude
+  implementer:
+    tool: codex
+    model: gpt-5.6-sol
 
 phases:
-  implementation:
+  sample-implementation:
     mode: agent
-    agent: default
-    directive: Implement the task.
+    agent: implementer
+    directive: Implement the requested change and report the verification run.
+    capabilities:
+      writes_files: true
+      requires_commit: true
 
 workflows:
-  - id: standard
-    name: Standard
-    phases: [implementation]
+  - id: sample-delivery
+    name: Sample delivery
+    phases: [sample-implementation]
 ```
 
-## Authoring flow
+Phase IDs share a global definition map. Namespace physical IDs by workflow
+or domain (`billing-implement`, `billing-test`) instead of reusing generic
+names across independently managed portal workflows. Exact legacy names such
+as `implementation` receive compatibility defaults; never depend on those
+defaults for authorization.
 
-1. Inspect the existing YAML before adding new sections.
-2. Add or update only the sections the task actually touches.
-3. Keep deterministic operations in command phases and judgment calls in agent phases.
-4. Prefer `cwd_mode: task_root` for git, build, and test commands.
-5. Add schedules, triggers, and daemon tuning only after the base workflow works manually.
-6. For autonomous workflows, declare a `budget:` cap (`max_cost_usd` / `max_tokens`) — the daemon enforces it on its housekeeping sweep and pauses the workflow on breach.
-7. Validate against current `animus-cli` behavior when docs and examples disagree.
+## Choose the relevant reference
 
-## Rules
+- Read [references/runtime-and-lifecycle.md](references/runtime-and-lifecycle.md)
+  for the kernel/plugin architecture, dispatch lifecycle, fences, state,
+  version-dependent behavior, and failure taxonomy.
+- Read [references/agents-and-phases.md](references/agents-and-phases.md) for
+  agent runtime selection, phase modes, capabilities, decisions, skills,
+  permission modes, retries, and enforced evaluations.
+- Read [references/top-level-and-routing.md](references/top-level-and-routing.md)
+  for overlays, workflows, subworkflows, `skip_if`, routing, budgets,
+  environments/workspaces, and the explicit publication contract.
+- Read
+  [references/automation-and-integrations.md](references/automation-and-integrations.md)
+  for queue idempotency, actors, schedules, triggers, MCP, tool policy, and
+  external-effect design.
+- Read [references/optimal-patterns.md](references/optimal-patterns.md) for
+  recommended coding, event, approval, quality-gate, and reconciliation
+  patterns.
+- When operating the hosted service, also read
+  [animus-portal-operations](../animus-portal-operations/SKILL.md); its Team
+  authoring surfaces do not round-trip every kernel field.
 
-1. Use agent phases for decisions and command phases for deterministic execution.
-2. Do not add rework loops to command phases.
-3. Stagger cron offsets instead of starting every schedule on the same minute.
-4. Since v0.6.0 the base workflow config is served by a `config_source` plugin (default `launchapp-dev/animus-config-yaml` — YAML in `.animus/workflows.yaml` + `.animus/workflows/*.yaml` remains the default authoring surface; the portal uses `animus-postgres`). The daemon keeps one resident config_source host per project root and picks up file edits on change (CacheToken short-circuits unchanged configs); `animus workflow config reload` is the manual fallback. A malformed edit keeps the prior config active.
-5. Express merge/PR/commit automation as `command:` phases that run `git`/`gh` (a phase with a `command:` block). Animus no longer performs git operations as runner automation — `post_success.merge` and the daemon-level git policy keys (`integrations.git.auto_merge`, `auto_pr`, `auto_commit_before_merge`, `auto_prune_worktrees`) were removed and now fail to parse.
-6. Use `default_workflow_ref` when the repo should have a stable implicit default.
-7. Prefer pack refs like `animus.task/standard` over copying bundled behavior into project YAML.
+## Validation and rollout
 
-## Validation
-
-Validate and inspect the effective config:
+For a local CLI source:
 
 ```bash
 animus workflow config validate
 animus workflow config compile
 animus workflow definitions list
 animus workflow phases list
-animus workflow prompt render --subject-id <kind:ID>   # preview a phase's effective (skill-injected) prompt
+animus plugin status
+animus daemon preflight
 ```
 
-(`prompt render --subject-id` is v0.7-rc/portal only — not on 0.6.x local
-installs; on 0.6.x use `--task-id` / `--requirement-id` / `--title` instead.)
+Use `animus workflow prompt render` where the installed CLI exposes it. A
+successful parse proves shape, not runner enforcement. Treat warnings as
+evidence to investigate, not as a definitive capability report: the rc.50 CLI
+validator and a newer portal runner can disagree.
 
-Config can also be edited through the CLI instead of raw YAML (requires a
-config_source plugin that advertises `config_write`; read-only sources refuse
-up front): `animus workflow config set` (full model), `agent-set` /
-`agent-remove`, `workflow-set` / `workflow-remove`, and
-`phase-set --id <id> --input-json <json>` (v0.7-rc.13+/portal only — not on
-0.6.x local installs, where the `workflow config` verbs are `set` /
-`agent-set` / `agent-remove` / `workflow-set` / `workflow-remove` and
-`workflow phases upsert` is the extant overlay path; on the rc line
-`phase-set` writes `phase_definitions` on the config_source base — the layer
-the validator sees, unlike the legacy `workflow phases upsert` overlay).
-
-`validate` and `compile` emit a `warnings` array (also on stderr) for
-declared-but-unenforced fields (e.g. `daemon.pool_size`, removed git policy
-keys, phase `evals:`) and for explicit `skills:` names that do not resolve
-against the project's skill sources. Warnings never fail the compile.
-
-If the workflow is still unclear after that, open the specific reference file that covers the missing section instead of broad-reading the whole skill set.
+For the portal, re-read `team_config_get` after publication/reload, verify
+provider capacity and daemon readiness, enqueue one disposable canary, and
+check its journaled phase decisions plus terminal publication/effect receipt.
+Do not enable an autonomous trigger until the canary proves the exact deployed
+path.

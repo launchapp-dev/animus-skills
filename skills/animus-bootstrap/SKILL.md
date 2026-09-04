@@ -1,9 +1,10 @@
 ---
 name: animus-bootstrap
 description: Guide a project from idea to autonomous engineering setup — interview the user, write VISION.md, AGENT_PRINCIPLES.md, registry, agents/workflows/phases/schedules YAML, scripts, and a first runnable task. Use when standing up Animus in a new project beyond the minimal /animus-setup scaffold.
-user_invocable: true
-auto_invoke: false
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+metadata:
+  user_invocable: true
+  auto_invoke: false
+  animus_version: "0.7.0-rc.50"
 ---
 
 # Animus Bootstrap — Idea → Autonomous Engineering Team
@@ -163,7 +164,7 @@ For "no auto-anything" users, leave both at their defaults.
 
 ## Phase 6 — phases.yaml
 
-Write to `.animus/workflows/phases.yaml`. Define phases referenced by workflows. Always include `qa-changes` (the rework gate).
+Write to `.animus/workflows/phases.yaml`. Define only phases selected during discovery. The example below includes a bounded quality gate; it is not a universal scaffold.
 
 ```yaml
 phases:
@@ -175,42 +176,43 @@ phases:
   implement-feature:
     mode: agent
     agent: implementer
-    directive: "Implement the assigned task. You start inside the task's daemon-managed worktree (~/.animus/<repo>-<hash>/worktrees/task-<task-id>). Commit, push, open PR."
-    capabilities: { mutates_state: true }
+    directive: "Implement the assigned task in the managed task checkout, run the named focused verification, and commit the tested change. Do not publish it."
+    capabilities: { writes_files: true, requires_commit: true }
+    retry: { max_attempts: 1 } # one permitted re-entry / remediation
 
   qa-changes:
     mode: agent
     agent: tester
     directive: |
       Verify the change. Verdicts:
-      - approve: build/lint/test pass, behavior matches the task
+      - advance: build/lint/test pass, behavior matches the task
       - rework:  fixable issues — list them; loop back to implementation
-      - fail:    structurally wrong — loop back, force a rethink
+      - fail:    structurally wrong or unsafe — stop with evidence
 
   review-pr:
     mode: agent
     agent: reviewer
     directive: |
-      Before merging, check `gh pr checks <number>`.
+      Check the exact PR head and its required checks. Do not merge.
       - Failures caused by THIS PR: queue rework.
-      - Pre-existing failures: merge anyway, create a fix task.
-      - Pending checks: skip, next cycle picks it up.
-      - All pass: review the diff, merge if approved.
+      - Pre-existing failures: fail with evidence and create/follow a separate fix task.
+      - Pending checks or stale head: fail safely for later reconciliation.
+      - All pass: advance with the exact reviewed head.
 
   # Command phases (deterministic — use these for git/test/build, not agents):
   install-deps: { mode: command, command: { program: pnpm, args: [install], cwd_mode: task_root, timeout_secs: 120 } }
   build-check:  { mode: command, command: { program: pnpm, args: [build],   cwd_mode: task_root, timeout_secs: 300 } }
   lint-check:   { mode: command, command: { program: pnpm, args: [lint],    cwd_mode: task_root, timeout_secs: 120 } }
-  push-branch:  { mode: command, command: { program: git,  args: [push, -u, origin, HEAD], cwd_mode: task_root, timeout_secs: 60 } }
-  create-pr:    { mode: command, command: { program: gh,   args: [pr, create, --fill, --base, main], cwd_mode: task_root, timeout_secs: 60 } }
-  wait-for-ci:  { mode: command, command: { program: gh,   args: [pr, checks, --watch, --fail-fast], cwd_mode: task_root, timeout_secs: 600 } }
+  # Add publication only after checking the active runner. Prefer the explicit
+  # publication contract on a compatible runner; otherwise use separate,
+  # idempotent publish and remote-verification phases with least privilege.
 ```
 
 `cwd_mode: task_root` is the #1 gotcha — see `../animus-workflow-patterns/SKILL.md`.
 
 ## Phase 7 — workflows.yaml
 
-Write to `.animus/workflows/workflows.yaml`. Always include: `conductor-loop`, `implement` (with qa-changes gate), `review-pr`. Add others based on Phase 1.
+Write to `.animus/workflows/workflows.yaml`. Include only the workflows Phase 1 justified. This example separates local production/verification from publication.
 
 ```yaml
 default_workflow_ref: implement
@@ -228,25 +230,16 @@ workflows:
       - install-deps
       - build-check
       - lint-check
-      - push-branch
-      - create-pr
-      - wait-for-ci
       - qa-changes:
           on_verdict:
             rework: { target: implement-feature }
-            fail:   { target: implement-feature }
-          max_rework_attempts: 3
-      - review-pr:
-          on_verdict:
-            rework: { target: implement-feature }
-          max_rework_attempts: 2
 
   - id: review-pr
     phases: [review-pr]
 
   # Add by work character:
   - id: implement-codex   # for the second-opinion route
-    phases: [implement-feature-codex, install-deps, build-check, lint-check, push-branch, create-pr, wait-for-ci, qa-changes]
+    phases: [implement-feature-codex, install-deps, build-check, lint-check, qa-changes]
   - id: fix-build         # critical/kill-criterion workflow
     phases: [fix-build, install-deps, build-check, qa-changes]
   - id: scan-security     # read-only producer
@@ -426,7 +419,7 @@ Tell the user, in this order:
 1. The artifacts that landed (file list, with one-line each).
 2. How to watch the daemon (`animus daemon stream --pretty`).
 3. How to tune principles without restarting (edit `.animus/workflows/AGENT_PRINCIPLES.md`).
-4. How to add a new specialist (edit `.animus/workflows/agents.yaml`, add a workflow that uses it, `animus daemon restart`).
+4. How to add a new specialist (edit `.animus/workflows/agents.yaml`, add a workflow that uses it, validate, and use `animus workflow config reload` only if hot reload has not applied it).
 5. The first real task they should queue (something concrete from VISION.md's 90-day success criteria).
 
 Do **not** offer to "tune the conductor" or "add more workflows" as a follow-up — let them run the smoke test, see autonomous work happen, and come back with their own asks.
@@ -437,5 +430,5 @@ Do **not** offer to "tune the conductor" or "add more workflows" as a follow-up 
 2. **Skipping AGENT_PRINCIPLES.md "because the conductor's prompt is enough."** The whole point of separating them is restart-free policy iteration — burying ship targets in `system_prompt:` defeats it.
 3. **Wiring every MCP server "just in case."** Each one in `mcp_servers:` adds tokens to every agent invocation. Wire only what Phase 5's agents reference.
 4. **Cron storms.** Every schedule on `0 * * * *` causes minute-rollover storms. Stagger by 5–15 min offsets (see `../animus-agent-personas/SKILL.md` "Recommended Cron Schedule").
-5. **Auto-merge on a fresh setup.** Even if the user wants it, hold off on the merge `command:` phase (or have `review-pr` gate it behind human approval) for the first week. Animus does no merge automation of its own — merge/PR is a `command:` phase running `git`/`gh` (Phase 6 already wires `push-branch` / `create-pr`), so leaving the auto-merge step out keeps a human in the loop. Let them watch the conductor work, then flip.
+5. **Auto-merge on a fresh setup.** Keep publication and merge out until the exact-head checks, actor authority, idempotency, and remote verification path have passed a canary. On a compatible runner use the explicit publication contract; otherwise require separate least-privilege publish/verify phases and human merge approval.
 6. **Bootstrapping without a real task.** A daemon with no work is unobservable. Phase 13's smoke test is non-optional — without it you cannot verify the wiring.

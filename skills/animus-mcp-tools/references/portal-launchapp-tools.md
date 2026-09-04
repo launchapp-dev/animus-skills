@@ -1,7 +1,7 @@
 # Portal (animus-launchapp) MCP Tool Families
 
 Use this reference when driving Animus through the portal's MCP server
-(`mcp__animus-launchapp__*`). Most of these families are portal-only — though
+(flat tool names; the client chooses the encoded server prefix). Most of these families are portal-only — though
 local `animus mcp serve` does expose skill tools
 (`animus.skill.{list,search,get,create,update}`); only the
 `skill_install`/`skill_uninstall`/`skill_info` shapes are portal-only. Portal
@@ -9,32 +9,36 @@ names are flat snake_case. Param casing is mixed: dispatch/team tools use
 camelCase (`subjectId`, `workflowRef`); `trigger_*`, kind management, and
 `run_events` use snake_case (`workflow_ref`, `github_event`, `run_id`).
 
-**Admin visibility:** tools marked ADMIN are only *registered* for admin
-users — a non-admin client never sees them in `tools/list` (and the handlers
-re-check). The complete admin-only set: `team_*` writes,
+**Admin access:** handlers re-check authorization. Depending on client and
+deployment, an ADMIN schema may be hidden or may remain discoverable and then
+return `forbidden`. The admin-gated set includes `team_*` writes,
 `script_set`/`script_remove`, `sql_execute` (the other sql tools are
-read-scope), all five `trigger_*`, `queue_drop`/`queue_reorder`,
+read-scope), trigger mutation/replay tools, `queue_drop`/`queue_reorder`,
 `daemon_pause`/`daemon_resume`, `agent_control`,
 `plugin_install`/`plugin_uninstall`/`plugin_update`,
 `declare_kind`/`update_kind`/`delete_kind`, and
 `note_list_pending`/`note_approve`/`note_reject`/`note_review_pending`.
-If a documented tool is missing, check the connected user's role before
-suspecting a version mismatch.
+Check both live tool discovery and the connected user's role; neither alone
+proves the runtime version or authority.
 
 ## Team tools — author workflows/agents/phases over MCP
 
-These are DEFINITION tools (they shape the team config), wrapping
-`animus workflow config …` write-back verbs. A complete custom workflow —
-agent + phase + workflow — is authorable through MCP alone.
+These are targeted definition tools wrapping workflow config write-back. They
+can author a simple agent + phase + workflow, but are not a lossless editor for
+the full kernel model. Prefer one full Team Studio publication for coordinated
+multi-object changes and verify the effective config afterward.
 
 | Tool | Access | Key parameters |
 |------|--------|----------------|
 | `team_config_get` | read | none — returns the compiled WorkflowConfig: agent profiles, workflow definitions, phase definitions, MCP server definitions |
-| `team_agent_set` | ADMIN | `id`, `model?`, `tool?` (`claude`/`codex`/…), `systemPrompt?`, `mcpServers?` (string[]), `extraConfig?` (passthrough bag, e.g. `reasoning_effort`; keys clashing with model/tool/provider/system_prompt/system_prompt_file are stripped) |
+| `team_agent_set` | ADMIN | `id`, provider/tool/model/capacity fields exposed by the live schema, `systemPrompt?`, `mcpServers?`, tool policy, and `extraConfig?`; structured `runtimePolicy` is not reliably round-tripped |
 | `team_agent_remove` | ADMIN | `id` |
-| `team_workflow_set` | ADMIN | `id`, `name`, `description?`, `phases` (bare phase-name strings OR rich steps `{id, on_verdict?, max_rework_attempts?}`), `budget?` (object or null), `isDefault?` (note: does NOT currently update `default_workflow_ref`) |
-| `team_phase_set` | ADMIN | `id`, `agentId?`, `mode?` (`agent` default \| `command` \| `manual`), `directive?`, `extraConfig?` (capabilities, output_contract, retry, command, …) |
+| `team_workflow_set` | ADMIN | `id`, `name`, `description?`, `phases`, `budget?`, visibility/owner/default fields exposed by the live schema; it can strip existing `environment`, `workspace`, and `publication` |
+| `team_phase_set` | ADMIN | `id`, `agentId?`, `mode?` (`agent` default \| `command` \| `manual`), `directive?`, `extraConfig?`; the wrapper stamps `idempotency: unknown` after the extra config |
+| `team_phase_remove` | ADMIN | `id` |
 | `team_workflow_remove` | ADMIN | `id` |
+| `team_default_workflow_set` | ADMIN | default workflow ID |
+| `team_mcp_server_set` / `team_mcp_server_remove` / `team_mcp_server_connect` | ADMIN | manage reviewed server definitions and OAuth/connection state; use secret references, never literal credentials |
 | `team_reload` | ADMIN | none — force a daemon config reload (writes attempt auto-reload; this is the explicit apply) |
 
 `team_phase_set` (needs ao-cli ≥ v0.7.0-rc.13) writes `phase_definitions` on
@@ -43,8 +47,15 @@ sees — unlike the legacy `workflow phases upsert`, which writes an
 agent-runtime overlay the validator ignores. Prefer `team_phase_set` for any
 phase authoring.
 
-The portal-only `provider` routing field on agents is set in the web Team
-Designer, not through `team_agent_set`.
+Phase IDs are global across the Team model; namespace them. Team serialization
+can drop `phase_mcp_bindings`, and omission of an agent server list can fall
+through broadly. Prefer explicit non-empty least-privilege agent assignments;
+never rely on `[]` as a deny rule.
+
+Do not call `team_workflow_set` on a workflow with opaque execution metadata.
+The full Studio path preserves existing environment/workspace/publication but
+cannot author those fields on a new workflow. Always compare
+`team_config_get` before and after any write.
 
 ## Script registry — durable command-phase scripts
 
@@ -178,6 +189,16 @@ all members; only `sql_execute` is admin.
 | `describe_table` | read | `table` — columns, types, nullability |
 | `sql_execute` | ADMIN | `sql`, `params?` — read-WRITE in `BEGIN..COMMIT`, audit-logged |
 
+`sql_execute` is a break-glass repair surface, not the normal Team authoring
+path. Before using it, read
+[Break-glass SQL repairs](../../animus-workflow-authoring/references/portal-runtime-and-authoring.md#break-glass-sql-repairs).
+In particular, quiesce affected work, snapshot and precondition the target,
+and keep the complete repair in one call under the transaction-scoped Team
+lock `pg_advisory_xact_lock(1906075)`. Do not use session-scoped
+`pg_advisory_lock` through the pooled handler. Config repairs must preserve the
+deployed normalized/blob contract and advance the cache-visible timestamp;
+reload, re-read, and canary before resuming.
+
 ## Packs
 
 Wrap `animus pack …`. List is read-scope; the mutators are write-scope
@@ -229,7 +250,7 @@ Read tools for all members; the mutators are ADMIN.
 ## Automation triggers (`trigger_*`, ADMIN)
 
 DB-backed portal triggers (GitHub webhook + cron), managed directly over MCP
-— there is no `animus trigger *` CLI verb behind them. All five tools are
+— there is no `animus trigger *` CLI verb behind them. Mutation and replay are
 ADMIN. Params are snake_case.
 
 | Tool | Access | Key parameters |
@@ -239,6 +260,12 @@ ADMIN. Params are snake_case.
 | `trigger_update` | ADMIN | `id` + the same fields as create — FULL REPLACE, not a patch |
 | `trigger_delete` | ADMIN | `id` — destructive |
 | `trigger_test` | ADMIN | `id` — dispatches the trigger's workflow immediately regardless of match; does NOT stamp `last_fired_at` |
+| `trigger_delivery_list` | ADMIN | delivery-ledger filters/pagination for reconciliation |
+| `trigger_delivery_replay` | ADMIN | replay an eligible recorded delivery; inspect the live schema and existing outcome first |
+
+GitHub deliveries are durably deduplicated by trigger and delivery identity.
+Cron/test enqueue has a crash window with weaker deduplication; use the ledger
+and queue/run correlation instead of blind replay.
 
 ## Trigger-event observability
 
