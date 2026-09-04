@@ -1,9 +1,9 @@
 ---
 name: animus-flavor-operations
-description: Operate Animus flavors — curated plugin bundle manifests (`flavors/<name>.toml`), the `animus flavor` command group, manifest-driven `plugin install-defaults --flavor`, active-flavor persistence in `.animus/plugin-scope.yaml`, drift reports, required vs recommended plugin sets, and writing custom flavor manifests.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Operate Animus flavor manifests and curated plugin bundles, including `animus flavor`, `plugin install-defaults --flavor`, active-flavor persistence, drift reports, and custom flavors. Use when selecting or maintaining a bundle of required and recommended plugins; use animus-plugin-operations for one plugin and animus-pack-authoring for workflow packs.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Flavor Operations

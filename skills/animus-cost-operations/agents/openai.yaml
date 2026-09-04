@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Cost Operations"
+  short_description: "Inspect spend and enforce budgets"
+  default_prompt: "Use $animus-cost-operations to analyze this Animus cost or budget issue."
+policy:
+  allow_implicit_invocation: true

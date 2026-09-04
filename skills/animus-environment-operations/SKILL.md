@@ -1,15 +1,15 @@
 ---
 name: animus-environment-operations
-description: Operate Animus v0.7 execution environments — environment plugins and coder nodes, the cross-phase environment broker, workflow/phase `environment:` pinning, `environment_routing:` rules, `workspaces:` multi-repo checkout sets, lease records and the startup reaper, and animus-environment-railway. Use when pinning workflows to remote execution, debugging node acquisition or teardown, or authoring multi-repo runs.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets (runner v0.4.49, animus-environment-railway v0.4.15)
+description: Operate Animus execution environments, coder nodes, broker leases, workflow or phase `environment:` pinning, `environment_routing:`, and multi-repository `workspaces:`. Use when routing work to remote execution, diagnosing node acquisition or teardown, or authoring multi-repo runs; use animus-project-history-git for ordinary local worktree inspection.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Execution Environments (v0.7)
 
-**Version gate: this entire surface requires a v0.7.0-rc install** (e.g. the
-portal's rc.27 deployment). None of it — the `environment` plugin kind, the
+**Version gate: this entire surface requires a v0.7.0-rc install** (including
+the Portal's current rc.50 line). None of it — the `environment` plugin kind, the
 YAML surfaces, the broker, or the `animus environment` command group —
 exists on 0.6.x local installs.
 

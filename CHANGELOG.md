@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Reworked all 30 skills around the portable Agent Skills frontmatter subset,
+  explicit activation/exclusion descriptions, string-valued rc.50 metadata,
+  and Codex-specific `agents/openai.yaml` sidecars.
+- Split the bootstrap, configuration, daemon-operations, and troubleshooting
+  entrypoints into concise routers plus on-demand references; no `SKILL.md`
+  now exceeds the repository's 400-line limit.
+- Added a cross-harness authoring contract and a dependency-free validator for
+  frontmatter, discovery descriptions, Codex sidecars, entrypoint size, and
+  relative Markdown links.
+
 ## 3.1.0 — 2026-07-23
 
 ### Changed

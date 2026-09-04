@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Plugin Operations"
+  short_description: "Install and operate Animus plugins"
+  default_prompt: "Use $animus-plugin-operations to install, inspect, update, or troubleshoot this Animus plugin."
+policy:
+  allow_implicit_invocation: true

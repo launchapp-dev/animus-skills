@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Environment Operations"
+  short_description: "Operate remote execution environments"
+  default_prompt: "Use $animus-environment-operations to configure or diagnose this Animus execution environment."
+policy:
+  allow_implicit_invocation: true

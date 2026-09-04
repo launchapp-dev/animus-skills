@@ -1,9 +1,9 @@
 ---
 name: animus-chat
-description: Hold and manage multi-turn Animus chat conversations — interactive provider sessions, conversation history, resume semantics, transcript search and export, and per-conversation cost.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Hold and manage multi-turn `animus chat` conversations, including interactive provider sessions, resume/replay semantics, history search, transcript export, and per-conversation cost. Use for conversational provider sessions; use animus-agent-operations or animus-workflow-authoring for agent executions and workflow runs.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Animus Chat

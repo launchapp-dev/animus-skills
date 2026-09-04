@@ -1,9 +1,9 @@
 ---
 name: animus-queue-management
-description: Dispatch queue operations — enqueue, hold, release, drop, reorder, and queue patterns
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Inspect and operate the Animus dispatch queue, including enqueue, hold, release, drop, reorder, deferred work, capacity, and duplicate prevention. Use when controlling admission or queue state; use animus-task-management for task content/status and animus-workflow-authoring for the workflow being dispatched.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Queue Management

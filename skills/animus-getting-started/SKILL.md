@@ -1,9 +1,9 @@
 ---
 name: animus-getting-started
-description: Install Animus, initialize a project, create first task subject, run first workflow — core concepts and project structure
-user_invocable: true
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Guide a new user through installing Animus, initializing a project, creating a first subject, and running a first workflow while explaining core concepts. Use for onboarding or a first successful run; use animus-setup for concise setup execution and animus-bootstrap for a full project operating model.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Getting Started with Animus

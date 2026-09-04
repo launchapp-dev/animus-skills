@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Chat"
+  short_description: "Manage persistent Animus conversations"
+  default_prompt: "Use $animus-chat to start, resume, inspect, or export this Animus chat conversation."
+policy:
+  allow_implicit_invocation: true

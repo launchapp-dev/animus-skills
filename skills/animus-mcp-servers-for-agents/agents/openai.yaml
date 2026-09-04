@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus MCP Servers for Agents"
+  short_description: "Give Animus agents external MCP tools"
+  default_prompt: "Use $animus-mcp-servers-for-agents to bind the right external MCP servers to these Animus agents."
+policy:
+  allow_implicit_invocation: true

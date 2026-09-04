@@ -1,9 +1,9 @@
 ---
 name: animus-mcp-setup
-description: Set up .mcp.json, Claude Code permissions, and connect AI tools to Animus's MCP server
-user_invocable: true
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Connect Claude Code, Codex, Cursor, OpenCode, or another MCP host to `animus mcp serve`, including `.mcp.json`, permissions, verification, and connection troubleshooting. Use when the host cannot discover or call Animus; use animus-mcp-servers-for-agents for MCP servers consumed inside Animus agent runs.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # MCP Server Setup

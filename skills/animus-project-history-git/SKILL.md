@@ -1,9 +1,9 @@
 ---
 name: animus-project-history-git
-description: Inspect Animus execution history, Git repo and worktree state, and approval records — history search and cleanup, worktree listing and pruning, repo-scope resolution, and the approval gate for destructive operations. Use for post-run forensics, worktree housekeeping, or approval round-trips.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Inspect Animus execution history, Git repository and worktree state, repo-scope resolution, and destructive-operation approval records. Use for post-run forensics, worktree housekeeping, history cleanup, or approval round-trips; use animus-observability for live runtime evidence and animus-environment-operations for remote coder nodes.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # History, Git Inspection, and Approvals

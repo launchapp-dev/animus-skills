@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Supply-Chain Security"
+  short_description: "Verify plugin provenance and integrity"
+  default_prompt: "Use $animus-supply-chain-security to assess this Animus plugin's provenance, signatures, and lock integrity."
+policy:
+  allow_implicit_invocation: true

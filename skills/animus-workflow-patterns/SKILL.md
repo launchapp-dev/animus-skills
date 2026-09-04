@@ -1,10 +1,9 @@
 ---
 name: animus-workflow-patterns
-description: Choose and implement safe Animus workflow patterns for coding delivery, deterministic quality gates, bounded rework, event automation, approval, publication, and external side effects. Use when deciding workflow shape or reviewing whether a workflow is production-ready.
+description: Choose and assess safe Animus workflow patterns for coding delivery, deterministic quality gates, bounded rework, event automation, approvals, publication, and external effects. Use when deciding the workflow's shape or production readiness; use animus-workflow-authoring for exact YAML fields and Portal tooling.
+license: MIT
 metadata:
-  user_invocable: false
-  auto_invoke: true
-  animus_version: "0.7.0-rc.50"
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Animus Workflow Patterns

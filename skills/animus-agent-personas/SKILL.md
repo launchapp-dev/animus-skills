@@ -1,9 +1,9 @@
 ---
 name: animus-agent-personas
-description: Product lifecycle agents — product owner, architect, auditor, docs-writer, devops, researcher personas
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Choose and author Animus product-lifecycle agent personas such as product owner, architect, auditor, documentation writer, DevOps, and researcher. Use when defining role boundaries, prompts, or collaboration among specialist agents; use animus-model-operations for provider/model routing and animus-agent-operations for running agents.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Agent Personas — Beyond Code Delivery

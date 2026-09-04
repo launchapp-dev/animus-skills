@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Workflow Authoring"
+  short_description: "Design and edit executable workflows"
+  default_prompt: "Use $animus-workflow-authoring to design, review, or repair this Animus workflow configuration."
+policy:
+  allow_implicit_invocation: true

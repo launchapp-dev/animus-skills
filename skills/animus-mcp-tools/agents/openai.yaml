@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus MCP Tools"
+  short_description: "Choose exact Animus MCP tool contracts"
+  default_prompt: "Use $animus-mcp-tools to identify the exact Animus MCP tool and parameters for this operation."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Bootstrap"
+  short_description: "Build a complete autonomous project setup"
+  default_prompt: "Use $animus-bootstrap to turn this project idea into a complete Animus operating model."
+policy:
+  allow_implicit_invocation: false

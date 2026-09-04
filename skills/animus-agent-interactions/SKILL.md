@@ -1,9 +1,9 @@
 ---
 name: animus-agent-interactions
-description: Deep reference for Animus human-in-the-loop (HITL) agent interactions — agent questions and approval requests, the pending-interaction inbox, paused workflows waiting for an answer, permission prompts, approval_policy routing, and suspend/resume mechanics. Use when an agent is parked on a pending interaction, a workflow is paused awaiting a human decision, an approval or permission prompt needs answering, or when configuring approvals for agents.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Operate Animus human-in-the-loop interactions, including agent questions, approval requests, pending replies, approval_policy routing, and suspend/resume behavior. Use when a run is waiting for a human answer or when designing agent approval behavior; use animus-agent-operations for ordinary run control, status, memory, or messages.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Agent Interactions (Human-in-the-Loop)
@@ -76,10 +76,12 @@ agents:
   its MCP driver, gemini/opencode inside their ACP drivers, since v0.6.9) —
   deciding whether the provider escalates at all;
   `approval_policy` decides what happens to escalations that reach the
-  kernel. Caveat: ad-hoc surfaces honour `permission_mode` today; workflow
-  phase execution enforces it once the out-of-tree workflow-runner plugin
-  pin consumes the field (still true at v0.7.0-rc.27). Phase
-  `runtime.permission_mode` wins over the agent profile's value.
+  kernel. Caveat: ad-hoc surfaces honour `permission_mode` in the kernel;
+  workflow phase execution depends on the independently versioned
+  workflow-runner plugin consuming the field. Verify the deployed runner
+  contract instead of inferring support from config parsing. Phase
+  `runtime.permission_mode` wins over the agent profile's value when the
+  runner supports it.
 
 ## Native enforcement (claude) — SDK conformance
 

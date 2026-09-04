@@ -1,9 +1,9 @@
 ---
 name: animus-mcp-servers-for-agents
-description: Connect agents to Context7, package-version, sequential-thinking, memory, GitHub MCP servers
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Define and bind external MCP servers such as Context7, package-version, memory, or GitHub to agents executed by Animus. Use when configuring the tools available inside an agent run; use animus-mcp-setup to connect a host harness to Animus itself and animus-mcp-tools to look up Animus tool names.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # MCP Servers for Animus Agents

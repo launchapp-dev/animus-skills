@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Agent Personas"
+  short_description: "Design specialist Animus agent roles"
+  default_prompt: "Use $animus-agent-personas to design the specialist roles and prompts for this Animus team."
+policy:
+  allow_implicit_invocation: true

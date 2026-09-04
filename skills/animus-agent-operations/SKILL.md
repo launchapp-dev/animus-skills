@@ -1,17 +1,17 @@
 ---
 name: animus-agent-operations
-description: Run and inspect Animus agent executions, direct provider runs, agent control, status, project-scoped agent memory, agent message channels, and human-in-the-loop interactions.
+description: Run, inspect, and control Animus agent executions, including direct provider runs, status, project-scoped memory, and agent message channels. Use when operating an agent run or its durable context; use animus-agent-interactions when the central problem is a pending human question, permission, or approval.
+license: MIT
 metadata:
-  user_invocable: false
-  auto_invoke: true
-  animus_version: "0.7.0-rc.27"
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Agent Operations
 
 Use `animus agent` for direct agent execution and inspection outside the full
-workflow pipeline, or for project-scoped memory, message channels, and the
-human-in-the-loop interactions inbox.
+workflow pipeline, or for project-scoped memory and message channels. For
+pending human questions, permission prompts, approvals, or suspend/resume
+semantics, use [Agent Interactions](../animus-agent-interactions/SKILL.md).
 
 Provider execution requires provider plugins:
 
@@ -146,66 +146,21 @@ go through `animus.memory.get` with the other agent's id.
 
 ## Interactions (human-in-the-loop)
 
-Agents escalate to humans with the blocking MCP tools `animus.agent.ask`
-(question; block-mode timeout returns a structured error telling the agent to
-proceed on best judgment) and `animus.agent.request_approval` (approval;
-block-mode timeout denies, fail closed). Default timeout 600s, max 3600s.
-Pending requests park under `~/.animus/<repo-scope>/interactions/` until
-answered:
+Agent runs can pause on `animus.agent.ask` or
+`animus.agent.request_approval`. The operator-facing inbox is available with:
 
 ```bash
-animus agent interactions list              # pending; --all includes answered/expired
+animus agent interactions list
 animus agent interactions show <id>
-animus agent interactions answer <id> --text "Use option B"     # question
-animus agent interactions answer <id> --allow                   # approval (or --deny, optionally --message)
-animus agent interactions answer <id> --allow --remember        # echo localSettings suggestions as updatedPermissions
-animus agent interactions answer <id> --allow --updated-input '{"command":"rm -rf build/sandbox"}'
-animus agent interactions answer <id> \
-  --select "Format=Summary" --select "2=Introduction,Conclusion" \
-  --text "keep it short"                    # structured AskUserQuestion record
+animus agent interactions answer <id> --text "Use option B"
+animus agent interactions answer <id> --allow
 ```
 
-Answer flags: `--text`, `--allow`/`--deny`, `--message`, repeatable
-`--select "<question|header|1-based index>=<label[,label...]>"` for structured
-questions, `--remember` and `--updated-input <JSON>` (with `--allow`), and
-`--by <NAME>` (defaults to `human`).
-
-Key mechanics:
-
-- **Approval policy**: a profile's `approval_policy` (`auto_allow`/`auto_deny`
-  glob lists + `default: ask|allow|deny|llm`) is consulted before escalating;
-  `auto_deny` wins on overlap (fail closed). `default: llm` auto-approves via
-  an in-process judge model (`evaluator_model`, defaulting to the agent's own
-  model; optional `evaluator_instructions` rubric) — decisions record
-  `source: "llm"`, evaluator failure falls back to manual `ask`, and the judge
-  also auto-answers `animus.agent.ask` structured questions. Declaring a
-  policy implies `--approvals`. It composes with `permission_mode`
-  (transport-level guard) — neither overrides the other.
-- **Block vs suspend**: ad-hoc runs default to `wait: "block"` (the tool call
-  parks). When the MCP server is pinned to a workflow (`animus mcp serve
-  --workflow-id <ID>` or `ANIMUS_MCP_WORKFLOW_ID`) the default is suspend: the
-  tool returns `{ status: "pending", interaction_id, instruction }`, the
-  workflow pauses, and answering resumes it with the decision as session
-  feedback. If the resume spawn fails, the answer still succeeds and carries a
-  `workflow_resume.guidance` command.
-- **SDK conformance**: `animus.agent.request_approval` doubles as the claude
-  CLI's `--permission-prompt-tool` (invoked with `{tool_name, input,
-  tool_use_id}`, answered with the SDK `{behavior: allow|deny, ...}` payload).
-  Native `AskUserQuestion` calls become structured Question records
-  (`questions[]`) in the same inbox, answered with `--select`/`--text`.
-- **Identity pins**: `animus mcp serve --agent-id <ID>` pins the identity used
-  by the blocking tools (env fallback `ANIMUS_MCP_AGENT_ID`) so a payload
-  `agent_id` cannot select a looser sibling policy; `--management` exposes the
-  `animus.interactions.*` inbox tools (off by default so agent-injected
-  servers cannot answer their own approvals).
-- **Observability**: `interaction_created` / `interaction_answered` /
-  `interaction_expired` records land in `animus daemon events` (one-shot by
-  default; `--follow` streams), each with a one-line summary and a
-  ready-to-run `answer_command`; installed notifier plugins are pushed fresh
-  escalations best-effort.
-
-Note: `animus approval` is a different store — it gates destructive git
-operations (e.g. `git worktree prune`), not agent escalations.
+Read [Agent Interactions](../animus-agent-interactions/SKILL.md) before
+answering an interaction or changing `approval_policy`. That skill owns the
+timeout behavior, block-versus-suspend contract, structured answers, identity
+pinning, permission-driver integration, and the distinction from destructive
+Git-operation approvals.
 
 ## MCP Tools
 

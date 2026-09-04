@@ -1,9 +1,9 @@
 ---
 name: animus-model-operations
-description: Choose models and verify provider readiness in Animus — provider plugin health, API-key and CLI-tool diagnostics, model/tool routing in workflow YAML, and per-model cost attribution. Use when selecting a model for a phase or agent, or when diagnosing why a provider or model fails to dispatch.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Choose models and verify provider readiness in Animus, including provider-plugin health, credentials, CLI harnesses, model routing, capacity accounts, and per-model attribution. Use when selecting a model or diagnosing provider/model dispatch failure; use animus-cost-operations when spend or a budget breach is the primary question.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Model Selection and Provider Health

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Model Operations"
+  short_description: "Select models and verify providers"
+  default_prompt: "Use $animus-model-operations to select a suitable model and verify provider readiness."
+policy:
+  allow_implicit_invocation: true

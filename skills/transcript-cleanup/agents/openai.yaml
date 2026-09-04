@@ -1,0 +1,6 @@
+interface:
+  display_name: "Transcript Cleanup"
+  short_description: "Correct transcripts without changing meaning"
+  default_prompt: "Use $transcript-cleanup to clean this raw transcript without summarizing or altering its meaning."
+policy:
+  allow_implicit_invocation: true

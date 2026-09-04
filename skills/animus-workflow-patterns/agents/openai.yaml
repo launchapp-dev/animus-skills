@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Workflow Patterns"
+  short_description: "Choose safe production workflow shapes"
+  default_prompt: "Use $animus-workflow-patterns to choose or review the safest production pattern for this workflow."
+policy:
+  allow_implicit_invocation: true

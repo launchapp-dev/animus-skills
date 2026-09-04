@@ -48,7 +48,14 @@ if [[ $INSTALL_CLI -eq 1 ]]; then
   fi
 fi
 
-# ---------- 2. Resolve host list ----------
+# ---------- 2. Validate the source bundle ----------
+if command -v python3 >/dev/null 2>&1; then
+  python3 "$SRC/scripts/validate-skills.py"
+else
+  echo "⚠ python3 not found; skipping source-bundle validation" >&2
+fi
+
+# ---------- 3. Resolve host list ----------
 if [[ ${#HOSTS[@]} -eq 0 ]] || [[ "${HOSTS[0]:-}" == "auto" ]]; then
   HOSTS=()
   command -v claude    >/dev/null 2>&1 && HOSTS+=("claude")
@@ -67,7 +74,7 @@ if [[ "${HOSTS[0]}" == "all" ]]; then
   HOSTS=(claude codex opencode cursor slate kiro)
 fi
 
-# ---------- 3. Install skills into each host ----------
+# ---------- 4. Install skills into each host ----------
 # Hosts discover skills FLAT at <host-skills-dir>/<skill-name>/SKILL.md.
 # This repo nests them at skills/<skill-name>/SKILL.md, so we symlink each
 # skill individually rather than the repo root.
@@ -149,7 +156,7 @@ for host in "${HOSTS[@]}"; do
   echo "✓ $host: $linked skill(s) linked into $host_dir${skipped:+, $skipped skipped}"
 done
 
-# ---------- 4. Optional: write .mcp.json for the current project ----------
+# ---------- 5. Optional: write .mcp.json for the current project ----------
 if [[ $WRITE_MCP -eq 1 ]] && [[ -d ".git" ]] && [[ "$(pwd)" != "$SRC" ]]; then
   if [[ -e ".mcp.json" ]]; then
     echo "→ .mcp.json already exists in $(pwd) — leaving it alone"
@@ -168,7 +175,7 @@ JSON
   fi
 fi
 
-# ---------- 5. Final report ----------
+# ---------- 6. Final report ----------
 echo ""
 echo "Animus + Animus Skills setup complete."
 echo "  Hosts:  ${HOSTS[*]}"
@@ -176,5 +183,5 @@ echo "  CLI:    $(command -v animus 2>/dev/null || echo '[install pending]')"
 echo ""
 echo "Next:"
 echo "  1. Restart your agent (e.g. Claude Code, Codex)."
-echo "  2. From a project root, run /animus-setup to scaffold .animus/ and your first workflow."
+echo '  2. Invoke animus-setup using the host syntax (for example $animus-setup in Codex or /animus-setup in Claude Code).'
 echo "  3. Verify MCP: ask the agent to call animus.daemon.status."

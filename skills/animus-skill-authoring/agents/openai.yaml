@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Runtime Skill Authoring"
+  short_description: "Author skills consumed by Animus agents"
+  default_prompt: "Use $animus-skill-authoring to create or update this Animus runtime skill definition."
+policy:
+  allow_implicit_invocation: true

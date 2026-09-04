@@ -1,9 +1,9 @@
 ---
 name: animus-subject-operations
-description: Work with Animus subjects and subject_backend plugins, including task, requirement, Linear, SQLite, Markdown, and custom subject kinds, default_subject_kind, wire ids, and status routing.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Configure and reason about Animus subject kinds, qualified IDs, status normalization, default kinds, and subject_backend plugins such as Postgres, Linear, SQLite, Markdown, or MCP projections. Use when the backend or kind model is the issue; use animus-task-management for ordinary task CRUD and lifecycle changes.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Subject Operations

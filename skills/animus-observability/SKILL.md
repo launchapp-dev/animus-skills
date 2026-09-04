@@ -1,9 +1,9 @@
 ---
 name: animus-observability
-description: Inspect Animus status, daemon observe/health/metrics, structured streams, logs, run output, decision logs, artifacts, budget breaches, plugin status, web UI transports, and trigger events.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Gather and correlate Animus runtime evidence from status, health, metrics, structured streams, logs, run output, decisions, artifacts, plugin state, and trigger events. Use when determining what happened or whether the system is ready; use animus-daemon-operations to change daemon lifecycle and animus-troubleshooting to choose a repair.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Observability
@@ -248,4 +248,3 @@ bag). "Did my trigger fire?" is answerable from the board or
 `animus subject list --kind trigger_event` / `list_subjects` with
 `kind: "trigger_event"` — no log spelunking. Events are pruned past 30 days
 beyond the newest 2000.
-

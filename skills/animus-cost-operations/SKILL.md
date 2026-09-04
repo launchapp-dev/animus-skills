@@ -1,9 +1,9 @@
 ---
 name: animus-cost-operations
-description: Inspect Animus token and USD spend, attribute cost to providers/models/phases, and operate workflow budget caps. Use when a question involves cost, spend, tokens, USD, budget caps or `budget:` blocks, budget breaches, paused-for-budget workflows, provider/model cost attribution, cost leaderboards, or `animus cost` commands.
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Inspect Animus token and USD spend, attribute cost to providers, models, runs, or phases, and operate workflow and fleet budget caps. Use for cost reports, `budget:` blocks, breach diagnosis, paused-for-budget workflows, or `animus cost` commands; use animus-model-operations for model readiness or routing unrelated to spend.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Cost Operations

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Queue Management"
+  short_description: "Control dispatch admission and ordering"
+  default_prompt: "Use $animus-queue-management to inspect or safely change this Animus queue state."
+policy:
+  allow_implicit_invocation: true

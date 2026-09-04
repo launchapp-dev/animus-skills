@@ -1,10 +1,9 @@
 ---
 name: animus-workflow-authoring
-description: Design, write, review, or repair Animus workflows and workflow config for local CLI projects or the hosted Animus portal. Use for agents, phases, routing, retries, evaluations, execution environments, queue dispatch, publication, schedules, triggers, and workflow safety.
+description: Design, write, review, or repair Animus workflow configuration for local CLI projects or the hosted Portal, including agents, phases, routing, retries, evaluations, environments, publication, schedules, and triggers. Use when authoring the executable state machine; use animus-workflow-patterns to choose a production pattern and animus-portal-operations for hosted mutation mechanics.
+license: MIT
 metadata:
-  user_invocable: true
-  auto_invoke: true
-  animus_version: "0.7.0-rc.50"
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Animus Workflow Authoring

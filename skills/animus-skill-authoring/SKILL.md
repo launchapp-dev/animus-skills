@@ -1,10 +1,9 @@
 ---
 name: animus-skill-authoring
-description: Build Animus skills - YAML skill definitions, prompts, tool policies, capabilities, adapters, and registries. Use when creating or updating Animus skill files under user or project skill definitions.
+description: Create or update Animus runtime skill definitions in YAML, including prompts, tool policies, capabilities, adapters, registries, and project/user scope. Use for `.animus` skill definitions consumed by Animus agents; do not use for Codex, Claude Code, or Agent Skills `SKILL.md` packages.
+license: MIT
 metadata:
-  user_invocable: true
-  auto_invoke: true
-  animus_version: "0.7.0-rc.50"
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Skill Authoring

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Subject Operations"
+  short_description: "Configure subject kinds and backends"
+  default_prompt: "Use $animus-subject-operations to configure or diagnose this Animus subject kind or backend."
+policy:
+  allow_implicit_invocation: true

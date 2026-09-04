@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Task Management"
+  short_description: "Manage task content and lifecycle"
+  default_prompt: "Use $animus-task-management to create, inspect, update, block, or enqueue this Animus task."
+policy:
+  allow_implicit_invocation: true

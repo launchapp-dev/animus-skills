@@ -1,10 +1,9 @@
 ---
 name: animus-portal-operations
-description: Operate and author workflows on the hosted Animus portal, including live MCP discovery, Team config, provider capacity, scripts, queues, triggers, runtime health, durability, and portal-specific authoring limitations. Use whenever work targets animus-launchapp rather than a local YAML-only CLI project.
+description: Operate and author workflows on the hosted animus-launchapp Portal, including live MCP discovery, Team config, provider capacity, scripts, queues, triggers, runtime health, durability, and break-glass SQL. Use when the target is the hosted Portal; use the local domain skills without this one for a YAML-only CLI project.
+license: MIT
 metadata:
-  user_invocable: false
-  auto_invoke: true
-  animus_version: "0.7.0-rc.50"
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Animus Portal Operations

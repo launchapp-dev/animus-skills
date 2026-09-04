@@ -1,9 +1,9 @@
 ---
 name: animus-task-management
-description: Task lifecycle through the unified subject surface - create, list, update, block/unblock, enqueue, and inspect task-like subjects via CLI and MCP
-user_invocable: false
-auto_invoke: true
-animus_version: "0.7.0-rc.27"   # animus CLI surface this skill targets
+description: Manage task-like Animus subjects through CLI or MCP, including create, list, inspect, update, block, unblock, delete, and enqueue operations. Use when changing a task's content or lifecycle; use animus-subject-operations for backend/kind configuration and animus-queue-management for queue ordering or admission state.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Task Management
