@@ -1,0 +1,6 @@
+interface:
+  display_name: "Document Author"
+  short_description: "Render and record Office documents as subjects"
+  default_prompt: "Use $document-author to produce this spreadsheet, slide deck, or document as a stored document subject."
+policy:
+  allow_implicit_invocation: true

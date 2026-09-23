@@ -19,8 +19,8 @@ your installed CLI (`animus --version`) to the right revision:
 
 | animus-skills release | Targets animus-cli | Get it |
 |---|---|---|
-| **Unreleased** | **v0.7.0-rc.50** plus current animus-launchapp behavior. | current working branch |
-| [`v3.1.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.1.0) | **v0.7.0-rc.27** (portal deploy line). Dual-line aware: rc/portal-only surfaces carry explicit "v0.7-rc/portal only" fences with the v0.6.x equivalent for local installs (current local line: v0.6.33). | release tag |
+| [`v3.2.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.2.0) | **v0.7.0-rc.50** plus current animus-launchapp behavior. Portable Agent Skills metadata, Codex `agents/openai.yaml` sidecars, `document-author` skill. | `git clone --branch v3.2.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
+| [`v3.1.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.1.0) | **v0.7.0-rc.27** (portal deploy line). Dual-line aware: rc/portal-only surfaces carry explicit "v0.7-rc/portal only" fences with the v0.6.x equivalent for local installs (current local line: v0.6.33). | `git clone --branch v3.1.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
 | [`v3.0.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.0.0) | **v0.7.0-rc.18** (v0.7 line: `animus.toml` + `animus install`, `--subject-id` dispatch, execution environments, portal MCP surface) | `git clone --branch v3.0.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
 | [`v2.3.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v2.3.0) | **v0.5.21** (last v0.5-era release: `--task-id` dispatch, `plugin install-defaults`-first, no environments) | `git clone --branch v2.3.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
 

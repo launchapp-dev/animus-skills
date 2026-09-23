@@ -1,9 +1,20 @@
 # Changelog
 
-## Unreleased
+## 3.2.0 — 2026-09-23
+
+Targets animus-cli **v0.7.0-rc.50** plus current animus-launchapp behavior.
+
+### Added
+- `document-author` skill: authoring policy for the author-document workflow —
+  draft an xlsx/pptx/docx spec, render and store it with `store_document`, and
+  record it as a `document` subject via `create_subject` (JSON-object `data`).
 
 ### Changed
-- Reworked all 30 skills around the portable Agent Skills frontmatter subset,
+- Rebaselined `animus-workflow-authoring`, `animus-workflow-patterns`, and
+  `animus-portal-operations` around the current runtime: new optimal-patterns,
+  portal runtime/authoring, and runtime/lifecycle references replace the old
+  patterns-and-examples reference.
+- Reworked all 31 skills around the portable Agent Skills frontmatter subset,
   explicit activation/exclusion descriptions, string-valued rc.50 metadata,
   and Codex-specific `agents/openai.yaml` sidecars.
 - Split the bootstrap, configuration, daemon-operations, and troubleshooting
@@ -14,6 +25,8 @@
   relative Markdown links.
 
 ## 3.1.0 — 2026-07-23
+
+Not tagged separately at the time; tagged retroactively alongside 3.2.0.
 
 ### Changed
 - Deep-dive alignment audit of all 29 skills against three ground truths: ao-cli `main` (v0.6.33 — the current local-install line), the v0.7.0-rc line (tags rc.19–rc.27), and the animus-launchapp portal source (deploys ao-cli v0.7.0-rc.27 / workflow-runner v0.4.49 / animus-environment-railway v0.4.15). All `animus_version:` pins bumped rc.18 → rc.27.
