@@ -31,16 +31,27 @@ workflows:
 
 ## Rework loops
 
-Only use rework on agent phases.
+Use rework only when the target phase can change the failed condition. Put the
+effective bound on the target phase definition; rich workflow-step
+`max_rework_attempts` currently parses but is not consumed by the lifecycle.
+`retry.max_attempts` counts permitted re-entries, so `1` means one remediation
+and at most two executions of the target.
 
 ```yaml
 phases:
-  - implementation
-  - code-review:
-      on_verdict:
-        rework:
-          target: implementation
-      max_rework_attempts: 3
+  implementation:
+    mode: agent
+    agent: implementer
+    retry: { max_attempts: 1 }
+
+workflows:
+  - id: review-cycle
+    phases:
+      - implementation
+      - code-review:
+          on_verdict:
+            rework:
+              target: implementation
 ```
 
 ## Agent runtime overlay
@@ -76,10 +87,11 @@ agents:
 phases:
   my-analysis:
     mode: agent
-    agent_id: my-analyzer
+    agent: my-analyzer
     directive: Analyze the codebase and report findings via Animus MCP.
     capabilities:
-      mutates_state: true
+      writes_files: false
+      mutates_state: false
     runtime:
       tool: claude
       model: claude-sonnet-4-6
@@ -129,12 +141,10 @@ phases:
 
 ### Phase-level skills are applied at runtime
 
-Phase `skills:` are no longer prompt-only hints: resolved skill definitions
-ride the dispatch payload to the workflow runner and are actually injected
-(prompt fragments, tool policy, MCP servers, args/env, capabilities). This
-requires `animus-workflow-runner-default` >= v0.4.2 — older runners silently
-ignore phase skills, and `animus daemon preflight` warns (non-fatally) when the
-installed runner is below that floor. Verify with
+Phase `skills:` are no longer prompt-only hints: the daemon resolves and
+stages their definitions per run, passes `ANIMUS_PHASE_SKILLS_DIR`, and syncs
+the directory to compatible remote environments. The runner injects prompt
+fragments, tool policy, MCP servers, args/env, and capabilities. Verify with
 `animus output phase-outputs --workflow-id <id>` (requested vs applied vs
 missing skills per phase).
 

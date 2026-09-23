@@ -1,9 +1,9 @@
 ---
 name: animus-setup
-description: Set up Animus in the current project - initialize config, connect MCP, install required plugins, create a first workflow, and start the daemon. Use when bootstrapping Animus in a repo or fixing an incomplete Animus setup.
-user_invocable: true
-auto_invoke: false
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+description: Initialize or repair a minimal Animus installation in the current repository by configuring the project, MCP, required plugins, one workflow, and daemon startup. Use only when the user explicitly asks to set up Animus or fix incomplete setup; use animus-bootstrap for product-level vision and a complete autonomous operating model.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 You are setting up Animus in the current project.

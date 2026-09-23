@@ -1,5 +1,41 @@
 # Changelog
 
+## 3.2.0 — 2026-09-23
+
+Targets animus-cli **v0.7.0-rc.50** plus current animus-launchapp behavior.
+
+### Added
+- `document-author` skill: authoring policy for the author-document workflow —
+  draft an xlsx/pptx/docx spec, render and store it with `store_document`, and
+  record it as a `document` subject via `create_subject` (JSON-object `data`).
+
+### Changed
+- Rebaselined `animus-workflow-authoring`, `animus-workflow-patterns`, and
+  `animus-portal-operations` around the current runtime: new optimal-patterns,
+  portal runtime/authoring, and runtime/lifecycle references replace the old
+  patterns-and-examples reference.
+- Reworked all 31 skills around the portable Agent Skills frontmatter subset,
+  explicit activation/exclusion descriptions, string-valued rc.50 metadata,
+  and Codex-specific `agents/openai.yaml` sidecars.
+- Split the bootstrap, configuration, daemon-operations, and troubleshooting
+  entrypoints into concise routers plus on-demand references; no `SKILL.md`
+  now exceeds the repository's 400-line limit.
+- Added a cross-harness authoring contract and a dependency-free validator for
+  frontmatter, discovery descriptions, Codex sidecars, entrypoint size, and
+  relative Markdown links.
+
+## 3.1.0 — 2026-07-23
+
+Not tagged separately at the time; tagged retroactively alongside 3.2.0.
+
+### Changed
+- Deep-dive alignment audit of all 29 skills against three ground truths: ao-cli `main` (v0.6.33 — the current local-install line), the v0.7.0-rc line (tags rc.19–rc.27), and the animus-launchapp portal source (deploys ao-cli v0.7.0-rc.27 / workflow-runner v0.4.49 / animus-environment-railway v0.4.15). All `animus_version:` pins bumped rc.18 → rc.27.
+- **Dual-line fencing convention:** the skills keep documenting the v0.7-rc/portal surface, but every rc-only claim now carries a "(v0.7-rc/portal only — on 0.6.x local installs use X)" fence: `--subject-id`-only dispatch, `subject update --title/--data`, `queue enqueue --adhoc`, `animus.budget.get/set`, `mcp tools`/`mcp call`, execution environments, signature-policy env + fail-closed TOFU, multi-kind plugins, `workflow config phase-set`, `prompt render --subject-id`, fan-in `ANIMUS_DEPENDS_ON`.
+- **Factual fixes (wrong on every line):** only `sql_execute` is admin-gated on the portal (`sql_query`/`list_tables`/`describe_table` are read-scope); the portal admin-only set fully enumerated (trigger_*, queue_drop/reorder, daemon_pause/resume, agent_control, plugin mutators, kind management, note reviewer tools); `daemon start --resume-interrupted` deleted (exists on no line); `approval_policy.default` gains the missing `llm` mode (+ `evaluator_model`/`evaluator_instructions` — mainline v0.6); flavor manifest example gains the required `[config_source]` section (was non-bootable); `workflow list` example fixed (`--task-id` on 0.6.x; qualified `task:ID` with `--subject-id` on rc); "params are camelCase" scoped to dispatch/team tools (trigger_*/kind/run_events are snake_case).
+- **Portal tool census:** portal-launchapp-tools.md now tables every live family — trigger CRUD (`trigger_{list,create,update,delete,test}`), knowledge notes (`note_*`), documents, subject-kind management, SQL, packs, plugins, `run_events`/`knowledge_search`/`logs_tail`/`daemon_pause`/`daemon_resume` — plus the durable runtime root (`/data/runtime`) story.
+- **Mainline (v0.6.x) capabilities added:** chat `--as-user`/`--visibility`/`--actor-json` + `conversation_store` plugin; `agent approve-hook` command-hook enforcement; v0.6.31 cost attribution (conversation-stamped enqueue, OpenRouter prefix strip); v0.6.32 reboot-safe runner liveness; v0.6.33 handshake stderr capture + spawn retry; `secret migrate` + device-encrypted backend; owner-scoped schedules; journal `subject_id`; `warn_skill_pins_model` (skill-authoring examples de-pinned — skills should be model-agnostic); `config_source` added to every preflight role enumeration; init no longer scaffolds workflow YAML (v0.6.4).
+- **Model-roster rule:** no skill claims a concrete model id as the current default; alias-based wording pointing at the protocol routing table.
+
 ## 3.0.0 — 2026-07-15
 
 ### Changed

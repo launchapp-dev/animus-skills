@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Agent Interactions"
+  short_description: "Resolve human questions and approvals"
+  default_prompt: "Use $animus-agent-interactions to inspect and resolve this pending Animus interaction safely."
+policy:
+  allow_implicit_invocation: true

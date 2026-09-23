@@ -28,8 +28,9 @@ phases:
 
 The phase's effective skill set is the union of the phase-level list and the
 executing agent profile's `skills:` (phase entries first). Resolution happens
-daemon-side at dispatch and rides to the runner via `ANIMUS_PHASE_SKILLS_JSON`
-(needs workflow-runner v0.4.2+). A name that does not resolve warns — at
+daemon-side at dispatch; definitions are staged per run and the directory is
+passed as `ANIMUS_PHASE_SKILLS_DIR` (and as `skills_sync_dir` to a remote
+environment). A name that does not resolve warns — at
 compile time in `animus workflow config validate` and at dispatch in the
 daemon log — but never fails the run. Verify with:
 
@@ -85,9 +86,9 @@ skills:
         - "queue.drop"
         - "plugin.uninstall"
 
-    model:
-      preferred: claude-sonnet-4-6
-      fallback: claude-opus-4-8
+    # No model: block — the skill stays model-agnostic and inherits the
+    # activating agent's model/tool. A skill-level model pin would silently
+    # override both and draws a warn_skill_pins_model warning (v0.6.33+).
 
     mcp_servers:
       - animus
@@ -100,9 +101,16 @@ skills:
 
     adapters:
       gemini:
-        model: gemini-3.1-pro-preview
         prompt_override:
           suffix: "Use your 1M context window to read broadly before making changes."
 
     tags: ["implementation", "careful", "quality"]
 ```
+
+Keep skills model-agnostic: model choice belongs on the agent profile
+(`agents.<name>.model` / `tool`) or the phase `runtime:`, not in the skill.
+`model.preferred` / `model.fallback` / `adapters.<tool>.model` silently
+override the activating agent's model (and tool, when the model implies a
+different provider) — v0.6.33+ flags such pins with `warn_skill_pins_model`
+on `animus skill info` / `skill list` and the skill MCP tools. Model ids in
+these examples are illustrative, not "current default" claims.

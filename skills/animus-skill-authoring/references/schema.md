@@ -37,7 +37,7 @@ skills:
         - "Edit"
         - "Bash"
 
-    model:
+    model:                 # discouraged — see the `model` field note below
       preferred: claude-sonnet-4-6
       fallback: claude-opus-4-8
 
@@ -68,7 +68,7 @@ skills:
 | `activation` | object | No | Which tools or models trigger this skill |
 | `prompt` | object | No | System prompt, prefix, suffix, directives |
 | `tool_policy` | object | No | Allow and deny glob patterns |
-| `model` | object | No | `preferred` and `fallback` model IDs — each is a single string, not a list |
+| `model` | object | No | `preferred` and `fallback` model IDs — each is a single string, not a list. **Discouraged:** a skill-pinned model SILENTLY OVERRIDES the activating agent's model — and, when the pinned model implies a different provider, its tool. Skills should be model-agnostic; put model choice on the agent profile / phase runtime instead. v0.6.33+ surfaces a `warn_skill_pins_model` warning ("skills should be model-agnostic — move the model to the agent profile") on `animus skill info` / `skill list` and the skill MCP tools |
 | `mcp_servers` | list | No | MCP servers to activate |
 | `timeout_secs` | int | No | Agent timeout override |
 | `capabilities` | object | No | Boolean capability flags |
@@ -159,6 +159,11 @@ adapters:
     extra_args: ["--full-auto"]
 ```
 
+`adapters.<tool>.model` pins carry the same caveat as top-level `model:`:
+they silently override the activating agent's model (and tool, when the model
+implies a different provider), and trigger the same `warn_skill_pins_model`
+warning (v0.6.33+). Prefer model-agnostic skills.
+
 ## Activation filters
 
 ```yaml
@@ -229,7 +234,7 @@ Within a single scope: files load in lexicographic path order, manifest (`skills
 
 Every structural field is enforced on both execution paths (v0.5.14+):
 
-- **Workflow phases** — the daemon resolves the union of `phases.<id>.skills` and the executing agent profile's `skills:` at dispatch time and ships the definitions to the workflow runner via the `ANIMUS_PHASE_SKILLS_JSON` spawn-env payload (`animus.phase-skills.v1`; needs `animus-workflow-runner-default` >= v0.4.2 — `animus daemon preflight` warns on older runners). Skill-declared `mcp_servers` join the phase contract by name (resolved against workflow-YAML `mcp_servers:` or project config; unknown names warn and are skipped). Missing skill names warn loudly and record `missing` metadata — never a hard failure.
+- **Workflow phases** — the daemon resolves the union of `phases.<id>.skills` and the executing agent profile's `skills:` at dispatch time, stages the resolved definitions under the run's `skills/definitions` directory, and passes its path as `ANIMUS_PHASE_SKILLS_DIR`. Remote environments receive the directory through `skills_sync_dir` broker metadata. The former JSON spawn-environment payload was removed because large values could prevent process spawn. Skill-declared `mcp_servers` join the phase contract by name (resolved against workflow-YAML `mcp_servers:` or project config; unknown names warn and are skipped). Missing skill names warn loudly and record `missing` metadata — never a hard failure.
 - **Ad-hoc runs** (`animus agent run --skill`, `animus chat send --skill`) — `prompt.prefix`/`directives`/`suffix` wrap the outgoing prompt and `prompt.system` rides the session system prompt; `extra_args` and `codex_config_overrides` graft onto the runtime contract's `cli.launch` block; `env` rides the session request env (still gated by the provider plugin's `env_required` manifest); `model` and `timeout_secs` apply when no explicit `--model` / `--timeout-secs` is given. `capabilities` are workflow-phase-only.
 
 Precedence for every field: explicit CLI flags / context-json > skill > defaults. A caller-supplied `--runtime-contract-json` (or `runtime_contract` in `--context-json`) disables skill application entirely. On `animus chat send`, a skill with launch-affecting fields (`extra_args` / `codex_config_overrides` / `env`) forces full-history replay instead of native session resume so launch flags reach every turn's provider process.

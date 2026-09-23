@@ -1,6 +1,9 @@
 ---
 name: transcript-cleanup
-description: Correction policy for cleaning raw meeting transcripts — fix ASR errors without altering meaning. Used by the transcript workflow's clean-transcript phase.
+description: Correct ASR errors, punctuation, speaker labels, and obvious transcript noise without changing meaning or summarizing. Use only when cleaning a raw meeting transcript or when the Animus transcript workflow invokes its clean-transcript phase; do not rewrite ideas, omit content, or produce meeting notes.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Transcript Cleanup

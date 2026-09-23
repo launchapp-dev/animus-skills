@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Flavor Operations"
+  short_description: "Manage curated plugin bundles"
+  default_prompt: "Use $animus-flavor-operations to select, inspect, or maintain this Animus flavor."
+policy:
+  allow_implicit_invocation: true

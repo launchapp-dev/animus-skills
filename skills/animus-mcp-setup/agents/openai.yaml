@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus MCP Setup"
+  short_description: "Connect an agent harness to Animus MCP"
+  default_prompt: "Use $animus-mcp-setup to connect this agent harness to the Animus MCP server."
+policy:
+  allow_implicit_invocation: true

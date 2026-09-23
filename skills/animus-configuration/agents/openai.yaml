@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Configuration"
+  short_description: "Resolve Animus config and state sources"
+  default_prompt: "Use $animus-configuration to determine the effective setting, precedence, and state location for this Animus configuration."
+policy:
+  allow_implicit_invocation: true

@@ -1,9 +1,9 @@
 ---
 name: animus-skill-authoring
-description: Build Animus skills - YAML skill definitions, prompts, tool policies, capabilities, adapters, and registries. Use when creating or updating Animus skill files under user or project skill definitions.
-user_invocable: true
-auto_invoke: true
-animus_version: "0.7.0-rc.18"   # animus CLI surface this skill targets
+description: Create or update Animus runtime skill definitions in YAML, including prompts, tool policies, capabilities, adapters, registries, and project/user scope. Use for `.animus` skill definitions consumed by Animus agents; do not use for Codex, Claude Code, or Agent Skills `SKILL.md` packages.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Skill Authoring
@@ -47,7 +47,7 @@ skills:
 
 ## Where skills apply
 
-- **Workflow phases** — `phases.<id>.skills` and `agents.<id>.skills` resolve daemon-side at dispatch (union, phase entries first) and ride to the workflow runner as `ANIMUS_PHASE_SKILLS_JSON` (runner >= v0.4.2; `animus daemon preflight` warns on older runners). A missing skill name is a loud warning plus a `missing` metadata record — never a hard failure. Typo'd explicit `skills:` names also warn at `animus workflow config validate` / `compile` time.
+- **Workflow phases** — `phases.<id>.skills` and `agents.<id>.skills` resolve daemon-side at dispatch (union, phase entries first). The daemon stages resolved definitions in a per-run directory and passes `ANIMUS_PHASE_SKILLS_DIR`; remote environments receive the sync directory as broker metadata. The former JSON environment payload was removed because large values could prevent process spawn. A missing skill name records a warning plus `missing` metadata rather than failing autonomous dispatch. Typo'd explicit `skills:` names also warn at `animus workflow config validate` / `compile` time.
 - **Ad-hoc runs** — `animus agent run --skill <name>` and `animus chat send --skill <name>` apply the FULL skill: prompt prefix/suffix/directives wrap the prompt, `prompt.system` rides the session system prompt, `extra_args` / `env` / `codex_config_overrides` graft onto the launch, and the skill's `model` / `timeout_secs` apply when not explicitly given. An unknown `--skill` name is an error here. Precedence: explicit CLI flags / context-json > skill > defaults; a caller-supplied `--runtime-contract-json` disables skill application entirely.
 
 Source precedence on both paths: project > user > installed > agent-host (prompt-text-only).

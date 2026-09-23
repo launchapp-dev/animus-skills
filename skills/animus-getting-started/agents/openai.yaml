@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Getting Started"
+  short_description: "Guide a first successful Animus run"
+  default_prompt: "Use $animus-getting-started to guide me through my first successful Animus workflow."
+policy:
+  allow_implicit_invocation: true

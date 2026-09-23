@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Setup"
+  short_description: "Initialize or repair minimal project setup"
+  default_prompt: "Use $animus-setup to initialize or repair the minimal Animus setup in this repository."
+policy:
+  allow_implicit_invocation: false

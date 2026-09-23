@@ -13,13 +13,15 @@ You point a fresh agent at this README. It installs the CLI, links the skills, w
 
 ## Version compatibility
 
-Each animus-skills release is pinned to the `animus` CLI surface it documents
-(every skill's `animus_version:` frontmatter carries the exact pin). Match
-your installed CLI (`animus --version`) to the right release:
+Each animus-skills release is pinned to the `animus` CLI surface it documents.
+Portable skill metadata records the target as `metadata.animus-version`. Match
+your installed CLI (`animus --version`) to the right revision:
 
 | animus-skills release | Targets animus-cli | Get it |
 |---|---|---|
-| **v3.0.0** (current) | **v0.7.0-rc.18** (v0.7 line: `animus.toml` + `animus install`, `--subject-id` dispatch, execution environments, portal MCP surface) | default branch, or [`v3.0.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.0.0) |
+| [`v3.2.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.2.0) | **v0.7.0-rc.50** plus current animus-launchapp behavior. Portable Agent Skills metadata, Codex `agents/openai.yaml` sidecars, `document-author` skill. | `git clone --branch v3.2.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
+| [`v3.1.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.1.0) | **v0.7.0-rc.27** (portal deploy line). Dual-line aware: rc/portal-only surfaces carry explicit "v0.7-rc/portal only" fences with the v0.6.x equivalent for local installs (current local line: v0.6.33). | `git clone --branch v3.1.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
+| [`v3.0.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v3.0.0) | **v0.7.0-rc.18** (v0.7 line: `animus.toml` + `animus install`, `--subject-id` dispatch, execution environments, portal MCP surface) | `git clone --branch v3.0.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
 | [`v2.3.0`](https://github.com/launchapp-dev/animus-skills/releases/tag/v2.3.0) | **v0.5.21** (last v0.5-era release: `--task-id` dispatch, `plugin install-defaults`-first, no environments) | `git clone --branch v2.3.0 --single-branch --depth 1 https://github.com/launchapp-dev/animus-skills.git` |
 
 Still on animus-cli 0.5.x? Install the skills from the `v2.3.0` tag (swap the
@@ -66,6 +68,21 @@ The script:
 1. Installs the `animus` CLI to `~/.local/bin/animus` if it's not already on `PATH`.
 2. Symlinks each skill into the host's skill directory (e.g. `~/.claude/skills/<skill-name>`, `~/.codex/skills/<skill-name>`). Hosts discover skills flat as `<host-skills-dir>/<name>/SKILL.md`, so the script links one level down rather than the whole repo.
 3. Writes a project-local `.mcp.json` exposing the `animus` MCP server (skipped if one already exists or you pass `--no-mcp`).
+
+### Skill portability
+
+The shared `SKILL.md` files follow the portable Agent Skills subset: `name`, a
+precise discovery `description`, `license`, and string `metadata`. Codex UI and
+implicit-invocation settings live in `agents/openai.yaml`; other harnesses can
+ignore that sidecar and load the same portable instructions. See
+[`docs/skill-authoring-contract.md`](docs/skill-authoring-contract.md) before
+changing frontmatter, descriptions, or invocation behavior.
+
+Maintainers can validate the full bundle without third-party Python packages:
+
+```bash
+python3 scripts/validate-skills.py
+```
 
 ### Claude Code marketplace (alternative)
 

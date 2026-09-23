@@ -1,6 +1,9 @@
 ---
 name: document-author
-description: Authoring policy for producing Office documents (xlsx/pptx/docx) as `document` subjects. Used by the author-document workflow's generate phase — draft a spec, render+store via the animus-document-engine store_document tool, then record it with create_subject.
+description: Produce Office documents (xlsx, pptx, docx) as Animus `document` subjects by drafting a structured spec, rendering and storing it with the animus-document-engine `store_document` tool, and recording it with `create_subject`. Use when the author-document workflow's generate phase runs or a user asks for a spreadsheet, slide deck, or Word document built from a request or source subject; do not hand-write OOXML or call `author_document`.
+license: MIT
+metadata:
+  animus-version: "0.7.0-rc.50"
 ---
 
 # Document Author

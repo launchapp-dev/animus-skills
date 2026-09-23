@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Agent Operations"
+  short_description: "Run and control Animus agents"
+  default_prompt: "Use $animus-agent-operations to operate or inspect this Animus agent run."
+policy:
+  allow_implicit_invocation: true

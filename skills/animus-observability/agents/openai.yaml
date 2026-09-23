@@ -1,0 +1,6 @@
+interface:
+  display_name: "Animus Observability"
+  short_description: "Correlate health, events, logs, and output"
+  default_prompt: "Use $animus-observability to gather the evidence needed to explain this Animus runtime state."
+policy:
+  allow_implicit_invocation: true

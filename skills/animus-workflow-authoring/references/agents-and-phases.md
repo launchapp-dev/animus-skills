@@ -1,327 +1,191 @@
-# Agents And Phases
+# Agents and Phases
 
-Use this reference only when you need field-level details for `agents:` or `phases:`.
+## Agent profiles
 
-## Agents
+Agent profiles select a provider tool/model and optional policy, skills, and
+MCP servers. Resolve values from the deployment's provider/capacity registry;
+model names and authentication change independently of workflow YAML.
 
-Agent profiles define the model, CLI tool, prompt, and MCP access.
+Common authored fields include `tool`, `provider`, `model`, fallback targets,
+reasoning effort, `permission_mode`, skills, MCP servers, runtime limits, and
+tool policy. Portal-managed agents currently round-trip the legacy
+`tool`/`provider`/`capacityAccount`/`model` fields more reliably than the
+newer structured `runtimePolicy`; see the portal operations skill before
+editing them.
 
-```yaml
-models:
-  primary:
-    model: claude-opus-4-8
-    tool: claude
-  secondary:
-    model: gpt-5.5
-    tool: codex
-  cheap:
-    model: claude-haiku-4-5
-    tool: claude
+Provider fallback, invocation attempts, and session continuations are
+different from workflow rework:
 
-agents:
-  default:
-    model: claude-sonnet-4-6
-    tool: claude
-    tool_profile: main
+- provider target/fallback: choose a runnable backend
+- invocation attempt: retry a classified transient provider failure
+- continuation: continue the same agent session when supported
+- semantic rework: run a workflow phase again because its verdict requested it
 
-  implementer:
-    system_prompt: |
-      You implement code changes. Write clean, type-safe code.
-    models:
-      - primary
-      - secondary
-    mcp_servers: ["animus", "context7"]
-```
+`runtime.retry_on` and `runtime.no_retry_on` currently parse but do not drive
+the runner's hard-coded transient-error classification. Do not use them as a
+load-bearing reliability policy.
 
-The top-level `models:` registry lets agents reference named model entries instead of repeating full model/tool pairs. The first named model becomes the primary model and the rest become fallbacks. A `models:` list is authoritative: it clears inherited fallbacks and overrides a profile `tool`. Names not found in the registry are treated as literal model ids. When `tool` is omitted on a registry entry, it is auto-derived from the model id prefix.
+## Phase modes
 
-### Agent fields
+### Agent
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Display name used in prompts/UI |
-| `description` | string | Agent description |
-| `system_prompt` | string | Instructions for the agent |
-| `system_prompt_file` | string | Load the system prompt from a UTF-8 file at compile time; mutually exclusive with `system_prompt`. Relative paths resolve from the YAML file's parent directory |
-| `role` | string | Agent role identifier |
-| `persona` | object | Personality/style config (`style`, `traits`, `instructions`, `customizations`) |
-| `memory` | object | Project-scoped memory (`enabled`, `scope`, `max_context_chars`, `max_entries`, `write_policy`) |
-| `communication` | object | Channel access (`enabled`, `channels`, `can_message`, `max_context_chars`); pairs with top-level `agent_channels:` |
-| `models` | list | Named entries from the top-level `models:` registry |
-| `model` | string | LLM model ID |
-| `tool` | string | Provider tool (`claude`, `codex`, `gemini`, `opencode`, `oai`, `oai-agent`) |
-| `tool_profile` | string | Named global Claude profile; only valid with Claude |
-| `mcp_servers` | list | MCP server names this agent can access |
-| `fallback_tools` | list | Explicit tools for fallback models |
-| `web_search` | bool | Enable web search |
-| `network_access` | bool | Enable network access |
-| `extra_args` | list | Extra CLI arguments |
-| `fallback_models` | list | Fallback models |
-| `max_attempts` | int | Retry attempts |
-| `max_continuations` | int | Max continuations per phase |
-| `timeout_secs` | int | Agent timeout |
-| `retry_on` / `no_retry_on` | list | (v0.7) Failure-class tokens gating the agent-call retry loop. `no_retry_on` always wins; an empty `retry_on` means retry all transient classes |
-| `reasoning_effort` | string | Provider reasoning effort: `low`/`medium`/`high`; validated at compile time |
-| `permission_mode` | string | Provider permission/approval mode (claude: `default`/`acceptEdits`/`bypassPermissions`/`plan`; codex: `untrusted`/`on-failure`/`on-request`/`never`; gemini: `default`/`auto_edit`/`yolo`). Unknown values warn but pass through. The value is mapped by each provider plugin (transports differ since v0.6.9 — claude native, codex over MCP, gemini/opencode over ACP) |
-| `tool_policy` | object | Allow and deny glob patterns |
-| `approval_policy` | object | Routing for `animus.agent.request_approval` calls — see below |
-| `hooks` | object | Harness-hook policy: `policy_rules[]` (`events`, `tools` globs, `input_matchers`, `decision: deny/ask/allow/defer` — deny always wins, rules only add restriction) and `observers[]` (`events`, `action: record`). Claude-only; kill-switch `ANIMUS_DISABLE_HARNESS_HOOKS` |
-| `skills` | list | Skill identifiers to activate |
-| `capabilities` | object | Boolean capability flags |
-| `project_overrides` | object | Per-project overrides |
-| `codex_config_overrides` | object | Codex-specific overrides |
-
-The merge with base profiles is presence-aware per field: a field written in
-YAML always wins (even when set to its default — `mcp_servers: []` or
-`skills: []` explicitly disable what a pack enabled); an omitted field
-inherits the base profile's value.
-
-### Human-in-the-loop: `approval_policy`
-
-Agents can call the blocking `animus.agent.ask` / `animus.agent.request_approval`
-MCP tools mid-run. In workflow phases these use suspend/resume: the tool
-returns immediately, the workflow pauses, and answering via
-`animus agent interactions answer` resumes the provider session with the
-decision as feedback. `approval_policy` routes approval requests per agent:
-
-```yaml
-agents:
-  implementer:
-    approval_policy:
-      auto_allow: ["cargo *", "git.commit"]
-      auto_deny: ["git.push*"]
-      default: ask        # ask (escalate to a human) | allow | deny | llm
-```
-
-`auto_allow` / `auto_deny` are `*`-glob lists matched against the request's
-`tool_name` (or its `action` when absent); `auto_deny` wins on overlap
-(fail closed).
-
-`default: llm` (v0.6.0+) routes anything the glob lists don't decide to an
-LLM judge instead of a human:
-
-```yaml
-agents:
-  triager:
-    approval_policy:
-      default: llm
-      evaluator_model: claude-haiku-4-5   # defaults to the agent's own model
-      evaluator_instructions: |
-        Allow read-only and test commands. Deny anything that pushes,
-        publishes, or deletes.
-```
-
-The judge runs one-shot with no MCP access; it also auto-answers
-`animus.agent.ask` questions. Evaluator failure falls back to `ask` — it
-never silently allows. Decisions are recorded with `source: "llm"` in the
-interaction log.
-
-### Model routing notes
-
-- `tool_profile` is a Claude-only account routing hook resolved from global Animus config.
-- `fallback_models` and `fallback_tools` can be set directly on the agent or in phase `runtime:`.
-- If an agent uses `models:`, Animus compiles that list into a primary model plus fallbacks.
-
-### Tool options
-
-- `claude` (native)
-- `codex` (driven over MCP since v0.6.9 — `animus-provider-codex-mcp`)
-- `gemini` (driven over ACP since v0.6.9)
-- `opencode` (driven over ACP since v0.6.9)
-- `oai` (one-shot direct API)
-- `oai-agent` (agentic multi-step; the legacy `oai-runner` id still parses
-  but canonicalizes to `oai-agent` — write `oai-agent` in new YAML)
-
-All providers are plugins, not kernel built-ins; `provider_tool` ids and
-model→tool routing are unchanged by the transport differences.
-
-## Phases
-
-### Agent phase
+Use for generation, investigation, synthesis, or judgment. Provide one
+specific directive, the minimum tools/skills, an output contract for
+machine-consumed results, and explicit capabilities.
 
 ```yaml
 phases:
-  implementation:
+  orders-implement:
     mode: agent
     agent: implementer
-    directive: "Implement the task requirements. Write code and commit."
-    runtime:
-      tool_profile: overflow
-      fallback_models:
-        - gpt-5.5
-      fallback_tools:
-        - codex
+    directive: Implement the scoped change and run the named verification.
     capabilities:
-      mutates_state: true
+      writes_files: true
+      requires_commit: true
+    output_contract:
+      allow_missing_decision: false
 ```
 
-### Phase fields
+### Command
 
-| Field | Type | Mode | Description |
-|-------|------|------|-------------|
-| `mode` | string | required | `agent`, `command`, or `manual` |
-| `agent` (alias `agent_id`) | string | agent | Agent profile to spawn |
-| `directive` | string | agent | Task prompt for the phase |
-| `system_prompt` | string | agent | Phase-level system context override |
-| `skills` | list | agent | Skill names to activate for this phase only |
-| `runtime` | object | agent | Overrides: `tool`, `tool_profile`, `model`, `fallback_models`, `fallback_tools`, `reasoning_effort`, `permission_mode`, `web_search`, `network_access`, `timeout_secs`, `max_attempts`, `retry_on`, `no_retry_on`, `extra_args`, `codex_config_overrides`, `max_continuations` |
-| `capabilities` | object | agent | Boolean capability flags |
-| `output_contract` | object | agent | Expected output fields and types |
-| `output_json_schema` | object | agent | JSON schema for phase output |
-| `decision_contract` | object | agent | Required evidence / confidence / risk thresholds |
-| `retry` | object | any | Max attempts and backoff |
-| `default_tool` | string | agent | Preferred tool override |
-| `idempotency` | string | any | Whether the phase is safe to re-run |
-| `worktree` | object/string | any | Worktree mode (`auto`/`required`/`skip`), `cleanup`, `base_ref`; shorthand `worktree: skip` is accepted |
-| `evals` | object | any | Quality gate: `checks` (`kind: command` or `kind: llm_judge`), `pass_threshold`, `on_fail` (`rework`/`block`), `max_reworks`. Parsed and validated, but NOT yet executed by the workflow runner — phases advance regardless, and declaring `evals:` emits a declared-but-unenforced warning in `workflow config validate`/`compile` |
-| `command` | object | command | Program spec (required for command mode) |
-| `manual` | object | manual | Human instructions (required for manual mode) |
-
-`runtime.reasoning_effort` and `runtime.permission_mode` cascade
-**phase runtime → agent profile** (a non-empty phase value wins), mirroring
-`model` and `tool`. `permission_mode` is handed to the provider plugin, which
-maps it onto its own transport (claude `--permission-mode` natively; codex and
-gemini/opencode map it inside their MCP/ACP drivers since v0.6.9); the
-`--permission-mode` flag on `animus agent run` / `animus chat send` overrides
-both. The ad-hoc surfaces honour `permission_mode` today; workflow phase
-execution enforces it once the out-of-tree workflow-runner plugin pin
-consumes the field.
-
-### Skills on agents vs phases
-
-Skills attach at two points, both as plain lists of skill names:
+Use for deterministic checks and transforms. The program is spawned directly,
+not through a shell: pipes, redirects, globbing, variable expansion, and
+compound commands do not work unless the explicitly allowlisted program is a
+shell or a durable script invoked by its interpreter.
 
 ```yaml
-agents:
-  reviewer:
-    model: claude-sonnet-4-6
-    tool: claude
-    skills: [code-review]      # active in every phase this agent runs
-
 phases:
-  review:
-    mode: agent
-    agent: reviewer
-    directive: Review the diff.
-    skills: [security-lens]    # active in this phase only
-```
-
-Phase skills actually reach workflow phase agents as of v0.5.14 (requires
-workflow-runner >= v0.4.2 — `animus daemon preflight` warns, non-fatally,
-when the installed runner is below that floor). How it works:
-
-- The phase's effective skill set is the **union** of the phase-level
-  `skills:` list and the executing agent profile's `skills:` (phase entries
-  first, deduplicated). A workflow-YAML `agents.<id>.skills` declaration —
-  even an explicit empty list — replaces the base profile's list; omit it to
-  inherit.
-- The daemon resolves skill names at workflow dispatch time against the same
-  scoped sources and trust rules as the ad-hoc `--skill` path
-  (project > user > installed > agent-host prompt-only), and ships the
-  resolved definitions to the workflow runner via the
-  `ANIMUS_PHASE_SKILLS_JSON` spawn environment.
-- Activation gating (`activation.tools` / `activation.models`) is evaluated
-  at phase execution against the tool/model the runner actually selects.
-  Applied skills inject prompt fragments (system/prefix/suffix/directives),
-  tool policy, MCP server attachments (resolved by name against
-  `mcp_servers:`; unknown names warn and are skipped), launch args/env, and
-  capability overrides.
-- A skill name that does not resolve is a loud dispatch-log warning plus a
-  `missing` record in the phase execution metadata — never a hard failure.
-  Explicit `skills:` declarations are also checked at compile/validate time:
-  unresolvable names WARN in `animus workflow config validate` / `compile`.
-- Verify after the fact: `animus output phase-outputs --workflow-id <id>`
-  shows per-phase requested/applied/missing skills;
-  `animus workflow prompt render` previews the skill-injected prompt.
-
-Put role-defining skills on the agent and phase-specific lenses on the phase.
-
-### Command phase
-
-Use command phases for deterministic operations.
-
-```yaml
-  push-branch:
+  orders-test:
     mode: command
-    directive: "Push the current branch to origin"
     command:
-      program: git
-      args: ["push", "-u", "origin", "HEAD"]
+      program: npm
+      args: ["test", "--", "orders"]
       cwd_mode: task_root
-      timeout_secs: 60
-      success_exit_codes: [0]
-      parse_json_output: false
+      timeout_secs: 300
 ```
 
-#### `cwd_mode`
+Always set `cwd_mode` for repo-sensitive commands. Use `task_root` for the
+managed task checkout, `project_root` only for intentional main-repo work, or
+`path` with a confined `cwd_path`. The executable basename must be in the
+daemon's command tool allowlist.
 
-- `task_root` for worktree-local git, build, and test commands.
-- `project_root` for repo-level commands.
-- `path` for a custom relative directory with `cwd_path`.
-
-**Always set `cwd_mode` explicitly.** A YAML-omitted `cwd_mode` resolves to
-`project_root` in the YAML parser while the struct-level serde default is
-`task_root` — relying on the default gets you different behavior depending on
-which layer materialized the phase.
-
-**Where commands run (v0.7):** when the workflow resolves to an execution
-environment (see top-level-and-routing.md "Execution environments"), command
-phases execute **inside the run's shared broker node** — the same ephemeral
-environment as the agent phases, with state persisting across phases of the
-run. Without an environment, they run locally per `cwd_mode` in the
-worktree/project root as before.
-
-Advanced command fields also include:
-
-- `env`
-- `success_exit_codes` (default `[0]`, must be non-empty)
-- `parse_json_output`
-- `expected_result_kind`
-- `expected_schema`
-- `failure_pattern` (regex over output)
-- `on_success_verdict` / `on_failure_verdict` — free-form verdict strings;
-  this is how a command phase mints **custom verdicts** that the workflow's
-  per-phase `on_verdict` map routes (e.g. `on_failure_verdict: needs-rebase`
-  routed to a `rebase-on-main` phase)
-- `confidence`
-- `failure_risk`
-
-#### Structured phase decisions from scripts
-
-With `parse_json_output: true`, the command's stdout is parsed for a single
-JSON `phase_decision` object:
+A nonzero command exit is normally converted to a semantic failure/rework
+outcome rather than a runner crash. For routing, set `parse_json_output: true`
+and print exactly one decision object:
 
 ```json
-{"kind": "phase_decision", "verdict": "advance", "reason": "...",
- "confidence": 0.9, "risk": "low", "target_phase": null, "outputs": {}}
+{"kind":"phase_decision","verdict":"advance","reason":"checks passed","outputs":{"suite":"orders"}}
 ```
 
-`verdict` may be `advance` / `rework` / `skip` / `fail` or any custom string
-routed by `on_verdict`. The runner injects context for the script:
-`ANIMUS_SUBJECT_ID` (kind-qualified), `ANIMUS_SUBJECT_NATIVE_ID`,
-`ANIMUS_SUBJECT_KIND`, `ANIMUS_SUBJECT_TITLE`, `ANIMUS_SUBJECT_STATUS`,
-`ANIMUS_WORKFLOW_REF`, `ANIMUS_WORKFLOW_ID` (run id), `ANIMUS_PHASE_ID`,
-`ANIMUS_PROJECT_ROOT`, `ANIMUS_EXECUTION_CWD`, `ANIMUS_DISPATCH_INPUT`, and
-`ANIMUS_CONTEXT_FILE` — a JSON file with the full subject (including its
-`data`/custom bag), workflow ref/run/phase ids, prior completed phases with
-their verdicts and outputs, and the dispatch input.
+Supported fields include `verdict`, `reason`, `confidence`, `risk`,
+`target_phase`, and `outputs`. Without JSON parsing, stdout is evidence/log
+text and cannot drive `on_verdict`. A deterministic failure should usually
+fail cleanly; route it to a remediation phase only when the route is
+intentional, safe, and bounded.
 
-On portal deployments, the `phase_context_schema` MCP tool returns this whole
-contract as one JSON document, and the `script_*` MCP tools maintain a durable
-script registry (scripts materialized under `/data/animus-state/scripts/`) so
-command phases can reference team-editable scripts instead of inline args —
-see the animus-workflow-patterns skill for the pattern.
+### Manual
 
-### Manual phase
+Use when a human must authorize, choose, or supply data. A manual phase pauses
+the workflow until answered. Do not hold a run open for ordinary business
+waiting that may last hours or days; finish a bounded proposal workflow and
+launch a continuation when the external approval event arrives.
+
+## Capabilities are execution authority
+
+| Capability | Meaning |
+|---|---|
+| `writes_files: true` | Agent may create or edit repository files and receives write-capable provider posture where supported. |
+| `mutates_state: true` | Agent may mutate approved managed/external state but is explicitly told not to edit repo files unless `writes_files` is also true. |
+| `requires_commit: true` | A commit is part of successful completion; pair with `writes_files`. |
+| `enforce_product_changes: true` | Require meaningful product changes rather than only metadata/report output. |
+
+Name-based defaults exist for a small set of legacy phase IDs such as exact
+`implementation`. They are compatibility sugar, not policy. Custom phase IDs
+must declare their capabilities explicitly.
+
+When the active runner/provider combination transports it, `permission_mode`
+changes provider approval posture; the current portal path supports it, while
+older/local combinations must be verified. It is never an authorization
+boundary. Enforce sensitive authority with server-side scopes, actor/resource
+checks, narrowly assigned MCP servers, tool allowlists, capabilities, and
+human approval where required.
+
+## Skills and MCP context
+
+Effective phase skills are the phase list followed by the agent list, with
+deduplication. The daemon resolves them at dispatch and stages definitions in
+a per-run directory exposed as `ANIMUS_PHASE_SKILLS_DIR`. The former
+`ANIMUS_PHASE_SKILLS_JSON` payload was removed because large environment
+values can prevent process spawn. Missing skills are recorded/warned and may
+not fail autonomous dispatch; validate prerequisites before publication.
+
+Treat skill content as guidance, not authority. MCP tool availability is
+controlled separately. Assign an agent only the servers it needs and enforce
+permissions on the server. Actor-bound workflow MCP intentionally exposes a
+smaller surface than a management MCP server.
+
+## Decisions, outputs, and routing
+
+Prefer `advance`, `rework`, and `fail`. Custom verdict strings can route via
+`on_verdict`; agent-selected `target_phase` is honored only when explicitly
+enabled and allowlisted.
+
+Require machine-critical decisions with `allow_missing_decision: false` and
+validate their output shape. Current lifecycle code does not fully enforce all
+declared `min_confidence`, `max_risk`, or named-evidence requirements; add a
+deterministic later gate when these are safety-critical.
+
+Prior phase payload variables expose top-level scalar values. Nested
+objects/arrays are not a dependable variable handoff, duplicate keys can be
+overwritten by later phases, and reserved workflow variables win. Use a small
+explicit scalar contract or a durable artifact/record for complex handoffs.
+
+## Rework and retries
+
+The lifecycle resolves the rework target first, checks that target phase's
+retry config, and increments that target's durable rework counter. Here
+`max_attempts` means permitted re-entries, not total executions: `1` permits
+one remediation and therefore at most two executions of the target.
 
 ```yaml
-  review-gate:
-    mode: manual
-    directive: "Code review must pass before merge"
-    manual:
-      instructions: "Review the code changes and approve or reject"
-      approval_note_required: false
-      timeout_secs: 86400
+phases:
+  orders-implement:
+    mode: agent
+    agent: implementer
+    capabilities:
+      writes_files: true
+    retry:
+      max_attempts: 1
+
+  orders-review:
+    mode: agent
+    agent: reviewer
+
+workflows:
+  - id: orders-delivery
+    phases:
+      - orders-implement
+      - orders-review:
+          on_verdict:
+            rework:
+              target: orders-implement
 ```
 
-Manual phases require a `manual:` block. Command phases require a `command:` block.
+Rich workflow-step `max_rework_attempts` is accepted and validated but is not
+the counter used by the rc.50 lifecycle. Transition `guard` is also not
+evaluated. Every cycle must therefore have a deterministic escape and rely on
+`phases.<target>.retry.max_attempts`.
+
+## Evaluations
+
+`evals` can run command checks and `llm_judge` checks after an advancing phase
+decision on current runners. Checks run sequentially; the pass rate is
+compared with `pass_threshold`. `on_fail: rework` repeats up to `max_reworks`,
+then blocks; `on_fail: block` blocks immediately. An inoperable check fails
+closed.
+
+This is runner-version dependent. The older runner pinned by the rc.50 CLI
+default-install manifest does not execute evals; portal runner 0.4.71 does.
+Additionally, current eval rework counters are in-memory and reset across a
+runner restart/resume. Keep an independently bounded lifecycle retry and do
+not use eval counts as durable business-state authority.
